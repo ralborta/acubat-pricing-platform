@@ -1,29 +1,7 @@
 {
   "version": 2,
-  "name": "acubat-pricing-platform",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
-  "framework": "nextjs",
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 30,
-      "runtime": "nodejs18.x"
-    }
-  },
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/$1"
-    }
-  ]
+  "framework": "nextjs"
 }
