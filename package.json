@@ -10,7 +10,10 @@
     "build": "next build",
     "start": "next start",
     "start:backend": "node server/index.js",
-    "lint": "next lint"
+    "lint": "next lint",
+    "vercel-build": "bash vercel-build.sh",
+    "vercel-dev": "vercel dev",
+    "vercel-deploy": "vercel --prod"
   },
   "dependencies": {
     "next": "14.0.0",
@@ -52,5 +55,8 @@
     "typescript": "^5.2.2",
     "nodemon": "^3.0.2",
     "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
