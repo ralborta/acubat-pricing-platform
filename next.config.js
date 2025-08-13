@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Configuración básica para Next.js 14
+  reactStrictMode: true,
+  // Sin output: 'export' para permitir SSR y API routes
 }
 
 module.exports = nextConfig
