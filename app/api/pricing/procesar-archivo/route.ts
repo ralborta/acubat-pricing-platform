@@ -59,9 +59,30 @@ function calcularRentabilidad(margen: number, marca: string, canal: string) {
 // TABLA DE EQUIVALENCIAS COMPLETA basada en la imagen del usuario
 const TABLA_EQUIVALENCIAS = [
   // 12X45 - Baterías pequeñas
-  { codigo_baterias: "M40FD", tipo: "12X45", precio_varta: 79839.29 },
-  { codigo_baterias: "M18FD", tipo: "12X45", precio_varta: 79839.29 },
-  { codigo_baterias: "M22ED", tipo: "12X45", precio_varta: 79839.29 },
+  { modelo: "12X45", precio_varta: 79839.29, codigos: ["M40FD", "M18FD", "M22ED"] },
+  // 12X50
+  { modelo: "12X50", precio_varta: 80802.12, codigos: ["M20GD", "M22GD", "M22GI"] },
+  // 12X65 - Baterías medianas
+  { modelo: "12X65", precio_varta: 85956.09, codigos: ["M26AD", "M26AI", "M24KD"] },
+  // 12X75 - Baterías estándar
+  { modelo: "12X75", precio_varta: 114897.59, codigos: ["M28KD", "M28KI", "M30LD", "M30LI", "ME80CD", "ME95QD"] },
+  // 12X80 BORA
+  { modelo: "12X80 BORA", precio_varta: 116917.65, codigos: ["M18SD", "M22JD", "M22RD", "M22RI"] },
+  // 12X85 HILUX
+  { modelo: "12X85 HILUX", precio_varta: 114897.59, codigos: ["ME90TD", "ME90TI"] },
+  // 12X90 SPRINTER
+  { modelo: "12X90 SPRINTER", precio_varta: 116917.65, codigos: ["ME100HA"] },
+  // 12X110 - Baterías grandes
+  { modelo: "12X110", precio_varta: 153373.00, codigos: ["ME135BD", "ME150BD", "ME180BD", "ME180BI"] },
+  // 12X180 - Baterías extra grandes
+  { modelo: "12X180", precio_varta: 244143.23, codigos: ["ME220PD/I", "ME23UI"] },
+  // 12X220 - Baterías industriales
+  { modelo: "12X220", precio_varta: 302856.92, codigos: ["MF60AD", "MF72LD"] },
+  // Categorías especiales
+  { modelo: "TRACT. CESPED", precio_varta: 79839.29, codigos: ["TRACT. CESPED"] },
+  { modelo: "L2", precio_varta: 79839.29, codigos: ["L2"] },
+  { modelo: "L3", precio_varta: 80802.12, codigos: ["L3"] }
+];
   
   // 12X50
   { codigo_baterias: "M20GD", tipo: "12X50", precio_varta: 80802.12 },
@@ -156,11 +177,28 @@ function procesarArchivoCSV(csvContent: string) {
 function calcularPricingCorrecto(productos: any[], equivalencias: any[]) {
   return productos.map(producto => {
     const codigoBaterias = producto.codigo_baterias || producto.modelo;
-    const marca = normalizarMarca(producto.marca);
-    const canal = normalizarCanal(producto.canal);
     
-    // Buscar equivalencia por código de batería
-    const equivalencia = equivalencias.find((eq: any) => eq.codigo_baterias === codigoBaterias);
+    // Si solo tenemos codigo_baterias, asignar marca y canal automáticamente
+    let marca: string;
+    let canal: string;
+    
+    if (producto.marca && producto.canal) {
+      // Archivo completo con marca y canal
+      marca = normalizarMarca(producto.marca);
+      canal = normalizarCanal(producto.canal);
+    } else {
+      // Solo codigo_baterias - asignar automáticamente
+      marca = "Otros"; // Por defecto
+      canal = "Retail"; // Por defecto
+      
+      // Detectar si es Varta basándose en el código
+      if (codigoBaterias && (codigoBaterias.startsWith('MF') || codigoBaterias.includes('EFB'))) {
+        marca = "Varta";
+      }
+    }
+    
+    // Buscar equivalencia por código de batería en el array de códigos
+    const equivalencia = equivalencias.find((eq: any) => eq.codigos.includes(codigoBaterias));
     
     if (!equivalencia) {
       return {
@@ -209,7 +247,7 @@ function calcularPricingCorrecto(productos: any[], equivalencias: any[]) {
       marca_original: producto.marca,
       marca_normalizada: marca,
       canal_normalizado: canal,
-      tipo_varta: equivalencia.tipo,
+      tipo_varta: equivalencia.modelo,
       precio_base_varta: precioBaseVarta,
       precio_final: precioFinal,
       margen: margen,
