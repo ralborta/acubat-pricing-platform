@@ -115,7 +115,7 @@ function calcularPricingCorrecto(productos: any[], equivalencias: any[]) {
       const eqNumeros = eqModeloLower.match(/\d+/g);
       
       if (modeloNumeros && eqNumeros) {
-        return modeloNumeros.some(num => eqNumeros.includes(num));
+        return modeloNumeros.some((num: string) => eqNumeros.includes(num));
       }
       
       return false;
