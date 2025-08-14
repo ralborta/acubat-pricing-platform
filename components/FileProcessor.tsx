@@ -38,66 +38,82 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
   // Exponer la función processFile al componente padre
   useImperativeHandle(ref, () => ({
     processFile: async (file: File) => {
-      const newFile: ProcessedFile = {
-        id: Date.now().toString(),
-        name: file.name,
-        type: file.type || 'unknown',
-        size: file.size,
-        status: 'processing',
-        progress: 0
-      }
-
-      setProcessedFiles(prev => [...prev, newFile])
-
       try {
-        // Simular progreso inicial
-        for (let i = 0; i <= 30; i += 10) {
-          await new Promise(resolve => setTimeout(resolve, 100))
-          setProcessedFiles(prev => prev.map(f => 
-            f.id === newFile.id ? { ...f, progress: i } : f
-          ))
-        }
+        console.log('🚀 Iniciando procesamiento de archivo:', file.name)
         
+        const newFile: ProcessedFile = {
+          id: Date.now().toString(),
+          name: file.name,
+          type: file.type || 'unknown',
+          size: file.size,
+          status: 'processing',
+          progress: 0
+        }
+
+        setProcessedFiles(prev => [...prev, newFile])
+
         // Crear FormData para enviar al backend
         const formData = new FormData()
         formData.append('archivo', file)
         
-        // Simular progreso de procesamiento
-        for (let i = 30; i <= 80; i += 10) {
-          await new Promise(resolve => setTimeout(resolve, 150))
-          setProcessedFiles(prev => prev.map(f => 
-            f.id === newFile.id ? { ...f, progress: i } : f
-          ))
-        }
+        console.log('📁 Archivo a enviar:', {
+          nombre: file.name,
+          tamaño: file.size,
+          tipo: file.type,
+          formDataEntries: Array.from(formData.entries())
+        })
+        
+        console.log('🚀 Enviando archivo al backend...', file.name)
         
         // Enviar archivo al backend para procesamiento REAL
         const response = await fetch('/api/pricing/procesar-archivo', {
           method: 'POST',
           body: formData,
-          // Nota: No incluimos headers de Authorization por ahora
-          // En producción necesitarías incluir el token JWT
         })
         
+        console.log('📡 Respuesta del backend:', response.status, response.statusText)
+        
         if (!response.ok) {
-          throw new Error(`Error del servidor: ${response.status}`)
+          const errorText = await response.text()
+          console.error('❌ Error del servidor:', errorText)
+          throw new Error(`Error del servidor: ${response.status} - ${errorText}`)
         }
         
         const data = await response.json()
-        
-        // Simular progreso final
-        for (let i = 80; i <= 100; i += 10) {
-          await new Promise(resolve => setTimeout(resolve, 100))
-          setProcessedFiles(prev => prev.map(f => 
-            f.id === newFile.id ? { ...f, progress: i } : f
-          ))
-        }
+        console.log('✅ Datos recibidos del backend:', data)
         
         // Guardar resultados REALES del backend
         const results = {
-          totalRows: data.estadisticas.total_productos,
-          validRows: data.estadisticas.productos_rentables,
-          errors: data.estadisticas.productos_no_rentables,
-          summary: `Archivo procesado exitosamente. ${data.estadisticas.total_productos} productos analizados con margen promedio de ${data.estadisticas.margen_promedio}%`,
+          totalRows: data.estadisticas?.total_productos || 0,
+          validRows: data.estadisticas?.productos_rentables || 0,
+          errors: data.estadisticas?.productos_no_rentables || 0,
+          summary: `Archivo procesado exitosamente. ${data.estadisticas?.total_productos || 0} productos analizados.`,
+          // Datos adicionales del backend
+          backendData: data,
+          productos: data.productos || [],
+          estadisticas: data.estadisticas || {}
+        }
+        
+        setProcessedFiles(prev => prev.map(f => 
+          f.id === newFile.id ? { 
+            ...f, 
+            status: 'completed', 
+            progress: 100, 
+            results,
+            processedAt: new Date()
+          } : f
+        ))
+        
+      } catch (error) {
+        console.error('❌ Error procesando archivo:', error)
+        
+        // Marcar como error - buscar el archivo por nombre ya que newFile puede no estar definido
+        setProcessedFiles(prev => prev.map(f => 
+          f.name === file.name ? { ...f, status: 'error', progress: 0, results: undefined, processedAt: new Date() } : f
+        ))
+      }
+    }
+  }))
           // Datos adicionales del backend
           backendData: data,
           productos: data.productos,
