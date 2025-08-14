@@ -14,6 +14,7 @@ import {
   Search
 } from 'lucide-react'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
 const menuItems = [
   {
@@ -70,6 +71,7 @@ const menuItems = [
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [activeItem, setActiveItem] = useState('dashboard')
+  const router = useRouter()
 
   return (
     <div className={`bg-gray-100 h-screen flex flex-col transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
@@ -115,7 +117,15 @@ export default function Sidebar() {
           return (
             <button
               key={item.id}
-              onClick={() => setActiveItem(item.id)}
+              onClick={() => {
+                setActiveItem(item.id)
+                // Navegar a la página correspondiente
+                if (item.id === 'dashboard') {
+                  router.push('/')
+                } else {
+                  router.push(`/${item.id}`)
+                }
+              }}
               className={`
                 w-full text-left p-3 rounded-lg transition-all duration-200 flex items-center gap-3
                 ${isActive 
