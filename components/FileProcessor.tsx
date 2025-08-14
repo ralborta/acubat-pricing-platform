@@ -119,7 +119,7 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
         
         // Marcar como error
         setProcessedFiles(prev => prev.map(f => 
-          f.id === newFile.id ? { ...f, status: 'error', progress: 0, results: null, processedAt: new Date() } : f
+          f.id === newFile.id ? { ...f, status: 'error', progress: 0, results: undefined, processedAt: new Date() } : f
         ))
       }
     }
