@@ -47,20 +47,20 @@ export async function POST(request: NextRequest) {
     const worksheet = workbook.Sheets[sheetName]
     
     // Convertir a JSON
-    const datosExcel = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+    const datosExcel = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][]
     
     console.log('📋 API: Datos leídos del Excel:', datosExcel.slice(0, 3)) // Primeras 3 filas
     console.log('📊 API: Total de filas:', datosExcel.length)
     
     // PROCESAR DATOS PARA PRICING
-    const headers = datosExcel[0] as string[] // Primera fila como headers
+    const headers = (datosExcel[0] || []) as string[] // Primera fila como headers
     const filas = datosExcel.slice(1) // Resto de filas como datos
     
     console.log('📋 API: Headers detectados:', headers)
     
     // Mapear datos a estructura de pricing
-    const datosProcessados = filas.map((fila: any[], index: number) => {
-      const registro: any = {}
+    const datosProcessados = filas.map((fila: unknown[], index: number) => {
+      const registro: Record<string, unknown> = {}
       
       // Mapear cada columna según los headers
       headers.forEach((header, colIndex) => {
@@ -84,18 +84,21 @@ export async function POST(request: NextRequest) {
     console.log('📋 API: Muestra de datos procesados:', datosProcessados.slice(0, 2))
     
     // APLICAR LÓGICA DE PRICING
-    const datosPricing = datosProcessados.map((registro, index) => {
+    const datosPricing = datosProcessados.map((registro: Record<string, unknown>, index: number) => {
       // Aquí puedes aplicar tu lógica de pricing específica
       // Por ejemplo, buscar precios, aplicar descuentos, etc.
+      
+      const precioVarta = typeof registro.precio_varta === 'number' ? registro.precio_varta : 0
+      const codigoBaterias = typeof registro.codigo_baterias === 'string' ? registro.codigo_baterias : `item_${index + 1}`
       
       return {
         ...registro,
         // Campos de pricing calculados
-        precio_base: registro.precio_varta || 0,
+        precio_base: precioVarta,
         descuento_aplicado: 0.1, // 10% ejemplo
-        precio_final: (registro.precio_varta || 0) * 0.9,
+        precio_final: precioVarta * 0.9,
         estado_pricing: 'procesado',
-        observaciones: `Precio calculado para ${registro.codigo_baterias || 'item ' + (index + 1)}`
+        observaciones: `Precio calculado para ${codigoBaterias}`
       }
     })
     
