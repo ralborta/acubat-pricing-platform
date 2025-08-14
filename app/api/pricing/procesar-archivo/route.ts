@@ -5,7 +5,43 @@ import * as XLSX from 'xlsx'
 // CONFIGURACIÓN GLOBAL DEL SISTEMA DE PRICING
 // ============================================================================
 
-const CONFIGURACION_SISTEMA = {
+type Marca = 'Varta' | 'Moura' | 'Otros'
+type Canal = 'Retail' | 'Mayorista' | 'Online'
+type TipoRedondeo = 'multiplo100' | 'multiplo50' | 'multiplo25'
+
+interface ConfiguracionMarkups {
+  [key: string]: {
+    [key: string]: number
+  }
+}
+
+interface ConfiguracionRentabilidad {
+  [key: string]: {
+    [key: string]: {
+      margen_minimo: number
+      alerta: string
+    }
+  }
+}
+
+interface ConfiguracionRedondeo {
+  [key: string]: TipoRedondeo
+}
+
+interface ConfiguracionAlertas {
+  margen_critico: number
+  precio_maximo: number
+  diferencia_maxima: number
+}
+
+interface ConfiguracionSistema {
+  markups: ConfiguracionMarkups
+  rentabilidad: ConfiguracionRentabilidad
+  redondeo: ConfiguracionRedondeo
+  alertas: ConfiguracionAlertas
+}
+
+const CONFIGURACION_SISTEMA: ConfiguracionSistema = {
   // MARKUPS POR MARCA Y CANAL
   markups: {
     "Varta": {
