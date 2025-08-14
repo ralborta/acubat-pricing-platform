@@ -29,12 +29,35 @@ export default function CargaArchivos() {
     setUploadStatus('idle')
 
     try {
-      // Simular upload - aquí conectarías con tu API real
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      console.log('🚀 Iniciando subida real de archivos...')
+      
+      // Subir cada archivo al backend
+      for (const file of files) {
+        console.log('📁 Subiendo archivo:', file.name)
+        
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        const response = await fetch('/api/pricing/procesar-archivo', {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (!response.ok) {
+          const errorData = await response.text()
+          console.error('❌ Error subiendo archivo:', errorData)
+          throw new Error(`Error del servidor: ${response.status} - ${errorData}`)
+        }
+        
+        const result = await response.json()
+        console.log('✅ Archivo subido exitosamente:', result)
+      }
       
       setUploadStatus('success')
-      // NO limpiar archivos aquí, mantenerlos para procesar
+      console.log('🎉 Todos los archivos subidos correctamente')
+      
     } catch (error) {
+      console.error('💥 Error en la subida:', error)
       setUploadStatus('error')
     } finally {
       setUploading(false)
