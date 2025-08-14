@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.11",
+    "@types/xlsx": "^0.0.35",
     "autoprefixer": "^10.4.21",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.0",
@@ -39,7 +40,8 @@
     "react-chartjs-2": "^5.2.0",
     "react-dom": "18.2.0",
     "tailwind-merge": "^2.0.0",
-    "tailwindcss": "^4.1.11"
+    "tailwindcss": "^4.1.11",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/config-array": "^0.21.0",
