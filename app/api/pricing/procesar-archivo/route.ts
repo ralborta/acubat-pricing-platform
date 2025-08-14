@@ -125,7 +125,9 @@ function procesarArchivoCSV(csvContent: string) {
 // FUNCIÓN PRINCIPAL: CÁLCULO DE PRICING CORRECTO
 function calcularPricingCorrecto(productos: any[], equivalencias: any[]) {
   return productos.map(producto => {
-    const codigoBaterias = producto.codigo_baterias || producto.modelo;
+    const codigoBaterias = producto.codigo_baterias || producto['CODIGO BATERIAS'] || producto.modelo;
+    
+    console.log('🔍 Procesando producto:', { codigoBaterias, producto });
     
     // Si solo tenemos codigo_baterias, asignar marca y canal automáticamente
     let marca: string;
