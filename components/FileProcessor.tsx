@@ -113,33 +113,7 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
         ))
       }
     }
-  }))
-          // Datos adicionales del backend
-          backendData: data,
-          productos: data.productos,
-          estadisticas: data.estadisticas
-        }
-        
-        setProcessedFiles(prev => prev.map(f => 
-          f.id === newFile.id ? { 
-            ...f, 
-            status: 'completed', 
-            progress: 100, 
-            results,
-            processedAt: new Date()
-          } : f
-        ))
-        
-      } catch (error) {
-        console.error('Error procesando archivo:', error)
-        
-        // Marcar como error
-        setProcessedFiles(prev => prev.map(f => 
-          f.id === newFile.id ? { ...f, status: 'error', progress: 0, results: undefined, processedAt: new Date() } : f
-        ))
-      }
-    }
-  }))
+
 
   const generateSummary = (fileName: string) => {
     const summaries = [
