@@ -31,19 +31,29 @@ export async function POST(request: NextRequest) {
       const bytes = await file.arrayBuffer()
       const buffer = Buffer.from(bytes)
       
+      console.log('📁 Archivo convertido a buffer:', buffer.length, 'bytes')
+      
       // Leer Excel con XLSX
       const workbook = XLSX.read(buffer, { type: 'buffer' })
+      console.log('📚 Workbook leído, hojas disponibles:', workbook.SheetNames)
+      
       const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+      console.log('📋 Primera hoja seleccionada:', workbook.SheetNames[0])
       
       // Convertir a JSON
       const datosExcel = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][]
       
       console.log('📋 Headers detectados:', datosExcel[0])
       console.log('📊 Total filas:', datosExcel.length - 1)
+      console.log('🔍 Primera fila de datos:', datosExcel[1])
+      console.log('🔍 Segunda fila de datos:', datosExcel[2])
       
       // Extraer headers y datos
       const headers = (datosExcel[0] || []) as string[]
       const filas = datosExcel.slice(1)
+      
+      console.log('📝 Headers extraídos:', headers)
+      console.log('📊 Filas extraídas:', filas.length)
       
       // Convertir filas a objetos con los headers
       const datosReales = filas.map((fila: unknown[], index: number) => {
@@ -59,16 +69,22 @@ export async function POST(request: NextRequest) {
       })
       
       console.log('✅ Datos reales extraídos:', datosReales.length, 'registros')
-      console.log('📝 Primer registro:', datosReales[0])
+      console.log('📝 Primer registro procesado:', datosReales[0])
+      console.log('📝 Segundo registro procesado:', datosReales[1])
+      console.log('🔍 Claves del primer registro:', Object.keys(datosReales[0] || {}))
       
       // APLICAR LÓGICA DE PRICING REAL
       console.log('🧮 API: Aplicando pricing real...')
       
       const datosPricing = datosReales.map((registro, index) => {
+        console.log(`🔍 Procesando registro ${index + 1}:`, registro)
+        
         // Extraer datos del registro real
         const codigo = registro.codigo_baterias || registro.codigo || registro.modelo || `PROD_${index + 1}`
         const denominacion = registro.denominacion_comercial || registro.denominacion || registro.descripcion || 'Sin descripción'
         const precioBase = parseFloat(registro.precio_de_lista || registro.precio || registro.precio_lista || '0')
+        
+        console.log(`📊 Datos extraídos - Código: ${codigo}, Denominación: ${denominacion}, Precio: ${precioBase}`)
         
         if (isNaN(precioBase) || precioBase <= 0) {
           console.warn(`⚠️ Precio inválido en fila ${index + 1}:`, precioBase)
@@ -116,6 +132,7 @@ export async function POST(request: NextRequest) {
           equivalenciaVarta = equivalenciasVarta[codigo as keyof typeof equivalenciasVarta]
           marca = 'VARTA'
           multiplicador = 1.35 // +35% para Varta
+          console.log(`🎯 Equivalencia Varta encontrada para ${codigo}:`, equivalenciaVarta)
         }
         
         // Calcular precios
@@ -123,6 +140,8 @@ export async function POST(request: NextRequest) {
         const precioFinal = Math.round(precioReferencia * multiplicador)
         const utilidad = precioFinal - precioBase
         const porcentajeUtilidad = ((utilidad / precioBase) * 100).toFixed(1)
+        
+        console.log(`💰 Cálculos - Referencia: ${precioReferencia}, Final: ${precioFinal}, Utilidad: ${utilidad}`)
         
         return {
           // Datos originales
@@ -151,10 +170,14 @@ export async function POST(request: NextRequest) {
       })
       
       console.log('✅ API: Pricing real aplicado:', datosPricing.length, 'registros')
+      console.log('📊 Primer producto procesado:', datosPricing[0])
       
       // Filtrar productos válidos y con error
       const productosValidos = datosPricing.filter(p => p.estado === 'PROCESADO')
       const productosConError = datosPricing.filter(p => p.estado === 'ERROR')
+      
+      console.log('✅ Productos válidos:', productosValidos.length)
+      console.log('❌ Productos con error:', productosConError.length)
       
       // Estadísticas REALES
       const estadisticas = {
@@ -175,6 +198,8 @@ export async function POST(request: NextRequest) {
         utilidad_total_estimada: productosValidos.reduce((sum, r) => sum + r.utilidad_estimada, 0)
       }
       
+      console.log('📈 Estadísticas calculadas:', estadisticas)
+      
       // Resultado final con datos REALES
       const resultado = {
         success: true,
@@ -190,11 +215,19 @@ export async function POST(request: NextRequest) {
           tamaño: file.size,
           tipo: file.type,
           filas_procesadas: datosReales.length
+        },
+        debug_info: {
+          total_bytes: buffer.length,
+          total_filas_excel: datosExcel.length,
+          headers_encontrados: headers,
+          primer_registro: datosReales[0],
+          primer_producto_procesado: datosPricing[0]
         }
       }
       
       console.log('✅ API: Procesamiento REAL completado exitosamente')
       console.log('📊 Estadísticas reales:', estadisticas)
+      console.log('🔍 Información de debug:', resultado.debug_info)
       
       return NextResponse.json(resultado)
       
