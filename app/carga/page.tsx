@@ -39,9 +39,9 @@ export default function CargaArchivos() {
         formData.append('file', file, file.name) // Especificar nombre explícitamente
         
         // Log para verificar FormData
-        for (let [key, value] of formData.entries()) {
+        Array.from(formData.entries()).forEach(([key, value]) => {
           console.log('📦 FormData entry:', key, value instanceof File ? `File: ${value.name}` : value)
-        }
+        })
         
         const response = await fetch('/api/pricing/procesar-archivo', {
           method: 'POST',
