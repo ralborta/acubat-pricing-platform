@@ -36,20 +36,36 @@ export default function CargaArchivos() {
         console.log('📁 Subiendo archivo:', file.name)
         
         const formData = new FormData()
-        formData.append('file', file)
+        formData.append('file', file, file.name) // Especificar nombre explícitamente
+        
+        // Log para verificar FormData
+        for (let [key, value] of formData.entries()) {
+          console.log('📦 FormData entry:', key, value instanceof File ? `File: ${value.name}` : value)
+        }
         
         const response = await fetch('/api/pricing/procesar-archivo', {
           method: 'POST',
-          body: formData
+          body: formData,
+          // Importante: NO especificar Content-Type para FormData
         })
         
-        if (!response.ok) {
-          const errorData = await response.text()
-          console.error('❌ Error subiendo archivo:', errorData)
-          throw new Error(`Error del servidor: ${response.status} - ${errorData}`)
+        console.log('📡 Response status:', response.status)
+        console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()))
+        
+        const responseText = await response.text()
+        console.log('📄 Response raw text:', responseText)
+        
+        let result
+        try {
+          result = JSON.parse(responseText)
+        } catch (parseError) {
+          throw new Error(`Error parsing response: ${responseText}`)
         }
         
-        const result = await response.json()
+        if (!response.ok) {
+          throw new Error(result.error || `Error ${response.status}`)
+        }
+        
         console.log('✅ Archivo subido exitosamente:', result)
       }
       
