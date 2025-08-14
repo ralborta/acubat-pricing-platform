@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, forwardRef, useImperativeHandle } from 'react'
-import { FileText, BarChart3, TrendingUp, Download, Eye, Trash2, CheckCircle, AlertCircle } from 'lucide-react'
+import { FileText, BarChart3, TrendingUp, Download, Eye, Trash2, CheckCircle, AlertCircle, DollarSign } from 'lucide-react'
+import PricingAnalysis from './PricingAnalysis'
 
 interface ProcessedFile {
   id: string
@@ -27,6 +28,8 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
   const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([])
   const [selectedFile, setSelectedFile] = useState<ProcessedFile | null>(null)
   const [showResults, setShowResults] = useState(false)
+  const [showPricingAnalysis, setShowPricingAnalysis] = useState(false)
+  const [currentFileName, setCurrentFileName] = useState('')
 
   // Exponer la función processFile al componente padre
   useImperativeHandle(ref, () => ({
@@ -160,16 +163,21 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
                       )}
                     </div>
 
-                    {/* Barra de progreso */}
+                    {/* Barra de progreso mejorada */}
                     {file.status === 'processing' && (
-                      <div className="w-24">
-                        <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-32">
+                        <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
                           <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500 ease-out shadow-lg"
                             style={{ width: `${file.progress}%` }}
-                          ></div>
+                          >
+                            <div className="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 rounded-full animate-pulse"></div>
+                          </div>
                         </div>
-                        <span className="text-xs text-gray-500">{file.progress}%</span>
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs font-medium text-blue-600">{file.progress}%</span>
+                          <span className="text-xs text-gray-500">Procesando...</span>
+                        </div>
                       </div>
                     )}
 
@@ -182,6 +190,16 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
                         >
                           <Eye className="h-3 w-3 mr-1" />
                           Ver
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCurrentFileName(file.name)
+                            setShowPricingAnalysis(true)
+                          }}
+                          className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-purple-600 hover:bg-purple-700"
+                        >
+                          <DollarSign className="h-3 w-3 mr-1" />
+                          Análisis de Precios
                         </button>
                         <button
                           onClick={() => downloadResults(file)}
@@ -303,6 +321,13 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
           </div>
         </div>
       )}
+
+      {/* Modal de Análisis de Precios */}
+      <PricingAnalysis
+        isVisible={showPricingAnalysis}
+        onClose={() => setShowPricingAnalysis(false)}
+        fileName={currentFileName}
+      />
     </div>
   )
 })
