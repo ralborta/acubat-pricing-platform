@@ -3,13 +3,18 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     console.log('📁 API: Iniciando procesamiento de archivo...')
+    console.log('🔍 API: Headers:', Object.fromEntries(request.headers.entries()))
     
     // Obtener el archivo del FormData
     const formData = await request.formData()
+    console.log('📦 API: FormData keys:', Array.from(formData.keys()))
+    
     const file = formData.get('file') as File
+    console.log('📄 API: Archivo recibido:', file)
     
     if (!file) {
       console.error('❌ API: No se recibió archivo')
+      console.error('❌ API: FormData completo:', Array.from(formData.entries()))
       return NextResponse.json(
         { error: 'No se recibió ningún archivo' }, 
         { status: 400 }
