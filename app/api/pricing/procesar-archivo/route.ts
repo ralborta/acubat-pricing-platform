@@ -452,7 +452,7 @@ const generarResumenFinal = (productos: any[]): any => {
   }
   
   // Análisis por marca
-  const marcas = [...new Set(productos.map((p: any) => p.marca))]
+  const marcas = Array.from(new Set(productos.map((p: any) => p.marca)))
   marcas.forEach(marca => {
     const productosMarca = productos.filter((p: any) => p.marca === marca)
     resumen.analisis_por_marca[marca] = {
@@ -463,7 +463,7 @@ const generarResumenFinal = (productos: any[]): any => {
   })
   
   // Análisis por canal
-  const canales = [...new Set(productos.map((p: any) => p.canal))]
+  const canales = Array.from(new Set(productos.map((p: any) => p.canal)))
   canales.forEach(canal => {
     const productosCanal = productos.filter((p: any) => p.canal === canal)
     resumen.analisis_por_canal[canal] = {
