@@ -1,15 +1,17 @@
 'use client'
 
-import { useState } from 'react'
-import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState, useRef } from 'react'
+import { Upload, FileText, X, CheckCircle, AlertCircle, Play, BarChart3 } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
-import FileProcessor from '@/components/FileProcessor'
+import FileProcessor, { FileProcessorRef } from '@/components/FileProcessor'
 
 export default function CargaArchivos() {
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [processedFiles, setProcessedFiles] = useState<any[]>([])
+  const fileProcessorRef = useRef<FileProcessorRef>(null)
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || [])
@@ -30,13 +32,8 @@ export default function CargaArchivos() {
       // Simular upload - aquí conectarías con tu API real
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // Procesar cada archivo
-      for (const file of files) {
-        await processFile(file)
-      }
-      
       setUploadStatus('success')
-      setFiles([])
+      // NO limpiar archivos aquí, mantenerlos para procesar
     } catch (error) {
       setUploadStatus('error')
     } finally {
@@ -44,10 +41,19 @@ export default function CargaArchivos() {
     }
   }
 
-  const processFile = async (file: File) => {
-    // Simular procesamiento
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.log(`Archivo ${file.name} procesado`)
+  const handleProcessFiles = async () => {
+    if (files.length === 0) return
+
+    // Procesar cada archivo usando el FileProcessor
+    for (const file of files) {
+      if (fileProcessorRef.current && fileProcessorRef.current.processFile) {
+        await fileProcessorRef.current.processFile(file)
+      }
+    }
+
+    // Limpiar archivos después del procesamiento
+    setFiles([])
+    setUploadStatus('idle')
   }
 
   const formatFileSize = (bytes: number) => {
@@ -123,7 +129,10 @@ export default function CargaArchivos() {
                   </div>
                 ))}
               </div>
-              <div className="px-6 py-4 bg-gray-50">
+              
+              {/* Botones de Acción */}
+              <div className="px-6 py-4 bg-gray-50 space-y-3">
+                {/* Botón de Subida */}
                 <button
                   onClick={handleUpload}
                   disabled={uploading}
@@ -141,6 +150,17 @@ export default function CargaArchivos() {
                     </>
                   )}
                 </button>
+
+                {/* Botón de Procesar - Solo visible después de subir exitosamente */}
+                {uploadStatus === 'success' && (
+                  <button
+                    onClick={handleProcessFiles}
+                    className="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Procesar Archivos para Análisis
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -162,7 +182,7 @@ export default function CargaArchivos() {
                   uploadStatus === 'success' ? 'text-green-800' : 'text-red-800'
                 }`}>
                   {uploadStatus === 'success' 
-                    ? 'Archivos subidos exitosamente!' 
+                    ? 'Archivos subidos exitosamente! Ahora puedes procesarlos para análisis.' 
                     : 'Error al subir archivos. Inténtalo de nuevo.'
                   }
                 </span>
@@ -197,8 +217,8 @@ export default function CargaArchivos() {
             </div>
           </div>
 
-          {/* File Processor */}
-          <FileProcessor />
+          {/* File Processor - Conectar con ref */}
+          <FileProcessor ref={fileProcessorRef} />
         </main>
       </div>
     </div>

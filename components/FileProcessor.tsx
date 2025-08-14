@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, forwardRef, useImperativeHandle } from 'react'
 import { FileText, BarChart3, TrendingUp, Download, Eye, Trash2, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface ProcessedFile {
@@ -19,50 +19,56 @@ interface ProcessedFile {
   processedAt?: Date
 }
 
-export default function FileProcessor() {
+export interface FileProcessorRef {
+  processFile: (file: File) => Promise<void>
+}
+
+const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
   const [processedFiles, setProcessedFiles] = useState<ProcessedFile[]>([])
   const [selectedFile, setSelectedFile] = useState<ProcessedFile | null>(null)
   const [showResults, setShowResults] = useState(false)
 
-  // Simular procesamiento de archivos
-  const processFile = async (file: File) => {
-    const newFile: ProcessedFile = {
-      id: Date.now().toString(),
-      name: file.name,
-      type: file.type || 'unknown',
-      size: file.size,
-      status: 'processing',
-      progress: 0
-    }
+  // Exponer la función processFile al componente padre
+  useImperativeHandle(ref, () => ({
+    processFile: async (file: File) => {
+      const newFile: ProcessedFile = {
+        id: Date.now().toString(),
+        name: file.name,
+        type: file.type || 'unknown',
+        size: file.size,
+        status: 'processing',
+        progress: 0
+      }
 
-    setProcessedFiles(prev => [...prev, newFile])
+      setProcessedFiles(prev => [...prev, newFile])
 
-    // Simular proceso de análisis
-    for (let i = 0; i <= 100; i += 10) {
-      await new Promise(resolve => setTimeout(resolve, 200))
+      // Simular proceso de análisis
+      for (let i = 0; i <= 100; i += 10) {
+        await new Promise(resolve => setTimeout(resolve, 200))
+        setProcessedFiles(prev => prev.map(f => 
+          f.id === newFile.id ? { ...f, progress: i } : f
+        ))
+      }
+
+      // Simular resultados
+      const results = {
+        totalRows: Math.floor(Math.random() * 1000) + 100,
+        validRows: Math.floor(Math.random() * 800) + 80,
+        errors: Math.floor(Math.random() * 50) + 5,
+        summary: generateSummary(file.name)
+      }
+
       setProcessedFiles(prev => prev.map(f => 
-        f.id === newFile.id ? { ...f, progress: i } : f
+        f.id === newFile.id ? { 
+          ...f, 
+          status: 'completed', 
+          progress: 100, 
+          results,
+          processedAt: new Date()
+        } : f
       ))
     }
-
-    // Simular resultados
-    const results = {
-      totalRows: Math.floor(Math.random() * 1000) + 100,
-      validRows: Math.floor(Math.random() * 800) + 80,
-      errors: Math.floor(Math.random() * 50) + 5,
-      summary: generateSummary(file.name)
-    }
-
-    setProcessedFiles(prev => prev.map(f => 
-      f.id === newFile.id ? { 
-        ...f, 
-        status: 'completed', 
-        progress: 100, 
-        results,
-        processedAt: new Date()
-      } : f
-    ))
-  }
+  }))
 
   const generateSummary = (fileName: string) => {
     const summaries = [
@@ -299,4 +305,8 @@ export default function FileProcessor() {
       )}
     </div>
   )
-}
+})
+
+FileProcessor.displayName = 'FileProcessor'
+
+export default FileProcessor
