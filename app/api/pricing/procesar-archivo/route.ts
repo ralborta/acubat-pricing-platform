@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
     };
     
     // Estadísticas por marca
-    const marcas = [...new Set(productosConPricing.filter(p => !p.error).map(p => p.marca_normalizada))];
+    const marcas = Array.from(new Set(productosConPricing.filter(p => !p.error).map(p => p.marca_normalizada)));
     marcas.forEach(marca => {
       const productosMarca = productosConPricing.filter(p => !p.error && p.marca_normalizada === marca);
       estadisticas.por_marca[marca] = {
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
     });
     
     // Estadísticas por canal
-    const canales = [...new Set(productosConPricing.filter(p => !p.error).map(p => p.canal_normalizado))];
+    const canales = Array.from(new Set(productosConPricing.filter(p => !p.error).map(p => p.canal_normalizado)));
     canales.forEach(canal => {
       const productosCanal = productosConPricing.filter(p => !p.error && p.canal_normalizado === canal);
       estadisticas.por_canal[canal] = {
