@@ -1,915 +1,158 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as XLSX from 'xlsx'
-
-// ============================================================================
-// CONFIGURACIÓN GLOBAL DEL SISTEMA DE PRICING
-// ============================================================================
-
-type Marca = 'Varta' | 'Moura' | 'Otros'
-type Canal = 'Retail' | 'Mayorista' | 'Online'
-type TipoRedondeo = 'multiplo100' | 'multiplo50' | 'multiplo25'
-
-interface ConfiguracionMarkups {
-  [key: string]: {
-    [key: string]: number
-  }
-}
-
-interface ConfiguracionRentabilidad {
-  [key: string]: {
-    [key: string]: {
-      margen_minimo: number
-      alerta: string
-    }
-  }
-}
-
-interface ConfiguracionRedondeo {
-  [key: string]: TipoRedondeo
-}
-
-interface ConfiguracionAlertas {
-  margen_critico: number
-  precio_maximo: number
-  diferencia_maxima: number
-}
-
-interface ConfiguracionSistema {
-  markups: ConfiguracionMarkups
-  rentabilidad: ConfiguracionRentabilidad
-  redondeo: ConfiguracionRedondeo
-  alertas: ConfiguracionAlertas
-}
-
-const CONFIGURACION_SISTEMA: ConfiguracionSistema = {
-  // MARKUPS POR MARCA Y CANAL
-  markups: {
-    "Varta": {
-      "Retail": 1.8,      // 80% de ganancia
-      "Mayorista": 1.5,   // 50% de ganancia  
-      "Online": 2.0       // 100% de ganancia
-    },
-    "Moura": {
-      "Retail": 1.7,      // 70% de ganancia
-      "Mayorista": 1.4,   // 40% de ganancia
-      "Online": 1.9       // 90% de ganancia
-    },
-    "Otros": {
-      "Retail": 1.6,      // 60% de ganancia
-      "Mayorista": 1.3,   // 30% de ganancia
-      "Online": 1.8       // 80% de ganancia
-    }
-  },
-  
-  // REGLAS DE RENTABILIDAD
-  rentabilidad: {
-    "Varta": {
-      "Retail": { margen_minimo: 60, alerta: "Margen bajo para Varta Retail" },
-      "Mayorista": { margen_minimo: 40, alerta: "Margen bajo para Varta Mayorista" },
-      "Online": { margen_minimo: 80, alerta: "Margen bajo para Varta Online" }
-    },
-    "Moura": {
-      "Retail": { margen_minimo: 55, alerta: "Margen bajo para Moura Retail" },
-      "Mayorista": { margen_minimo: 35, alerta: "Margen bajo para Moura Mayorista" },
-      "Online": { margen_minimo: 75, alerta: "Margen bajo para Moura Online" }
-    },
-    "Otros": {
-      "Retail": { margen_minimo: 50, alerta: "Margen bajo para Otros Retail" },
-      "Mayorista": { margen_minimo: 25, alerta: "Margen bajo para Otros Mayorista" },
-      "Online": { margen_minimo: 70, alerta: "Margen bajo para Otros Online" }
-    }
-  },
-  
-  // CONFIGURACIÓN DE REDONDEO
-  redondeo: {
-    "Retail": "multiplo100",     // Múltiplos de $100
-    "Mayorista": "multiplo50",   // Múltiplos de $50
-    "Online": "multiplo50"       // Múltiplos de $50
-  },
-  
-  // ALERTAS Y VALIDACIONES
-  alertas: {
-    margen_critico: 20,          // Margen mínimo absoluto
-    precio_maximo: 100000,       // Precio máximo permitido
-    diferencia_maxima: 5000      // Diferencia máxima entre precio base y final
-  }
-}
-
-// ============================================================================
-// TABLA DE EQUIVALENCIAS VARTA (HARDCODEADA POR AHORA)
-// ============================================================================
-
-const TABLA_EQUIVALENCIAS = [
-  {
-    codigos: ["60Ah", "60 Ah", "60AH", "60 AH"],
-    modelo: "60Ah AGM",
-    tipo: "AGM",
-    precio_varta: 15000
-  },
-  {
-    codigos: ["100Ah", "100 Ah", "100AH", "100 AH"],
-    modelo: "100Ah AGM", 
-    tipo: "AGM",
-    precio_varta: 25000
-  },
-  {
-    codigos: ["70Ah", "70 Ah", "70AH", "70 AH"],
-    modelo: "70Ah AGM",
-    tipo: "AGM", 
-    precio_varta: 18000
-  },
-  {
-    codigos: ["80Ah", "80 Ah", "80AH", "80 AH"],
-    modelo: "80Ah AGM",
-    tipo: "AGM",
-    precio_varta: 20000
-  },
-  {
-    codigos: ["90Ah", "90 Ah", "90AH", "90 AH"],
-    modelo: "90Ah AGM",
-    tipo: "AGM",
-    precio_varta: 22000
-  }
-]
-
-// ============================================================================
-// FUNCIONES AUXILIARES DEL SISTEMA
-// ============================================================================
-
-const normalizarMarca = (marca: string): string => {
-  if (!marca) return "Otros"
-  
-  const marcaLower = marca.toLowerCase().trim()
-  
-  // Mapeo de variaciones comunes
-  const mapeoMarcas: Record<string, string> = {
-    "varta": "Varta",
-    "moura": "Moura", 
-    "baterias varta": "Varta",
-    "baterias moura": "Moura",
-    "varta baterias": "Varta",
-    "moura baterias": "Moura"
-  }
-  
-  return mapeoMarcas[marcaLower] || marca.charAt(0).toUpperCase() + marca.slice(1).toLowerCase()
-}
-
-const normalizarCanal = (canal: string): string => {
-  if (!canal) return "Retail"
-  
-  const canalLower = canal.toLowerCase().trim()
-  
-  // Mapeo de canales
-  const mapeoCanales: Record<string, string> = {
-    "retail": "Retail",
-    "mayorista": "Mayorista",
-    "online": "Online",
-    "web": "Online",
-    "tienda": "Retail",
-    "distribuidor": "Mayorista",
-    "distribuidor mayorista": "Mayorista"
-  }
-  
-  return mapeoCanales[canalLower] || "Retail"
-}
-
-const validarPrecio = (precio: any, index: number): number => {
-  const precioNum = parseFloat(precio)
-  
-  if (isNaN(precioNum) || precioNum <= 0) {
-    throw new Error(`Precio inválido en fila ${index + 1}: ${precio}`)
-  }
-  
-  if (precioNum > CONFIGURACION_SISTEMA.alertas.precio_maximo) {
-    throw new Error(`Precio muy alto en fila ${index + 1}: $${precioNum}`)
-  }
-  
-  return precioNum
-}
-
-const extraerLineaProducto = (modelo: string): string => {
-  // Extraer información de la línea de producto del modelo
-  const lineas = ["AGM", "Gel", "Plomo", "Litio", "Calcio"]
-  
-  for (const linea of lineas) {
-    if (modelo.toUpperCase().includes(linea.toUpperCase())) {
-      return linea
-    }
-  }
-  
-  return "Estándar"
-}
-
-const obtenerMarkup = (marca: string, canal: string): number => {
-  // Buscar markup específico
-  const markupEspecifico = CONFIGURACION_SISTEMA.markups[marca]?.[canal]
-  
-  if (markupEspecifico) {
-    return markupEspecifico
-  }
-  
-  // Si no existe, usar markup por defecto según canal
-  const markupsPorDefecto: Record<string, number> = {
-    "Retail": 1.6,      // 60% de ganancia
-    "Mayorista": 1.3,   // 30% de ganancia
-    "Online": 1.8       // 80% de ganancia
-  }
-  
-  return markupsPorDefecto[canal] || 1.5
-}
-
-const calcularRedondeo = (precio: number, tipo: string): number => {
-  switch (tipo) {
-    case "multiplo100":
-      // Redondear a múltiplos de $100 (ej: 1234 -> 1300)
-      return Math.ceil(precio / 100) * 100
-      
-    case "multiplo50":
-      // Redondear a múltiplos de $50 (ej: 1234 -> 1250)
-      return Math.ceil(precio / 50) * 50
-      
-    case "multiplo25":
-      // Redondear a múltiplos de $25 (ej: 1234 -> 1250)
-      return Math.ceil(precio / 25) * 25
-      
-    default:
-      // Sin redondeo
-      return precio
-  }
-}
-
-const obtenerReglaRentabilidad = (marca: string, canal: string) => {
-  return CONFIGURACION_SISTEMA.rentabilidad[marca]?.[canal] || null
-}
-
-const calcularMargenPromedio = (productos: any[]): number => {
-  const margenes = productos
-    .filter((p: any) => p.estado_proceso !== "ERROR")
-    .map((p: any) => p.margen?.bruto || 0)
-  
-  if (margenes.length === 0) return 0
-  
-  return Math.round(
-    (margenes.reduce((a: number, b: number) => a + b, 0) / margenes.length) * 100
-  ) / 100
-}
-
-// ============================================================================
-// CONFIGURACIÓN DE RENDIMIENTO PARA VERCEL
-// ============================================================================
-
-const LIMITES_VERCEL = {
-  maxFileSize: 5 * 1024 * 1024,        // 5MB máximo
-  maxRows: 1000,                        // 1000 filas máximo
-  batchSize: 100,                       // Procesar en lotes de 100
-  timeout: 8000                         // 8 segundos máximo (dejar margen)
-}
-
-// ============================================================================
-// PASOS DEL PROCESO DE PRICING
-// ============================================================================
-
-// PASO 1: Normalización de datos
-const normalizarDatos = (datos: any[]): any[] => {
-  return datos.map((fila: any, index: number) => {
-    // Normalizar marca (primera letra mayúscula, resto minúscula)
-    const marca = normalizarMarca(fila.marca || fila.marca_baterias || "Otros")
-    
-    // Normalizar canal (si no existe, asignar por defecto)
-    const canal = normalizarCanal(fila.canal || "Retail")
-    
-    // Validar y convertir precio
-    const precio = validarPrecio(fila.precio || fila.precio_de_lista || fila.precio_lista, index)
-    
-    // Extraer línea de producto del modelo
-    const modelo = fila.modelo || fila.codigo_baterias || "Sin modelo"
-    const lineaProducto = extraerLineaProducto(modelo)
-    
-    return {
-      id: index + 1,
-      marca: marca,
-      modelo: modelo,
-      precio_base: precio,
-      canal: canal,
-      linea_producto: lineaProducto,
-      precio_con_markup: 0,
-      precio_redondeado: 0,
-      margen: { bruto: 0, neto: 0, costos_operativos: 0 },
-      rentabilidad: "",
-      alertas: [],
-      estado_proceso: "PENDIENTE"
-    }
-  })
-}
-
-// PASO 2: Aplicación de markups
-const aplicarMarkups = (productos: any[]): any[] => {
-  return productos.map((producto: any) => {
-    // Obtener markup según marca y canal
-    const markup = obtenerMarkup(producto.marca, producto.canal)
-    
-    // Calcular precio con markup
-    producto.precio_con_markup = producto.precio_base * markup
-    
-    // Actualizar estado
-    producto.estado_proceso = "MARKUP_APLICADO"
-    
-    return producto
-  })
-}
-
-// PASO 3: Validación de markups
-const validarMarkups = (productos: any[]): any[] => {
-  return productos.map((producto: any) => {
-    const diferencia = producto.precio_con_markup - producto.precio_base
-    
-    // Verificar que el markup sea razonable
-    if (diferencia < 0) {
-      producto.alertas.push("Error: Precio con markup menor al precio base")
-      producto.estado_proceso = "ERROR"
-    } else if (diferencia > CONFIGURACION_SISTEMA.alertas.diferencia_maxima) {
-      producto.alertas.push("Advertencia: Diferencia de precio muy alta")
-    }
-    
-    return producto
-  })
-}
-
-// PASO 4: Aplicación de redondeo
-const aplicarRedondeo = (productos: any[]): any[] => {
-  return productos.map((producto: any) => {
-    if (producto.estado_proceso === "ERROR") {
-      return producto // Saltar productos con error
-    }
-    
-    // Obtener tipo de redondeo según canal
-    const tipoRedondeo = CONFIGURACION_SISTEMA.redondeo[producto.canal]
-    
-    // Aplicar redondeo
-    producto.precio_redondeado = calcularRedondeo(
-      producto.precio_con_markup, 
-      tipoRedondeo
-    )
-    
-    // Actualizar estado
-    producto.estado_proceso = "REDONDEADO"
-    
-    return producto
-  })
-}
-
-// PASO 5: Cálculo de márgenes
-const calcularMargenes = (productos: any[]): any[] => {
-  return productos.map((producto: any) => {
-    if (producto.estado_proceso === "ERROR") {
-      return producto
-    }
-    
-    // Calcular margen bruto
-    const margenBruto = ((producto.precio_redondeado - producto.precio_base) / producto.precio_base) * 100
-    
-    // Calcular margen neto (considerando costos operativos estimados)
-    const costosOperativos = producto.precio_base * 0.15 // 15% estimado
-    const margenNeto = (((producto.precio_redondeado - producto.precio_base - costosOperativos) / producto.precio_base) * 100)
-    
-    producto.margen = {
-      bruto: Math.round(margenBruto * 100) / 100, // Redondear a 2 decimales
-      neto: Math.round(margenNeto * 100) / 100,
-      costos_operativos: costosOperativos
-    }
-    
-    // Actualizar estado
-    producto.estado_proceso = "MARGEN_CALCULADO"
-    
-    return producto
-  })
-}
-
-// PASO 6: Validación de rentabilidad
-const validarRentabilidad = (productos: any[]): any[] => {
-  return productos.map((producto: any) => {
-    if (producto.estado_proceso === "ERROR") {
-      return producto
-    }
-    
-    // Obtener regla de rentabilidad para esta marca y canal
-    const regla = obtenerReglaRentabilidad(producto.marca, producto.canal)
-    
-    if (regla) {
-      // Evaluar rentabilidad según margen mínimo
-      if (producto.margen.bruto >= regla.margen_minimo) {
-        producto.rentabilidad = "RENTABLE"
-        producto.estado_proceso = "RENTABLE"
-      } else {
-        producto.rentabilidad = "NO RENTABLE"
-        producto.estado_proceso = "NO_RENTABLE"
-        producto.alertas.push(regla.alerta)
-      }
-    } else {
-      // Sin regla específica, usar regla general
-      if (producto.margen.bruto >= 30) {
-        producto.rentabilidad = "RENTABLE"
-        producto.estado_proceso = "RENTABLE"
-      } else {
-        producto.rentabilidad = "NO RENTABLE"
-        producto.estado_proceso = "NO_RENTABLE"
-        producto.alertas.push("Margen por debajo del mínimo recomendado")
-      }
-    }
-    
-    return producto
-  })
-}
-
-// PASO 7: Generación de resumen
-const generarResumenFinal = (productos: any[]): any => {
-  const resumen = {
-    total_productos: productos.length,
-    productos_procesados: productos.filter((p: any) => p.estado_proceso !== "ERROR").length,
-    productos_con_error: productos.filter((p: any) => p.estado_proceso === "ERROR").length,
-    productos_rentables: productos.filter((p: any) => p.rentabilidad === "RENTABLE").length,
-    productos_no_rentables: productos.filter((p: any) => p.rentabilidad === "NO RENTABLE").length,
-    
-    // Estadísticas de margen
-    margen_promedio: 0,
-    margen_minimo: Infinity,
-    margen_maximo: -Infinity,
-    
-    // Análisis por marca
-    analisis_por_marca: {} as Record<string, any>,
-    
-    // Análisis por canal
-    analisis_por_canal: {} as Record<string, any>,
-    
-    // Productos con alertas
-    productos_con_alertas: productos.filter((p: any) => p.alertas.length > 0).length,
-    
-    // Tiempo de procesamiento
-    tiempo_procesamiento: 0,
-    fecha_procesamiento: new Date().toISOString()
-  }
-  
-  // Calcular estadísticas de margen
-  const margenes = productos
-    .filter((p: any) => p.estado_proceso !== "ERROR")
-    .map((p: any) => p.margen.bruto)
-  
-  if (margenes.length > 0) {
-    resumen.margen_promedio = Math.round(
-      (margenes.reduce((a: number, b: number) => a + b, 0) / margenes.length) * 100
-    ) / 100
-    resumen.margen_minimo = Math.min(...margenes)
-    resumen.margen_maximo = Math.max(...margenes)
-  }
-  
-  // Análisis por marca
-  const marcas = Array.from(new Set(productos.map((p: any) => p.marca)))
-  marcas.forEach(marca => {
-    const productosMarca = productos.filter((p: any) => p.marca === marca)
-    resumen.analisis_por_marca[marca] = {
-      total: productosMarca.length,
-      rentables: productosMarca.filter((p: any) => p.rentabilidad === "RENTABLE").length,
-      margen_promedio: calcularMargenPromedio(productosMarca)
-    }
-  })
-  
-  // Análisis por canal
-  const canales = Array.from(new Set(productos.map((p: any) => p.canal)))
-  canales.forEach(canal => {
-    const productosCanal = productos.filter((p: any) => p.canal === canal)
-    resumen.analisis_por_canal[canal] = {
-      total: productosCanal.length,
-      rentables: productosCanal.filter((p: any) => p.rentabilidad === "RENTABLE").length,
-      margen_promedio: calcularMargenPromedio(productosCanal)
-    }
-  })
-  
-  return resumen
-}
-
-// ============================================================================
-// FUNCIÓN PRINCIPAL DEL PROCESO COMPLETO - OPTIMIZADA
-// ============================================================================
-
-const ejecutarProcesoCompleto = async (archivo: File) => {
-  console.log("🚀 INICIANDO PROCESO DE PRICING OPTIMIZADO PARA VERCEL...")
-  
-  try {
-    // VALIDACIÓN DE ARCHIVO
-    if (archivo.size > LIMITES_VERCEL.maxFileSize) {
-      throw new Error(`Archivo muy grande: ${(archivo.size / 1024 / 1024).toFixed(2)}MB. Máximo: 5MB`)
-    }
-    
-    // Leer el archivo Excel
-    const bytes = await archivo.arrayBuffer()
-    const buffer = Buffer.from(bytes)
-    const workbook = XLSX.read(buffer, { type: 'buffer' })
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-    const datosExcel = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as unknown[][]
-    
-    // Procesar datos
-    const headers = (datosExcel[0] || []) as string[]
-    const filas = datosExcel.slice(1)
-    
-    console.log('📋 Headers:', headers)
-    console.log('📊 Total filas:', filas.length)
-    
-    // VALIDACIÓN DE TAMAÑO
-    if (filas.length > LIMITES_VERCEL.maxRows) {
-      throw new Error(`Demasiadas filas: ${filas.length}. Máximo: ${LIMITES_VERCEL.maxRows}`)
-    }
-    
-    // Convertir filas a objetos
-    const datos = filas.map((fila: unknown[]) => {
-      const registro: Record<string, any> = {}
-      headers.forEach((header, colIndex) => {
-        if (header && fila[colIndex] !== undefined) {
-          const key = header.toLowerCase().replace(/\s+/g, '_')
-          registro[key] = fila[colIndex]
-        }
-      })
-      return registro
-    })
-    
-    // PASO 1: Carga y validación (OPTIMIZADO)
-    console.log("📥 PASO 1: Cargando y validando datos...")
-    const productos = normalizarDatos(datos)
-    console.log(`✅ ${productos.length} productos cargados`)
-    
-    // PASO 2: Aplicación de markups (OPTIMIZADO)
-    console.log("🧮 PASO 2: Aplicando markups...")
-    const productosConMarkup = aplicarMarkupsOptimizado(productos)
-    console.log("✅ Markups aplicados")
-    
-    // PASO 3: Aplicación de redondeo (OPTIMIZADO)
-    console.log("🔢 PASO 3: Aplicando redondeo...")
-    const productosRedondeados = aplicarRedondeoOptimizado(productosConMarkup)
-    console.log("✅ Redondeo aplicado")
-    
-    // PASO 4: Cálculo de márgenes (OPTIMIZADO)
-    console.log("💰 PASO 4: Calculando márgenes...")
-    const productosConMargen = calcularMargenesOptimizado(productosRedondeados)
-    console.log("✅ Márgenes calculados")
-    
-    // PASO 5: Validación de rentabilidad (OPTIMIZADO)
-    console.log("✅ PASO 5: Validando rentabilidad...")
-    const productosConRentabilidad = validarRentabilidadOptimizado(productosConMargen)
-    console.log("✅ Rentabilidad validada")
-    
-    // PASO 6: Generación de resumen (OPTIMIZADO)
-    console.log("📈 PASO 6: Generando resumen...")
-    const resumen = generarResumenFinalOptimizado(productosConRentabilidad)
-    console.log("✅ Resumen generado")
-    
-    console.log("🎯 PROCESO COMPLETADO EXITOSAMENTE!")
-    
-    return {
-      productos: productosConRentabilidad,
-      resumen: resumen
-    }
-    
-  } catch (error) {
-    console.error("❌ ERROR EN EL PROCESO:", error)
-    throw error
-  }
-}
-
-// ============================================================================
-// FUNCIONES OPTIMIZADAS PARA VERCEL
-// ============================================================================
-
-// Normalización optimizada
-const normalizarDatos = (datos: any[]): any[] => {
-  return datos.map((fila: any, index: number) => {
-    // Normalizar marca (primera letra mayúscula, resto minúscula)
-    const marca = normalizarMarca(fila.marca || fila.marca_baterias || "Otros")
-    
-    // Normalizar canal (si no existe, asignar por defecto)
-    const canal = normalizarCanal(fila.canal || "Retail")
-    
-    // Validar y convertir precio
-    const precio = validarPrecio(fila.precio || fila.precio_de_lista || fila.precio_lista, index)
-    
-    // Extraer línea de producto del modelo
-    const modelo = fila.modelo || fila.codigo_baterias || "Sin modelo"
-    const lineaProducto = extraerLineaProducto(modelo)
-    
-    return {
-      id: index + 1,
-      marca: marca,
-      modelo: modelo,
-      precio_base: precio,
-      canal: canal,
-      linea_producto: lineaProducto,
-      precio_con_markup: 0,
-      precio_redondeado: 0,
-      margen: { bruto: 0, neto: 0, costos_operativos: 0 },
-      rentabilidad: "",
-      alertas: [],
-      estado_proceso: "PENDIENTE"
-    }
-  })
-}
-
-// Markups optimizado
-const aplicarMarkupsOptimizado = (productos: any[]): any[] => {
-  // Cache de markups para evitar búsquedas repetidas
-  const markupCache = new Map<string, number>()
-  
-  return productos.map((producto: any) => {
-    const cacheKey = `${producto.marca}-${producto.canal}`
-    
-    let markup: number
-    if (markupCache.has(cacheKey)) {
-      markup = markupCache.get(cacheKey)!
-    } else {
-      markup = obtenerMarkup(producto.marca, producto.canal)
-      markupCache.set(cacheKey, markup)
-    }
-    
-    // Calcular precio con markup
-    producto.precio_con_markup = producto.precio_base * markup
-    
-    // Actualizar estado
-    producto.estado_proceso = "MARKUP_APLICADO"
-    
-    return producto
-  })
-}
-
-// Redondeo optimizado
-const aplicarRedondeoOptimizado = (productos: any[]): any[] => {
-  // Cache de tipos de redondeo
-  const redondeoCache = new Map<string, TipoRedondeo>()
-  
-  return productos.map((producto: any) => {
-    if (producto.estado_proceso === "ERROR") {
-      return producto
-    }
-    
-    let tipoRedondeo: TipoRedondeo
-    if (redondeoCache.has(producto.canal)) {
-      tipoRedondeo = redondeoCache.get(producto.canal)!
-    } else {
-      tipoRedondeo = CONFIGURACION_SISTEMA.redondeo[producto.canal] || "multiplo50"
-      redondeoCache.set(producto.canal, tipoRedondeo)
-    }
-    
-    // Aplicar redondeo
-    producto.precio_redondeado = calcularRedondeo(
-      producto.precio_con_markup, 
-      tipoRedondeo
-    )
-    
-    // Actualizar estado
-    producto.estado_proceso = "REDONDEADO"
-    
-    return producto
-  })
-}
-
-// Márgenes optimizado
-const calcularMargenesOptimizado = (productos: any[]): any[] => {
-  return productos.map((producto: any) => {
-    if (producto.estado_proceso === "ERROR") {
-      return producto
-    }
-    
-    // Calcular margen bruto (optimizado)
-    const margenBruto = ((producto.precio_redondeado - producto.precio_base) / producto.precio_base) * 100
-    
-    // Calcular margen neto (considerando costos operativos estimados)
-    const costosOperativos = producto.precio_base * 0.15 // 15% estimado
-    const margenNeto = (((producto.precio_redondeado - producto.precio_base - costosOperativos) / producto.precio_base) * 100)
-    
-    producto.margen = {
-      bruto: Math.round(margenBruto * 100) / 100,
-      neto: Math.round(margenNeto * 100) / 100,
-      costos_operativos: costosOperativos
-    }
-    
-    // Actualizar estado
-    producto.estado_proceso = "MARGEN_CALCULADO"
-    
-    return producto
-  })
-}
-
-// Rentabilidad optimizada
-const validarRentabilidadOptimizado = (productos: any[]): any[] => {
-  // Cache de reglas de rentabilidad
-  const reglasCache = new Map<string, any>()
-  
-  return productos.map((producto: any) => {
-    if (producto.estado_proceso === "ERROR") {
-      return producto
-    }
-    
-    const cacheKey = `${producto.marca}-${producto.canal}`
-    
-    let regla: any
-    if (reglasCache.has(cacheKey)) {
-      regla = reglasCache.get(cacheKey)
-    } else {
-      regla = obtenerReglaRentabilidad(producto.marca, producto.canal)
-      reglasCache.set(cacheKey, regla)
-    }
-    
-    if (regla) {
-      // Evaluar rentabilidad según margen mínimo
-      if (producto.margen.bruto >= regla.margen_minimo) {
-        producto.rentabilidad = "RENTABLE"
-        producto.estado_proceso = "RENTABLE"
-      } else {
-        producto.rentabilidad = "NO RENTABLE"
-        producto.estado_proceso = "NO_RENTABLE"
-        producto.alertas.push(regla.alerta)
-      }
-    } else {
-      // Sin regla específica, usar regla general
-      if (producto.margen.bruto >= 30) {
-        producto.rentabilidad = "RENTABLE"
-        producto.estado_proceso = "RENTABLE"
-      } else {
-        producto.rentabilidad = "NO RENTABLE"
-        producto.estado_proceso = "NO_RENTABLE"
-        producto.alertas.push("Margen por debajo del mínimo recomendado")
-      }
-    }
-    
-    return producto
-  })
-}
-
-// Resumen optimizado
-const generarResumenFinalOptimizado = (productos: any[]): any => {
-  // Usar reduce para calcular todo en una sola pasada
-  const resumen = productos.reduce((acc: any, producto: any) => {
-    // Contadores básicos
-    acc.total_productos++
-    
-    if (producto.estado_proceso === "ERROR") {
-      acc.productos_con_error++
-    } else {
-      acc.productos_procesados++
-      
-      if (producto.rentabilidad === "RENTABLE") {
-        acc.productos_rentables++
-      } else {
-        acc.productos_no_rentables++
-      }
-      
-      // Acumular márgenes para promedio
-      acc.margen_total += producto.margen.bruto
-      acc.margen_minimo = Math.min(acc.margen_minimo, producto.margen.bruto)
-      acc.margen_maximo = Math.max(acc.margen_maximo, producto.margen.bruto)
-      
-      // Análisis por marca
-      if (!acc.analisis_por_marca[producto.marca]) {
-        acc.analisis_por_marca[producto.marca] = { total: 0, rentables: 0, margen_total: 0 }
-      }
-      acc.analisis_por_marca[producto.marca].total++
-      if (producto.rentabilidad === "RENTABLE") {
-        acc.analisis_por_marca[producto.marca].rentables++
-      }
-      acc.analisis_por_marca[producto.marca].margen_total += producto.margen.bruto
-      
-      // Análisis por canal
-      if (!acc.analisis_por_canal[producto.canal]) {
-        acc.analisis_por_canal[producto.canal] = { total: 0, rentables: 0, margen_total: 0 }
-      }
-      acc.analisis_por_canal[producto.canal].total++
-      if (producto.rentabilidad === "RENTABLE") {
-        acc.analisis_por_canal[producto.canal].rentables++
-      }
-      acc.analisis_por_canal[producto.canal].margen_total += producto.margen.bruto
-    }
-    
-    // Productos con alertas
-    if (producto.alertas.length > 0) {
-      acc.productos_con_alertas++
-    }
-    
-    return acc
-  }, {
-    total_productos: 0,
-    productos_procesados: 0,
-    productos_con_error: 0,
-    productos_rentables: 0,
-    productos_no_rentables: 0,
-    margen_total: 0,
-    margen_minimo: Infinity,
-    margen_maximo: -Infinity,
-    analisis_por_marca: {} as Record<string, any>,
-    analisis_por_canal: {} as Record<string, any>,
-    productos_con_alertas: 0,
-    tiempo_procesamiento: 0,
-    fecha_procesamiento: new Date().toISOString()
-  })
-  
-  // Calcular promedios
-  if (resumen.productos_procesados > 0) {
-    resumen.margen_promedio = Math.round((resumen.margen_total / resumen.productos_procesados) * 100) / 100
-  }
-  
-  // Calcular promedios por marca
-  Object.keys(resumen.analisis_por_marca).forEach(marca => {
-    const datos = resumen.analisis_por_marca[marca]
-    if (datos.total > 0) {
-      datos.margen_promedio = Math.round((datos.margen_total / datos.total) * 100) / 100
-    }
-  })
-  
-  // Calcular promedios por canal
-  Object.keys(resumen.analisis_por_canal).forEach(canal => {
-    const datos = resumen.analisis_por_canal[canal]
-    if (datos.total > 0) {
-      datos.margen_promedio = Math.round((datos.margen_total / datos.total) * 100) / 100
-    }
-  })
-  
-  return resumen
-}
-
-// ============================================================================
-// ENDPOINT PRINCIPAL DE LA API
-// ============================================================================
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('📁 API: Procesando archivo con sistema de pricing completo...')
+    console.log('📁 API: Iniciando procesamiento de archivo...')
     
-    // Obtener archivo
+    // Obtener el archivo del FormData
     const formData = await request.formData()
     const file = formData.get('file') as File
     
     if (!file) {
-      return NextResponse.json({ error: 'No se recibió archivo' }, { status: 400 })
+      console.error('❌ No se recibió archivo')
+      return NextResponse.json(
+        { error: 'No se recibió ningún archivo' }, 
+        { status: 400 }
+      )
     }
     
-    // Ejecutar proceso completo
-    const resultado = await ejecutarProcesoCompleto(file)
+    console.log('✅ API: Archivo recibido:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    })
     
-    // Preparar respuesta
-    const respuesta = {
+    // SIMULACIÓN DE PROCESAMIENTO (sin XLSX por ahora)
+    console.log('📊 API: Simulando procesamiento...')
+    
+    // Datos simulados basados en tu archivo Moura
+    const datosSimulados = [
+      { codigo_baterias: "M20GD", denominacion_comercial: "APLICACIONES_GENERALES", precio_de_lista: 45000 },
+      { codigo_baterias: "M22GD", denominacion_comercial: "APLICACIONES_GENERALES", precio_de_lista: 48000 },
+      { codigo_baterias: "M24GD", denominacion_comercial: "APLICACIONES_GENERALES", precio_de_lista: 52000 },
+      { codigo_baterias: "M26GD", denominacion_comercial: "APLICACIONES_GENERALES", precio_de_lista: 55000 },
+      { codigo_baterias: "M28GD", denominacion_comercial: "APLICACIONES_GENERALES", precio_de_lista: 58000 }
+    ]
+    
+    // APLICAR LÓGICA DE PRICING DE BATERÍAS
+    const datosPricing = datosSimulados.map((registro, index) => {
+      const precioBase = registro.precio_de_lista
+      const codigo = registro.codigo_baterias
+      
+      // LÓGICA ESPECÍFICA DE BATERÍAS
+      let marca = 'MOURA'
+      let multiplicador = 1.25 // +25% para Moura por defecto
+      let equivalenciaVarta = null
+      
+      // Simulación de búsqueda de equivalencia Varta
+      const equivalenciasVarta = {
+        'M20GD': { codigo_varta: 'H5-75', precio_varta: 65000 },
+        'M22GD': { codigo_varta: 'H6-85', precio_varta: 68000 },
+        'M24GD': { codigo_varta: 'H7-95', precio_varta: 72000 },
+        'M26GD': { codigo_varta: 'H8-105', precio_varta: 75000 },
+        'M28GD': { codigo_varta: 'H9-115', precio_varta: 78000 }
+      }
+      
+      // Si tiene equivalencia Varta, usar pricing Varta
+      if (equivalenciasVarta[codigo as keyof typeof equivalenciasVarta]) {
+        equivalenciaVarta = equivalenciasVarta[codigo as keyof typeof equivalenciasVarta]
+        marca = 'VARTA'
+        multiplicador = 1.35 // +35% para Varta
+      }
+      
+      // Calcular precios
+      const precioReferencia = equivalenciaVarta ? equivalenciaVarta.precio_varta : precioBase
+      const precioFinal = Math.round(precioReferencia * multiplicador)
+      const utilidad = precioFinal - precioBase
+      const porcentajeUtilidad = ((utilidad / precioBase) * 100).toFixed(1)
+      
+      return {
+        // Datos originales
+        codigo_original: codigo,
+        denominacion: registro.denominacion_comercial,
+        precio_lista_moura: precioBase,
+        
+        // Equivalencia Varta
+        tiene_equivalencia_varta: !!equivalenciaVarta,
+        codigo_varta: equivalenciaVarta?.codigo_varta || 'No disponible',
+        precio_varta: equivalenciaVarta?.precio_varta || 0,
+        
+        // Pricing calculado
+        marca_referencia: marca,
+        multiplicador_aplicado: `+${((multiplicador - 1) * 100).toFixed(0)}%`,
+        precio_referencia: precioReferencia,
+        precio_final_calculado: precioFinal,
+        utilidad_estimada: utilidad,
+        porcentaje_utilidad: `${porcentajeUtilidad}%`,
+        
+        // Metadatos
+        estado: 'PROCESADO',
+        fecha_calculo: new Date().toISOString().split('T')[0],
+        observaciones: `Pricing ${marca} aplicado con +${((multiplicador - 1) * 100).toFixed(0)}%`
+      }
+    })
+    
+    console.log('✅ API: Pricing aplicado:', datosPricing.length, 'registros')
+    
+    // Estadísticas
+    const estadisticas = {
+      total_filas_leidas: datosSimulados.length + 1, // +1 por header
+      headers_detectados: Object.keys(datosSimulados[0]).length,
+      registros_validos: datosSimulados.length,
+      registros_procesados: datosPricing.length,
+      errores: 0,
+      warnings: 0,
+      
+      // Estadísticas específicas de baterías
+      con_equivalencia_varta: datosPricing.filter(r => r.tiene_equivalencia_varta).length,
+      sin_equivalencia_varta: datosPricing.filter(r => !r.tiene_equivalencia_varta).length,
+      precio_promedio_moura: Math.round(datosPricing.reduce((sum, r) => sum + r.precio_lista_moura, 0) / datosPricing.length),
+      precio_promedio_final: Math.round(datosPricing.reduce((sum, r) => sum + r.precio_final_calculado, 0) / datosPricing.length),
+      utilidad_total_estimada: datosPricing.reduce((sum, r) => sum + r.utilidad_estimada, 0)
+    }
+    
+    // Resultado final
+    const resultado = {
       success: true,
       archivo: file.name,
-      total_registros: resultado.productos.length,
-      productos: resultado.productos,
-      estadisticas: resultado.resumen,
-      configuracion: {
-        markups: CONFIGURACION_SISTEMA.markups,
-        redondeo: CONFIGURACION_SISTEMA.redondeo,
-        alertas: CONFIGURACION_SISTEMA.alertas
-      }
+      timestamp: new Date().toISOString(),
+      estadisticas,
+      headers_detectados: ['codigo_baterias', 'denominacion_comercial', 'precio_de_lista'],
+      datos_procesados: datosPricing,
+      mensaje: `Archivo procesado con éxito. ${datosPricing.length} baterías con pricing aplicado.`,
+      tipo_procesamiento: 'SIMULADO'
     }
     
-    console.log('✅ Procesado:', resultado.productos.length, 'productos')
-    return NextResponse.json(respuesta)
+    console.log('✅ API: Procesamiento completado exitosamente')
+    console.log('📊 Estadísticas:', estadisticas)
+    
+    return NextResponse.json(resultado)
     
   } catch (error) {
-    console.error('❌ Error:', error)
-    return NextResponse.json({ 
-      error: 'Error procesando archivo',
-      detalles: error instanceof Error ? error.message : 'Error desconocido'
-    }, { status: 500 })
+    console.error('💥 API: Error procesando archivo:', error)
+    console.error('💥 Error stack:', error instanceof Error ? error.stack : 'No stack available')
+    
+    return NextResponse.json(
+      { 
+        error: 'Error interno del servidor procesando el archivo',
+        details: error instanceof Error ? error.message : 'Error desconocido',
+        timestamp: new Date().toISOString()
+      }, 
+      { status: 500 }
+    )
   }
 }
 
-// Endpoint para obtener información del servicio
 export async function GET() {
   return NextResponse.json({ 
-    message: 'Sistema de Pricing Completo OPTIMIZADO para Vercel',
-    methods: ['POST'],
-    expectedFormat: 'multipart/form-data con campo "file"',
-    features: [
-      'Sistema de pricing completo de 7 pasos OPTIMIZADO',
-      'Markups dinámicos por marca y canal',
-      'Reglas de rentabilidad configurables',
-      'Redondeo inteligente por canal',
-      'Cálculo de márgenes brutos y netos',
-      'Validación de rentabilidad',
-      'Análisis estadístico completo',
-      'Configuración flexible del sistema',
-      'OPTIMIZADO para Vercel Serverless'
-    ],
-    configuracion: {
-      marcas_soportadas: Object.keys(CONFIGURACION_SISTEMA.markups),
-      canales_soportados: Object.keys(CONFIGURACION_SISTEMA.redondeo),
-      tipos_redondeo: ["multiplo100", "multiplo50", "multiplo25"]
-    },
-    limites_vercel: {
-      maxFileSize: `${(LIMITES_VERCEL.maxFileSize / 1024 / 1024).toFixed(1)}MB`,
-      maxRows: LIMITES_VERCEL.maxRows,
-      timeout: `${LIMITES_VERCEL.timeout / 1000}s`
-    },
-    optimizaciones: [
-      'Cache de markups y reglas',
-      'Procesamiento en una sola pasada',
-      'Límites de archivo y filas',
-      'Validaciones tempranas',
-      'Reducción de iteraciones'
-    ],
-    status: 'API funcionando correctamente y OPTIMIZADA para Vercel'
+    message: 'Servicio de procesamiento de pricing para baterías',
+    status: 'API funcionando correctamente - Versión de prueba',
+    version: 'debug-1.0',
+    diagnostico: 'Endpoint funcionando sin XLSX para pruebas',
+    proximos_pasos: [
+      'Verificar que la API funcione con datos simulados',
+      'Instalar y configurar XLSX correctamente',
+      'Implementar procesamiento real de archivos Excel'
+    ]
   })
 }
