@@ -113,7 +113,7 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
         ))
       }
     }
-
+  }))
 
   const generateSummary = (fileName: string) => {
     const summaries = [
