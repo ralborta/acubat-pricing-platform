@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Upload, FileText, X, CheckCircle, AlertCircle } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import FileProcessor from '@/components/FileProcessor'
 
 export default function CargaArchivos() {
   const [files, setFiles] = useState<File[]>([])
@@ -29,6 +30,11 @@ export default function CargaArchivos() {
       // Simular upload - aquí conectarías con tu API real
       await new Promise(resolve => setTimeout(resolve, 2000))
       
+      // Procesar cada archivo
+      for (const file of files) {
+        await processFile(file)
+      }
+      
       setUploadStatus('success')
       setFiles([])
     } catch (error) {
@@ -36,6 +42,12 @@ export default function CargaArchivos() {
     } finally {
       setUploading(false)
     }
+  }
+
+  const processFile = async (file: File) => {
+    // Simular procesamiento
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    console.log(`Archivo ${file.name} procesado`)
   }
 
   const formatFileSize = (bytes: number) => {
@@ -184,6 +196,9 @@ export default function CargaArchivos() {
               </div>
             </div>
           </div>
+
+          {/* File Processor */}
+          <FileProcessor />
         </main>
       </div>
     </div>
