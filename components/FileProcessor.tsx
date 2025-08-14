@@ -54,7 +54,7 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
 
         // Crear FormData para enviar al backend
         const formData = new FormData()
-        formData.append('archivo', file)
+        formData.append('file', file)  // Corregido: debe ser 'file', no 'archivo'
         
         console.log('📁 Archivo a enviar:', {
           nombre: file.name,

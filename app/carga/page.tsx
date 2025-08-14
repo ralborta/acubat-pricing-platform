@@ -82,9 +82,13 @@ export default function CargaArchivos() {
 
   const handleProcessFiles = async () => {
     if (files.length === 0) return
+    
+    console.log('🔄 Iniciando procesamiento de archivos...')
+    console.log('📁 Archivos a procesar:', files.map(f => f.name))
 
     // Procesar cada archivo usando el FileProcessor
     for (const file of files) {
+      console.log('⚙️ Procesando archivo:', file.name)
       if (fileProcessorRef.current && fileProcessorRef.current.processFile) {
         await fileProcessorRef.current.processFile(file)
       }
