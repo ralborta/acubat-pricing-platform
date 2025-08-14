@@ -184,10 +184,12 @@ const auditLog = (action) => {
   };
 };
 
-module.exports = {
-  authenticateToken,
-  authorizeRoles,
-  authorizePermissions,
-  authorizeResourceOwnership,
-  auditLog
-};
+// Exportar la función principal por defecto
+module.exports = authenticateToken;
+
+// También exportar las funciones específicas
+module.exports.authenticateToken = authenticateToken;
+module.exports.authorizeRoles = authorizeRoles;
+module.exports.authorizePermissions = authorizePermissions;
+module.exports.authorizeResourceOwnership = authorizeResourceOwnership;
+module.exports.auditLog = auditLog;
