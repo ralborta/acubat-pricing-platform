@@ -83,57 +83,6 @@ const TABLA_EQUIVALENCIAS = [
   { modelo: "L2", precio_varta: 79839.29, codigos: ["L2"] },
   { modelo: "L3", precio_varta: 80802.12, codigos: ["L3"] }
 ];
-  
-  // 12X50
-  { codigo_baterias: "M20GD", tipo: "12X50", precio_varta: 80802.12 },
-  { codigo_baterias: "M22GD", tipo: "12X50", precio_varta: 80802.12 },
-  { codigo_baterias: "M22GI", tipo: "12X50", precio_varta: 80802.12 },
-  
-  // 12X65 - Baterías medianas
-  { codigo_baterias: "M26AD", tipo: "12X65", precio_varta: 85956.09 },
-  { codigo_baterias: "M26AI", tipo: "12X65", precio_varta: 85956.09 },
-  { codigo_baterias: "M24KD", tipo: "12X65", precio_varta: 85956.09 },
-  
-  // 12X75 - Baterías estándar
-  { codigo_baterias: "M28KD", tipo: "12X75", precio_varta: 114897.59 },
-  { codigo_baterias: "M28KI", tipo: "12X75", precio_varta: 114897.59 },
-  { codigo_baterias: "M30LD", tipo: "12X75", precio_varta: 114897.59 },
-  { codigo_baterias: "M30LI", tipo: "12X75", precio_varta: 114897.59 },
-  { codigo_baterias: "ME80CD", tipo: "12X75", precio_varta: 114897.59 },
-  { codigo_baterias: "ME95QD", tipo: "12X75", precio_varta: 114897.59 },
-  
-  // 12X80 BORA
-  { codigo_baterias: "M18SD", tipo: "12X80 BORA", precio_varta: 116917.65 },
-  { codigo_baterias: "M22JD", tipo: "12X80 BORA", precio_varta: 116917.65 },
-  { codigo_baterias: "M22RD", tipo: "12X80 BORA", precio_varta: 116917.65 },
-  { codigo_baterias: "M22RI", tipo: "12X80 BORA", precio_varta: 116917.65 },
-  
-  // 12X85 HILUX
-  { codigo_baterias: "ME90TD", tipo: "12X85 HILUX", precio_varta: 114897.59 },
-  { codigo_baterias: "ME90TI", tipo: "12X85 HILUX", precio_varta: 114897.59 },
-  
-  // 12X90 SPRINTER
-  { codigo_baterias: "ME100HA", tipo: "12X90 SPRINTER", precio_varta: 116917.65 },
-  
-  // 12X110 - Baterías grandes
-  { codigo_baterias: "ME135BD", tipo: "12X110", precio_varta: 153373.00 },
-  { codigo_baterias: "ME150BD", tipo: "12X110", precio_varta: 153373.00 },
-  { codigo_baterias: "ME180BD", tipo: "12X110", precio_varta: 153373.00 },
-  { codigo_baterias: "ME180BI", tipo: "12X110", precio_varta: 153373.00 },
-  
-  // 12X180 - Baterías extra grandes
-  { codigo_baterias: "ME220PD/I", tipo: "12X180", precio_varta: 244143.23 },
-  { codigo_baterias: "ME23UI", tipo: "12X180", precio_varta: 244143.23 },
-  
-  // 12X220 - Baterías industriales
-  { codigo_baterias: "MF60AD", tipo: "12X220", precio_varta: 302856.92 },
-  { codigo_baterias: "MF72LD", tipo: "12X220", precio_varta: 302856.92 },
-  
-  // Categorías especiales
-  { codigo_baterias: "TRACT. CESPED", tipo: "TRACT. CESPED", precio_varta: 79839.29 },
-  { codigo_baterias: "L2", tipo: "L2", precio_varta: 79839.29 },
-  { codigo_baterias: "L3", tipo: "L3", precio_varta: 80802.12 }
-];
 
 // FUNCIÓN PRINCIPAL: PROCESAR ARCHIVO CSV
 function procesarArchivoCSV(csvContent: string) {
