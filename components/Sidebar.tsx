@@ -1,14 +1,14 @@
 'use client'
 
-import { 
-  Grid3X3, 
-  Upload, 
-  Phone, 
-  MessageSquare, 
-  BarChart3, 
-  Settings, 
-  FileText, 
-  HelpCircle, 
+import {
+  Grid3X3,
+  Upload,
+  Phone,
+  MessageSquare,
+  BarChart3,
+  Settings,
+  FileText,
+  HelpCircle,
   ChevronDown,
   Bell,
   Search
@@ -69,6 +69,7 @@ const menuItems = [
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
+  const [activeItem, setActiveItem] = useState('dashboard')
 
   return (
     <div className={`bg-gray-100 h-screen flex flex-col transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
@@ -99,7 +100,7 @@ export default function Sidebar() {
             <input
               type="text"
               placeholder="Buscar..."
-              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-acubat-blue focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
@@ -109,16 +110,28 @@ export default function Sidebar() {
       <nav className="flex-1 px-4 py-2 space-y-1">
         {menuItems.map((item) => {
           const Icon = item.icon
+          const isActive = activeItem === item.id
+          
           return (
             <button
               key={item.id}
-              className={`sidebar-item w-full text-left ${item.active ? 'active' : ''}`}
+              onClick={() => setActiveItem(item.id)}
+              className={`
+                w-full text-left p-3 rounded-lg transition-all duration-200 flex items-center gap-3
+                ${isActive 
+                  ? 'bg-blue-600 text-white shadow-md' 
+                  : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'
+                }
+                ${collapsed ? 'justify-center' : ''}
+              `}
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
               {!collapsed && (
                 <div className="flex-1">
                   <div className="font-medium">{item.label}</div>
-                  <div className="text-xs opacity-75">{item.description}</div>
+                  <div className={`text-xs ${isActive ? 'text-blue-100' : 'text-gray-500'}`}>
+                    {item.description}
+                  </div>
                 </div>
               )}
             </button>
@@ -130,9 +143,9 @@ export default function Sidebar() {
       <div className="p-4 border-t border-gray-200">
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="sidebar-item w-full justify-center"
+          className="w-full p-3 rounded-lg text-gray-600 hover:bg-gray-200 hover:text-gray-900 transition-colors duration-200 flex items-center gap-3 justify-center"
         >
-          <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`} />
+          <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${collapsed ? 'rotate-90' : '-rotate-90'}`} />
           {!collapsed && <span>Colapsar</span>}
         </button>
       </div>
