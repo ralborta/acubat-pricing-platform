@@ -34,127 +34,136 @@ interface ProductPricing {
   recommendations: string[]
 }
 
+// Interfaz para datos del backend
+interface BackendProduct {
+  sku: string
+  nombre: string
+  marca: string
+  canal: string
+  costo: number
+  precio_base: number
+  markup_aplicado: number
+  precio_redondeado: number
+  margen: number
+  rentabilidad: string
+  precios_canales: {
+    Retail?: number
+    Mayorista?: number
+    Online?: number
+    Distribuidor?: number
+  }
+}
+
 interface PricingAnalysisProps {
   isVisible: boolean
   onClose: () => void
   fileName: string
+  productos?: any[] // Datos reales del backend
 }
 
-export default function PricingAnalysis({ isVisible, onClose, fileName }: PricingAnalysisProps) {
+export default function PricingAnalysis({ isVisible, onClose, fileName, productos }: PricingAnalysisProps) {
   const [selectedProduct, setSelectedProduct] = useState<ProductPricing | null>(null)
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState<'name' | 'markup' | 'margin' | 'profitability'>('name')
 
-  // Datos simulados de análisis de precios
-  const [products] = useState<ProductPricing[]>([
-    {
-      id: '1',
-      sku: 'PROD-001',
-      name: 'Laptop Gaming Pro',
-      category: 'Electrónicos',
-      cost: 450.00,
-      listPrice: 799.99,
-      markup: 77.8,
-      margin: 43.8,
+  // Función para convertir datos del backend al formato esperado
+  const convertBackendData = (backendProducts: BackendProduct[]): ProductPricing[] => {
+    return backendProducts.map((p, index) => ({
+      id: (index + 1).toString(),
+      sku: p.sku || `SKU-${index + 1}`,
+      name: p.nombre,
+      category: p.marca,
+      cost: p.costo,
+      listPrice: p.precio_redondeado,
+      markup: p.markup_aplicado,
+      margin: p.margen,
       channels: {
-        online: 749.99,
-        retail: 799.99,
-        wholesale: 679.99,
-        distributor: 719.99
+        online: p.precios_canales.Online || 0,
+        retail: p.precios_canales.Retail || 0,
+        wholesale: p.precios_canales.Mayorista || 0,
+        distributor: p.precios_canales.Distribuidor || 0
       },
-      profitability: 'high',
-      recommendations: [
-        'Aumentar precio online en 5%',
-        'Mantener precio retail actual',
-        'Reducir precio mayorista en 3%'
-      ]
-    },
-    {
-      id: '2',
-      sku: 'PROD-002',
-      name: 'Mouse Inalámbrico',
-      category: 'Accesorios',
-      cost: 12.50,
-      listPrice: 29.99,
-      markup: 139.9,
-      margin: 58.3,
-      channels: {
-        online: 24.99,
-        retail: 29.99,
-        wholesale: 19.99,
-        distributor: 22.99
-      },
-      profitability: 'high',
-      recommendations: [
-        'Excelente margen, mantener precios',
-        'Considerar bundle con teclado'
-      ]
-    },
-    {
-      id: '3',
-      sku: 'PROD-003',
-      name: 'Teclado Mecánico',
-      category: 'Accesorios',
-      cost: 35.00,
-      listPrice: 89.99,
-      markup: 157.1,
-      margin: 61.1,
-      channels: {
-        online: 79.99,
-        retail: 89.99,
-        wholesale: 69.99,
-        distributor: 74.99
-      },
-      profitability: 'high',
-      recommendations: [
-        'Margen saludable, precios óptimos',
-        'Promocionar en canales online'
-      ]
-    },
-    {
-      id: '4',
-      sku: 'PROD-004',
-      name: 'Monitor 24"',
-      category: 'Monitores',
-      cost: 120.00,
-      listPrice: 199.99,
-      markup: 66.7,
-      margin: 40.0,
-      channels: {
-        online: 189.99,
-        retail: 199.99,
-        wholesale: 169.99,
-        distributor: 179.99
-      },
-      profitability: 'medium',
-      recommendations: [
-        'Considerar aumentar precio en 8%',
-        'Revisar costos de distribución'
-      ]
-    },
-    {
-      id: '5',
-      sku: 'PROD-005',
-      name: 'Cable HDMI Premium',
-      category: 'Cables',
-      cost: 3.50,
-      listPrice: 19.99,
-      markup: 471.1,
-      margin: 82.5,
-      channels: {
-        online: 16.99,
-        retail: 19.99,
-        wholesale: 14.99,
-        distributor: 15.99
-      },
-      profitability: 'high',
-      recommendations: [
-        'Margen excepcional, mantener precios',
-        'Considerar pack de múltiples cables'
-      ]
+      profitability: p.rentabilidad === 'RENTABLE' ? 'high' : p.margen > 30 ? 'medium' : 'low',
+      recommendations: generateRecommendations(p)
+    }))
+  }
+
+  // Función para generar recomendaciones basadas en datos reales
+  const generateRecommendations = (product: BackendProduct): string[] => {
+    const recommendations = []
+    
+    if (product.rentabilidad === 'NO RENTABLE') {
+      recommendations.push('Margen bajo, considerar aumentar precio')
+      recommendations.push('Revisar estrategia de pricing para este canal')
+    } else {
+      recommendations.push('Margen saludable, mantener precios actuales')
     }
-  ])
+    
+    if (product.margen < 30) {
+      recommendations.push('Evaluar competencia en el mercado')
+    }
+    
+    if (product.margen > 80) {
+      recommendations.push('Excelente rentabilidad, considerar expansión')
+    }
+    
+    return recommendations.length > 0 ? recommendations : ['Análisis completo realizado']
+  }
+
+  // Usar productos del backend si están disponibles, sino usar datos de ejemplo
+  const [products] = useState<ProductPricing[]>(() => {
+    // Si tenemos productos del backend, los convertimos al formato esperado
+    if (productos && productos.length > 0) {
+      return convertBackendData(productos)
+    }
+    
+    // Datos de ejemplo si no hay productos del backend
+    return [
+      {
+        id: '1',
+        sku: 'PROD-001',
+        name: 'Batería Varta 60Ah',
+        category: 'Varta',
+        cost: 15000,
+        listPrice: 27000,
+        markup: 1.8,
+        margin: 80,
+        channels: {
+          online: 30000,
+          retail: 27000,
+          wholesale: 22500,
+          distributor: 21000
+        },
+        profitability: 'high',
+        recommendations: [
+          'Excelente margen, mantener precios',
+          'Considerar expansión a otros canales'
+        ]
+      },
+      {
+        id: '2',
+        sku: 'PROD-002',
+        name: 'Batería Varta 100Ah',
+        category: 'Varta',
+        cost: 25000,
+        listPrice: 37500,
+        markup: 1.5,
+        margin: 50,
+        channels: {
+          online: 50000,
+          retail: 45000,
+          wholesale: 37500,
+          distributor: 35000
+        },
+        profitability: 'high',
+        recommendations: [
+          'Margen saludable, precios óptimos',
+          'Promocionar en canales mayoristas'
+        ]
+      }
+    ]
+  })
 
   const filteredProducts = products
     .filter(product => 
@@ -253,76 +262,99 @@ export default function PricingAnalysis({ isVisible, onClose, fileName }: Pricin
                     />
                   </div>
                 </div>
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="all">Todas las categorías</option>
-                  <option value="Electrónicos">Electrónicos</option>
-                  <option value="Accesorios">Accesorios</option>
-                  <option value="Monitores">Monitores</option>
-                  <option value="Cables">Cables</option>
-                </select>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="name">Ordenar por nombre</option>
-                  <option value="markup">Ordenar por markup</option>
-                  <option value="margin">Ordenar por margen</option>
-                  <option value="profitability">Ordenar por rentabilidad</option>
-                </select>
+                
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-gray-500" />
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="all">Todas las categorías</option>
+                    <option value="Varta">Varta</option>
+                    <option value="Otros">Otras marcas</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Ordenar por:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="name">Nombre</option>
+                    <option value="markup">Markup</option>
+                    <option value="margin">Margen</option>
+                    <option value="profitability">Rentabilidad</option>
+                  </select>
+                </div>
               </div>
             </div>
 
             {/* Tabla de Productos */}
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Producto</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Costo</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Markup</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Margen</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rentabilidad</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Producto
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Costo
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Precio
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Markup
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Margen
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Rentabilidad
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredProducts.map((product) => (
                     <tr 
-                      key={product.id} 
-                      className="hover:bg-gray-50 cursor-pointer"
+                      key={product.id}
+                      className={`hover:bg-gray-50 cursor-pointer ${
+                        selectedProduct?.id === product.id ? 'bg-blue-50' : ''
+                      }`}
                       onClick={() => setSelectedProduct(product)}
                     >
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                          <div className="text-sm text-gray-500">{product.sku} • {product.category}</div>
+                          <div className="text-sm text-gray-500">{product.sku}</div>
+                          <div className="text-xs text-gray-400">{product.category}</div>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-sm text-gray-900">${product.cost.toFixed(2)}</td>
-                      <td className="px-4 py-4 text-sm text-gray-900">${product.listPrice.toFixed(2)}</td>
-                      <td className="px-4 py-4 text-sm text-gray-900">{product.markup.toFixed(1)}%</td>
-                      <td className="px-4 py-4 text-sm text-gray-900">{product.margin.toFixed(1)}%</td>
-                      <td className="px-4 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${product.cost.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${product.listPrice.toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {product.markup.toFixed(1)}x
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {product.margin.toFixed(1)}%
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getProfitabilityColor(product.profitability)}`}>
                           {getProfitabilityLabel(product.profitability)}
                         </span>
                       </td>
-                      <td className="px-4 py-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedProduct(product)
-                          }}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </button>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <Eye className="h-4 w-4" />
                       </td>
                     </tr>
                   ))}
@@ -335,93 +367,89 @@ export default function PricingAnalysis({ isVisible, onClose, fileName }: Pricin
           <div className="w-1/3 overflow-y-auto">
             {selectedProduct ? (
               <div className="p-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">{selectedProduct.name}</h3>
-                
-                {/* Información Básica */}
-                <div className="space-y-4 mb-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <div className="text-sm text-gray-500">SKU</div>
-                      <div className="font-medium">{selectedProduct.sku}</div>
-                    </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <div className="text-sm text-gray-500">Categoría</div>
-                      <div className="font-medium">{selectedProduct.category}</div>
-                    </div>
+                {/* Información del Producto */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{selectedProduct.name}</h3>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div><span className="font-medium">SKU:</span> {selectedProduct.sku}</div>
+                    <div><span className="font-medium">Categoría:</span> {selectedProduct.category}</div>
+                    <div><span className="font-medium">Costo:</span> ${selectedProduct.cost.toLocaleString()}</div>
+                    <div><span className="font-medium">Precio de Lista:</span> ${selectedProduct.listPrice.toLocaleString()}</div>
                   </div>
                 </div>
 
-                {/* Análisis de Precios */}
-                <div className="space-y-4 mb-6">
-                  <h4 className="font-medium text-gray-900">Análisis de Precios</h4>
+                {/* Análisis de Pricing */}
+                <div className="mb-6">
+                  <h4 className="text-md font-semibold text-gray-900 mb-3">Análisis de Pricing</h4>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                      <div className="text-sm text-blue-600">Costo Base</div>
-                      <div className="text-lg font-bold text-blue-900">${selectedProduct.cost.toFixed(2)}</div>
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="text-sm text-blue-600">Markup</div>
+                      <div className="text-lg font-semibold text-blue-900">{selectedProduct.markup.toFixed(1)}x</div>
                     </div>
-                    <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                      <div className="text-sm text-green-600">Precio Lista</div>
-                      <div className="text-lg font-bold text-green-900">${selectedProduct.listPrice.toFixed(2)}</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-purple-50 p-3 rounded-lg border border-purple-200">
-                      <div className="text-sm text-purple-600">Markup</div>
-                      <div className="text-lg font-bold text-purple-900">{selectedProduct.markup.toFixed(1)}%</div>
-                    </div>
-                    <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                      <div className="text-sm text-orange-600">Margen</div>
-                      <div className="text-lg font-bold text-orange-900">{selectedProduct.margin.toFixed(1)}%</div>
+                    <div className="bg-green-50 rounded-lg p-3">
+                      <div className="text-sm text-green-600">Margen</div>
+                      <div className="text-lg font-semibold text-green-900">{selectedProduct.margin.toFixed(1)}%</div>
                     </div>
                   </div>
                 </div>
 
                 {/* Precios por Canales */}
-                <div className="space-y-4 mb-6">
-                  <h4 className="font-medium text-gray-900">Precios por Canales</h4>
+                <div className="mb-6">
+                  <h4 className="text-md font-semibold text-gray-900 mb-3">Precios por Canales</h4>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <Globe className="h-4 w-4 text-blue-500 mr-2" />
-                        <span className="text-sm font-medium">Online</span>
+                        <span className="text-sm text-gray-600">Online</span>
                       </div>
-                      <span className="font-bold text-blue-900">${selectedProduct.channels.online.toFixed(2)}</span>
+                      <span className="text-sm font-medium text-gray-900">${selectedProduct.channels.online.toLocaleString()}</span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <Store className="h-4 w-4 text-green-500 mr-2" />
-                        <span className="text-sm font-medium">Retail</span>
+                        <span className="text-sm text-gray-600">Retail</span>
                       </div>
-                      <span className="font-bold text-green-900">${selectedProduct.channels.retail.toFixed(2)}</span>
+                      <span className="text-sm font-medium text-gray-900">${selectedProduct.channels.retail.toLocaleString()}</span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <Truck className="h-4 w-4 text-purple-500 mr-2" />
-                        <span className="text-sm font-medium">Mayorista</span>
+                        <span className="text-sm text-gray-600">Mayorista</span>
                       </div>
-                      <span className="font-bold text-purple-900">${selectedProduct.channels.wholesale.toFixed(2)}</span>
+                      <span className="text-sm font-medium text-gray-900">${selectedProduct.channels.wholesale.toLocaleString()}</span>
                     </div>
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <ShoppingCart className="h-4 w-4 text-orange-500 mr-2" />
-                        <span className="text-sm font-medium">Distribuidor</span>
+                        <span className="text-sm text-gray-600">Distribuidor</span>
                       </div>
-                      <span className="font-bold text-orange-900">${selectedProduct.channels.distributor.toFixed(2)}</span>
+                      <span className="text-sm font-medium text-gray-900">${selectedProduct.channels.distributor.toLocaleString()}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Recomendaciones */}
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">Recomendaciones</h4>
+                <div className="mb-6">
+                  <h4 className="text-md font-semibold text-gray-900 mb-3">Recomendaciones</h4>
                   <div className="space-y-2">
                     {selectedProduct.recommendations.map((rec, index) => (
-                      <div key={index} className="flex items-start space-x-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                        <TrendingUp className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-                        <span className="text-sm text-yellow-800">{rec}</span>
+                      <div key={index} className="flex items-start">
+                        <TrendingUp className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
+                        <span className="text-sm text-gray-700">{rec}</span>
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Acciones */}
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => downloadAnalysis()}
+                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Exportar
+                  </button>
                 </div>
               </div>
             ) : (

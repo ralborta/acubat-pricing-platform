@@ -13,6 +13,7 @@ const simulationRoutes = require('./routes/simulations');
 const rulesetRoutes = require('./routes/rulesets');
 const uploadRoutes = require('./routes/upload');
 const dashboardRoutes = require('./routes/dashboard');
+const pricingRoutes = require('./routes/pricing');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -58,6 +59,7 @@ app.use('/api/simulations', simulationRoutes);
 app.use('/api/rulesets', rulesetRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/pricing', pricingRoutes);
 
 // Ruta de salud
 app.get('/api/health', (req, res) => {

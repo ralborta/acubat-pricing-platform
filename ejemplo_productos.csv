@@ -1,0 +1,12 @@
+SKU,Nombre,Marca,Canal,Precio,Costo
+VARTA-60AH,Batería Varta 60Ah,Varta,Retail,15000,8000
+VARTA-100AH,Batería Varta 100Ah,Varta,Mayorista,25000,12000
+VARTA-80AH,Batería Varta 80Ah,Varta,Online,20000,10000
+GEN-60AH,Batería Genérica 60Ah,Otros,Retail,12000,7000
+GEN-100AH,Batería Genérica 100Ah,Otros,Mayorista,20000,11000
+VARTA-120AH,Batería Varta 120Ah,Varta,Distribuidor,30000,15000
+GEN-80AH,Batería Genérica 80Ah,Otros,Online,15000,8000
+VARTA-40AH,Batería Varta 40Ah,Varta,Retail,10000,5000
+GEN-40AH,Batería Genérica 40Ah,Otros,Retail,8000,4000
+VARTA-200AH,Batería Varta 200Ah,Varta,Mayorista,50000,25000
+

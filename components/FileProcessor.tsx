@@ -16,6 +16,10 @@ interface ProcessedFile {
     validRows: number
     errors: number
     summary: string
+    // Datos reales del backend
+    backendData?: any
+    productos?: any[]
+    estadisticas?: any
   }
   processedAt?: Date
 }
@@ -45,31 +49,79 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
 
       setProcessedFiles(prev => [...prev, newFile])
 
-      // Simular proceso de análisis
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 200))
+      try {
+        // Simular progreso inicial
+        for (let i = 0; i <= 30; i += 10) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          setProcessedFiles(prev => prev.map(f => 
+            f.id === newFile.id ? { ...f, progress: i } : f
+          ))
+        }
+        
+        // Crear FormData para enviar al backend
+        const formData = new FormData()
+        formData.append('archivo', file)
+        
+        // Simular progreso de procesamiento
+        for (let i = 30; i <= 80; i += 10) {
+          await new Promise(resolve => setTimeout(resolve, 150))
+          setProcessedFiles(prev => prev.map(f => 
+            f.id === newFile.id ? { ...f, progress: i } : f
+          ))
+        }
+        
+        // Enviar archivo al backend para procesamiento REAL
+        const response = await fetch('/api/pricing/procesar-archivo', {
+          method: 'POST',
+          body: formData,
+          // Nota: No incluimos headers de Authorization por ahora
+          // En producción necesitarías incluir el token JWT
+        })
+        
+        if (!response.ok) {
+          throw new Error(`Error del servidor: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        
+        // Simular progreso final
+        for (let i = 80; i <= 100; i += 10) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          setProcessedFiles(prev => prev.map(f => 
+            f.id === newFile.id ? { ...f, progress: i } : f
+          ))
+        }
+        
+        // Guardar resultados REALES del backend
+        const results = {
+          totalRows: data.estadisticas.total_productos,
+          validRows: data.estadisticas.productos_rentables,
+          errors: data.estadisticas.productos_no_rentables,
+          summary: `Archivo procesado exitosamente. ${data.estadisticas.total_productos} productos analizados con margen promedio de ${data.estadisticas.margen_promedio}%`,
+          // Datos adicionales del backend
+          backendData: data,
+          productos: data.productos,
+          estadisticas: data.estadisticas
+        }
+        
         setProcessedFiles(prev => prev.map(f => 
-          f.id === newFile.id ? { ...f, progress: i } : f
+          f.id === newFile.id ? { 
+            ...f, 
+            status: 'completed', 
+            progress: 100, 
+            results,
+            processedAt: new Date()
+          } : f
+        ))
+        
+      } catch (error) {
+        console.error('Error procesando archivo:', error)
+        
+        // Marcar como error
+        setProcessedFiles(prev => prev.map(f => 
+          f.id === newFile.id ? { ...f, status: 'error', progress: 0, results: null, processedAt: new Date() } : f
         ))
       }
-
-      // Simular resultados
-      const results = {
-        totalRows: Math.floor(Math.random() * 1000) + 100,
-        validRows: Math.floor(Math.random() * 800) + 80,
-        errors: Math.floor(Math.random() * 50) + 5,
-        summary: generateSummary(file.name)
-      }
-
-      setProcessedFiles(prev => prev.map(f => 
-        f.id === newFile.id ? { 
-          ...f, 
-          status: 'completed', 
-          progress: 100, 
-          results,
-          processedAt: new Date()
-        } : f
-      ))
     }
   }))
 
@@ -327,6 +379,7 @@ const FileProcessor = forwardRef<FileProcessorRef>((props, ref) => {
         isVisible={showPricingAnalysis}
         onClose={() => setShowPricingAnalysis(false)}
         fileName={currentFileName}
+        productos={processedFiles.find(f => f.name === currentFileName)?.results?.productos}
       />
     </div>
   )
