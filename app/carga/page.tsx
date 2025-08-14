@@ -73,59 +73,65 @@ export default function CargaArchivos() {
 
   const downloadResults = (result: any) => {
     // Convertir los datos procesados a CSV
-    if (!result.productos || result.productos.length === 0) {
+    if (!result.datos_procesados || result.datos_procesados.length === 0) {
       alert('No hay datos para descargar')
       return
     }
 
-    const productos = result.productos
+    const productos = result.datos_procesados
     const headers = [
-      'ID', 'Marca', 'Modelo', 'Línea', 'Canal', 'Precio Base', 
-      'Precio con Markup', 'Precio Final', 'Markup (%)', 
-      'Margen Bruto (%)', 'Margen Neto (%)', 'Rentabilidad', 
-      'Estado', 'Alertas'
+      'ID', 'Código', 'Denominación', 'Categoría', 'Aplicación', 'Stock', 'Proveedor',
+      'Precio Base Moura', 'Precio Promedio Final', 'Marca Referencia',
+      'Precio Retail', 'Markup Retail', 'Margen Retail', 'Rentabilidad Retail',
+      'Precio Mayorista', 'Markup Mayorista', 'Margen Mayorista', 'Rentabilidad Mayorista',
+      'Precio Online', 'Markup Online', 'Margen Online', 'Rentabilidad Online',
+      'Rentabilidad General', 'Canales Rentables', 'Utilidad Total', 'Margen Promedio',
+      'Estado', 'Fecha Cálculo', 'Observaciones'
     ]
     
     // Crear CSV
     let csvContent = headers.join(',') + '\n'
     productos.forEach((producto: any) => {
-      const markupPorcentaje = producto.precio_base > 0 ? 
-        Math.round(((producto.precio_con_markup / producto.precio_base) - 1) * 100) : 0
-      
       const valores = [
         producto.id,
-        producto.marca,
-        producto.modelo,
-        producto.linea_producto,
-        producto.canal,
-        producto.precio_base,
-        producto.precio_con_markup,
-        producto.precio_redondeado,
-        markupPorcentaje,
-        producto.margen?.bruto || 0,
-        producto.margen?.neto || 0,
-        producto.rentabilidad,
-        producto.estado_proceso,
-        producto.alertas.join('; ')
+        producto.codigo_original,
+        `"${producto.denominacion}"`,
+        producto.categoria,
+        producto.aplicacion,
+        producto.stock,
+        producto.proveedor,
+        producto.precio_lista_moura,
+        producto.precio_promedio_final,
+        producto.marca_referencia,
+        producto.precios_canales.retail.precio_final,
+        producto.precios_canales.retail.markup,
+        producto.precios_canales.retail.margen_bruto,
+        producto.precios_canales.retail.rentabilidad,
+        producto.precios_canales.mayorista.precio_final,
+        producto.precios_canales.mayorista.markup,
+        producto.precios_canales.mayorista.margen_bruto,
+        producto.precios_canales.mayorista.rentabilidad,
+        producto.precios_canales.online.precio_final,
+        producto.precios_canales.online.markup,
+        producto.precios_canales.online.margen_bruto,
+        producto.precios_canales.online.rentabilidad,
+        producto.rentabilidad_general,
+        producto.canales_rentables,
+        producto.utilidad_total_estimada,
+        producto.margen_promedio,
+        producto.estado,
+        producto.fecha_calculo,
+        `"${producto.observaciones}"`
       ]
-      
-      const valoresEscapados = valores.map(valor => {
-        const strValor = String(valor)
-        if (strValor.includes(',')) {
-          return `"${strValor.replace(/"/g, '""')}"`
-        }
-        return strValor
-      })
-      
-      csvContent += valoresEscapados.join(',') + '\n'
+      csvContent += valores.join(',') + '\n'
     })
-
-    // Crear y descargar archivo
+    
+    // Descargar archivo
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)
-    link.setAttribute('download', `${result.archivo}_pricing_completo.csv`)
+    link.setAttribute('download', `pricing_${result.archivo}_${new Date().toISOString().split('T')[0]}.csv`)
     link.style.visibility = 'hidden'
     document.body.appendChild(link)
     link.click()
@@ -403,63 +409,90 @@ export default function CargaArchivos() {
                     )}
 
                     {/* Muestra de Productos Procesados */}
-                    {result.productos && result.productos.length > 0 && (
+                    {result.datos_procesados && result.datos_procesados.length > 0 && (
                       <div className="mt-6">
                         <h4 className="text-lg font-medium text-gray-900 mb-3 flex items-center">
                           <Eye className="h-5 w-5 mr-2" />
-                          Vista Previa de Productos Procesados
+                          Vista Previa de Productos Procesados por Canal
                         </h4>
                         <div className="overflow-x-auto">
                           <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                               <tr>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marca</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Canal</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Denominación</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio Base</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio Final</th>
-                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Margen</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retail</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mayorista</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Online</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rentabilidad</th>
                               </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
-                              {result.productos.slice(0, 5).map((producto: any, rowIndex: number) => (
-                                <tr key={rowIndex} className={producto.estado_proceso === 'ERROR' ? 'bg-red-50' : ''}>
+                              {result.datos_procesados.slice(0, 5).map((producto: any, rowIndex: number) => (
+                                <tr key={rowIndex} className={producto.estado === 'ERROR' ? 'bg-red-50' : ''}>
                                   <td className="px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900">
-                                    {producto.marca}
+                                    {producto.codigo_original}
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 max-w-xs truncate">
+                                    {producto.denominacion}
                                   </td>
                                   <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                                    {producto.modelo}
-                                  </td>
-                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                                    {producto.canal}
-                                  </td>
-                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                                    {formatCurrency(producto.precio_base)}
-                                  </td>
-                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                                    {formatCurrency(producto.precio_redondeado)}
-                                  </td>
-                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
-                                    {formatPercentage(producto.margen?.bruto || 0)}
+                                    {formatCurrency(producto.precio_lista_moura)}
                                   </td>
                                   <td className="px-3 py-2 whitespace-nowrap text-sm">
-                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                      producto.rentabilidad === 'RENTABLE' 
+                                    <div className="text-gray-900">{formatCurrency(producto.precios_canales.retail.precio_final)}</div>
+                                    <div className="text-xs text-gray-500">{producto.precios_canales.retail.markup}</div>
+                                    <span className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded-full ${
+                                      producto.precios_canales.retail.rentabilidad === 'RENTABLE' 
                                         ? 'bg-green-100 text-green-800' 
                                         : 'bg-red-100 text-red-800'
                                     }`}>
-                                      {producto.rentabilidad}
+                                      {producto.precios_canales.retail.rentabilidad}
                                     </span>
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                    <div className="text-gray-900">{formatCurrency(producto.precios_canales.mayorista.precio_final)}</div>
+                                    <div className="text-xs text-gray-500">{producto.precios_canales.mayorista.markup}</div>
+                                    <span className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded-full ${
+                                      producto.precios_canales.mayorista.rentabilidad === 'RENTABLE' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      {producto.precios_canales.mayorista.rentabilidad}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                    <div className="text-gray-900">{formatCurrency(producto.precios_canales.online.precio_final)}</div>
+                                    <div className="text-xs text-gray-500">{producto.precios_canales.online.markup}</div>
+                                    <span className={`inline-flex px-1 py-0.5 text-xs font-semibold rounded-full ${
+                                      producto.precios_canales.online.rentabilidad === 'RENTABLE' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      {producto.precios_canales.online.rentabilidad}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                      producto.rentabilidad_general === 'RENTABLE' 
+                                        ? 'bg-green-100 text-green-800' 
+                                        : 'bg-red-100 text-red-800'
+                                    }`}>
+                                      {producto.rentabilidad_general}
+                                    </span>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      {producto.canales_rentables}/{producto.total_canales} canales
+                                    </div>
                                   </td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
                         </div>
-                        {result.productos.length > 5 && (
+                        {result.datos_procesados.length > 5 && (
                           <p className="text-sm text-gray-500 mt-2">
-                            ... y {result.productos.length - 5} productos más
+                            ... y {result.datos_procesados.length - 5} productos más
                           </p>
                         )}
                       </div>
