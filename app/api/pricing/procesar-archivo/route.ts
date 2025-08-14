@@ -187,32 +187,41 @@ function calcularPricingCorrecto(productos: any[], equivalencias: any[]) {
 // POST /api/pricing/procesar-archivo
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 Iniciando procesamiento de archivo...');
+    
     const formData = await request.formData();
     const file = formData.get('archivo') as File;
     
     if (!file) {
+      console.log('❌ No se proporcionó archivo');
       return NextResponse.json(
         { error: 'No se proporcionó ningún archivo' },
         { status: 400 }
       );
     }
     
-    console.log(`📁 Procesando archivo: ${file.name}`);
+    console.log(`📁 Procesando archivo: ${file.name}, tamaño: ${file.size} bytes`);
     
     // Leer contenido del archivo
     const csvContent = await file.text();
+    console.log(`📄 Contenido del archivo leído, longitud: ${csvContent.length} caracteres`);
     
     // Procesar archivo CSV
+    console.log('🔍 Procesando CSV...');
     const { headers, rows } = procesarArchivoCSV(csvContent);
+    console.log(`📊 Headers encontrados: ${headers.join(', ')}`);
+    console.log(`📊 Filas procesadas: ${rows.length}`);
     
     if (rows.length === 0) {
+      console.log('❌ No hay filas válidas en el archivo');
       return NextResponse.json(
         { error: 'El archivo no contiene datos válidos' },
         { status: 400 }
       );
     }
     
-    console.log(`📊 Productos encontrados: ${rows.length}`);
+    // Mostrar primera fila para debug
+    console.log('🔍 Primera fila de ejemplo:', rows[0]);
     
     // Tabla de equivalencias COMPLETA basada en la imagen
     const equivalencias = [
