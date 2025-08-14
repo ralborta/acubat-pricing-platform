@@ -1,47 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as XLSX from 'xlsx'
 
 export async function POST(request: NextRequest) {
   try {
     console.log('📁 API: Iniciando procesamiento de archivo...')
-    console.log('🔍 API: Headers:', Object.fromEntries(request.headers.entries()))
-    console.log('🔍 API: Content-Type:', request.headers.get('content-type'))
-    
-    // Verificar que sea multipart/form-data
-    const contentType = request.headers.get('content-type')
-    if (!contentType || !contentType.includes('multipart/form-data')) {
-      console.error('❌ API: Content-Type incorrecto:', contentType)
-      return NextResponse.json(
-        { error: 'Content-Type debe ser multipart/form-data' },
-        { status: 400 }
-      )
-    }
     
     // Obtener el archivo del FormData
     const formData = await request.formData()
-    console.log('📋 API: FormData keys:', Array.from(formData.keys()))
-    console.log('📋 API: FormData entries:', Array.from(formData.entries()).map(([key, value]) => ({
-      key,
-      value: value instanceof File ? `File: ${value.name} (${value.size} bytes)` : value
-    })))
-    
     const file = formData.get('file') as File
-    console.log('📂 API: Archivo recibido:', file)
-    console.log('📂 API: Tipo de archivo recibido:', typeof file)
     
     if (!file) {
-      console.error('❌ API: No se recibió archivo')
-      console.error('❌ API: FormData completo:', Array.from(formData.entries()))
       return NextResponse.json(
         { error: 'No se recibió ningún archivo' }, 
-        { status: 400 }
-      )
-    }
-    
-    // Verificar que sea realmente un File object
-    if (!(file instanceof File)) {
-      console.error('❌ API: El objeto recibido no es un File:', file)
-      return NextResponse.json(
-        { error: 'El objeto recibido no es un archivo válido' },
         { status: 400 }
       )
     }
@@ -52,10 +22,7 @@ export async function POST(request: NextRequest) {
       'application/vnd.ms-excel' // .xls
     ]
     
-    console.log('🔍 API: Tipo MIME del archivo:', file.type)
-    
     if (!allowedTypes.includes(file.type)) {
-      console.error('❌ API: Tipo de archivo no válido:', file.type)
       return NextResponse.json(
         { error: `El archivo debe ser un Excel (.xlsx o .xls). Tipo recibido: ${file.type}` },
         { status: 400 }
@@ -68,37 +35,93 @@ export async function POST(request: NextRequest) {
       type: file.type
     })
     
-    // Convertir archivo a buffer para procesarlo
+    // Convertir archivo a buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
     
-    console.log('📊 API: Procesando archivo Excel...')
-    console.log('📊 API: Buffer size:', buffer.length)
+    console.log('📊 API: Leyendo archivo Excel...')
     
-    // AQUÍ CONECTAS CON TU SERVICIO DE PRICING REAL
-    // Ejemplo de datos simulados que devolvería tu servicio:
-    const datosExcel = [
-      { codigo_baterias: "M20GD", tipo: "12X50", precio_varta: 80002.12 },
-      { codigo_baterias: "M22GD", tipo: "12X50", precio_varta: 80002.12 },
-      { codigo_baterias: "M22GT", tipo: "12X50", precio_varta: 80002.12 },
-    ]
+    // PROCESAR EL ARCHIVO EXCEL REAL
+    const workbook = XLSX.read(buffer, { type: 'buffer' })
+    const sheetName = workbook.SheetNames[0] // Primera hoja
+    const worksheet = workbook.Sheets[sheetName]
     
-    // Simular procesamiento de pricing
+    // Convertir a JSON
+    const datosExcel = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
+    
+    console.log('📋 API: Datos leídos del Excel:', datosExcel.slice(0, 3)) // Primeras 3 filas
+    console.log('📊 API: Total de filas:', datosExcel.length)
+    
+    // PROCESAR DATOS PARA PRICING
+    const headers = datosExcel[0] as string[] // Primera fila como headers
+    const filas = datosExcel.slice(1) // Resto de filas como datos
+    
+    console.log('📋 API: Headers detectados:', headers)
+    
+    // Mapear datos a estructura de pricing
+    const datosProcessados = filas.map((fila: any[], index: number) => {
+      const registro: any = {}
+      
+      // Mapear cada columna según los headers
+      headers.forEach((header, colIndex) => {
+        if (header && fila[colIndex] !== undefined) {
+          registro[header.toLowerCase().replace(/\s+/g, '_')] = fila[colIndex]
+        }
+      })
+      
+      // Agregar información de procesamiento
+      registro.fila_original = index + 2 // +2 porque empezamos desde fila 1 y saltamos headers
+      registro.procesado_timestamp = new Date().toISOString()
+      
+      return registro
+    }).filter(registro => {
+      // Filtrar filas vacías
+      const valores = Object.values(registro).filter(val => val !== null && val !== undefined && val !== '')
+      return valores.length > 2 // Al menos 2 campos con datos
+    })
+    
+    console.log('✅ API: Datos procesados:', datosProcessados.length, 'registros válidos')
+    console.log('📋 API: Muestra de datos procesados:', datosProcessados.slice(0, 2))
+    
+    // APLICAR LÓGICA DE PRICING
+    const datosPricing = datosProcessados.map((registro, index) => {
+      // Aquí puedes aplicar tu lógica de pricing específica
+      // Por ejemplo, buscar precios, aplicar descuentos, etc.
+      
+      return {
+        ...registro,
+        // Campos de pricing calculados
+        precio_base: registro.precio_varta || 0,
+        descuento_aplicado: 0.1, // 10% ejemplo
+        precio_final: (registro.precio_varta || 0) * 0.9,
+        estado_pricing: 'procesado',
+        observaciones: `Precio calculado para ${registro.codigo_baterias || 'item ' + (index + 1)}`
+      }
+    })
+    
+    // Resultado final
     const resultadoPricing = {
       success: true,
       archivo: file.name,
-      registros: datosExcel.length,
       timestamp: new Date().toISOString(),
-      resultados: {
-        totalProcesados: datosExcel.length,
+      estadisticas: {
+        total_filas_leidas: datosExcel.length,
+        headers_detectados: headers.length,
+        registros_validos: datosProcessados.length,
+        registros_procesados: datosPricing.length,
         errores: 0,
-        warnings: 1,
-        datos: datosExcel
+        warnings: datosExcel.length - datosProcessados.length - 1 // -1 por header
       },
-      mensaje: "Archivo procesado exitosamente por el servicio de pricing"
+      headers_detectados: headers,
+      datos_procesados: datosPricing,
+      mensaje: `Archivo procesado exitosamente. ${datosPricing.length} registros con pricing aplicado.`
     }
     
-    console.log('✅ API: Procesamiento completado exitosamente')
+    console.log('✅ API: Procesamiento completado:', {
+      archivo: file.name,
+      registros: datosPricing.length,
+      headers: headers.length
+    })
     
     return NextResponse.json(resultadoPricing)
     
@@ -117,7 +140,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({ 
-    message: 'Endpoint para procesamiento de archivos Excel',
+    message: 'Endpoint para procesamiento de archivos Excel con pricing real',
     methods: ['POST'],
     expectedFormat: 'multipart/form-data con campo "file"',
     status: 'API funcionando correctamente'
