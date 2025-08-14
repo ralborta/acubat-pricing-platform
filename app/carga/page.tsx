@@ -146,7 +146,11 @@ export default function CargaArchivos() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: any) => {
+    // Validar que sea un número
+    if (typeof amount !== 'number' || isNaN(amount)) {
+      return '$0'
+    }
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: 'ARS',
@@ -154,7 +158,11 @@ export default function CargaArchivos() {
     }).format(amount)
   }
 
-  const formatPercentage = (value: number) => {
+  const formatPercentage = (value: any) => {
+    // Validar que sea un número
+    if (typeof value !== 'number' || isNaN(value)) {
+      return '0.00%'
+    }
     return `${value.toFixed(2)}%`
   }
 
