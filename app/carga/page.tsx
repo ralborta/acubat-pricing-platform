@@ -168,7 +168,7 @@ export default function CargaPage() {
       setShowProcessVisualizer(true)
       
       // Simular progreso del visualizador mientras se procesa
-      // VELOCIDAD: 4 segundos por paso para presentación profesional
+      // VELOCIDAD: 6 segundos por paso para demo profesional (48 segundos total)
       const simularProgreso = () => {
         let paso = 0
         const interval = setInterval(() => {
@@ -179,7 +179,7 @@ export default function CargaPage() {
           } else {
             clearInterval(interval)
           }
-        }, 4000) // 4 segundos por paso - Más lento para presentación
+        }, 6000) // 6 segundos por paso - Total 48 segundos para demo profesional
         
         return interval
       }
