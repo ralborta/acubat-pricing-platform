@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import fs from 'fs'
+import path from 'path'
 
 export async function POST(request: NextRequest) {
   try {
@@ -511,31 +513,73 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Datos reales cargados:', datosRealesMoura.length, 'productos')
     
+    // 🚨 CONFIGURACIÓN DINÁMICA DEL SISTEMA
+    console.log('🚨 CARGANDO CONFIGURACIÓN DEL SISTEMA...')
+    
+    // Cargar configuración global
+    let configuracionSistema: any = {}
+    try {
+      const configPath = path.join(process.cwd(), 'config', 'configuracion.json')
+      const configData = fs.readFileSync(configPath, 'utf8')
+      configuracionSistema = JSON.parse(configData)
+      console.log('✅ Configuración cargada:', configuracionSistema.sistema?.version)
+    } catch (error) {
+      console.log('⚠️ Usando configuración por defecto (archivo no encontrado)')
+      configuracionSistema = {
+        markups: { mayorista: 0.15, directa: 0.40 },
+        iva: 21,
+        redondeo: { mayorista: 100, directa: 50 },
+        factoresVarta: { base: 40 }
+      }
+    }
+    
+    // MARKUPS DINÁMICOS DESDE CONFIGURACIÓN (convertir de % a decimal)
+    const markupsPorCanal = {
+      mayorista: configuracionSistema.markups?.mayorista / 100 || 0.15,
+      directa: configuracionSistema.markups?.directa / 100 || 0.40
+    }
+    
+    console.log('📊 Markups cargados:', {
+      mayorista: `${(markupsPorCanal.mayorista * 100).toFixed(0)}%`,
+      directa: `${(markupsPorCanal.directa * 100).toFixed(0)}%`
+    })
+    
     // 🧮 APLICANDO PRICING REAL Y COHERENTE POR CANAL
     console.log('🧮 Aplicando pricing real y coherente por canal...')
     
-    // Función para calcular precio Varta equivalente (lógica coherente)
+    // Función para calcular precio Varta equivalente DESDE CONFIGURACIÓN
     const calcularPrecioVarta = (precioMoura: number, capacidad: number) => {
-      // Lógica: Varta es +40% sobre Moura (más premium)
+      const factoresVarta = configuracionSistema.factoresVarta || { base: 40 }
+      
+      // Lógica: Varta es +X% sobre Moura (más premium) - DESDE CONFIGURACIÓN
+      const factorBase = 1 + (factoresVarta.base / 100) // Convertir % a decimal
+      
       // Ajuste por capacidad: productos más grandes tienen mejor relación precio/capacidad
-      const factorBase = 1.40 // +40% base
-      const factorCapacidad = capacidad >= 80 ? 1.35 : capacidad >= 60 ? 1.38 : 1.42
-      return Math.round(precioMoura * factorCapacidad)
+      let factorCapacidad = 1.0
+      if (capacidad >= 80) {
+        factorCapacidad = 1 + (factoresVarta.capacidad80 / 100) || 1.35
+      } else if (capacidad >= 60) {
+        factorCapacidad = 1 + (factoresVarta.capacidad60 / 100) || 1.38
+      } else {
+        factorCapacidad = 1 + (factoresVarta.capacidadMenor60 / 100) || 1.42
+      }
+      
+      return Math.round(precioMoura * factorBase * factorCapacidad)
     }
     
-    // Función para aplicar redondeo inteligente por canal
+    // Función para aplicar redondeo inteligente por canal DESDE CONFIGURACIÓN
     const aplicarRedondeo = (precio: number, canal: string) => {
+      const redondeoConfig = configuracionSistema.redondeo || { mayorista: 100, directa: 50 }
+      
       switch (canal) {
         case 'mayorista':
-          // Mayorista: redondear a múltiplos de $100 (precios más redondos)
-          return Math.ceil(precio / 100) * 100
+          // Mayorista: redondear a múltiplos configurados
+          return Math.ceil(precio / redondeoConfig.mayorista) * redondeoConfig.mayorista
         case 'directa':
-          // Directa: redondear a múltiplos de $50 (precios más flexibles)
-          return Math.ceil(precio / 50) * 50
-        case 'nbo':
-          // NBO: redondear a múltiplos de $75 (intermedio)
-          return Math.ceil(precio / 75) * 75
+          // Directa: redondear a múltiplos configurados
+          return Math.ceil(precio / redondeoConfig.directa) * redondeoConfig.directa
         default:
+          // Por defecto: redondear a múltiplos de $50
           return Math.ceil(precio / 50) * 50
       }
     }
@@ -544,7 +588,7 @@ export async function POST(request: NextRequest) {
     const generarTablaEquivalencias = (producto: any, canal: string, markup: number) => {
       const precioBaseMoura = producto.precio_lista
       const precioConMarkup = precioBaseMoura * (1 + markup)
-      const iva = precioConMarkup * 0.21
+      const iva = precioConMarkup * (configuracionSistema.iva / 100 || 0.21)
       const precioConIVA = precioConMarkup + iva
       const precioFinal = aplicarRedondeo(precioConIVA, canal)
       
@@ -567,13 +611,6 @@ export async function POST(request: NextRequest) {
     datosRealesMoura.forEach((producto, index) => {
       const precioBaseMoura = producto.precio_lista
       const precioVarta = calcularPrecioVarta(precioBaseMoura, producto.c20_ah)
-      
-      // MARKUPS REALISTAS Y COHERENTES POR CANAL (SOBRE PRECIO DE LISTA + IVA)
-      // IMPORTANTE: Solo 2 canales reales: Mayorista y Directa
-      const markupsPorCanal = {
-        mayorista: 0.15,   // +15% para Mayorista (margen bajo, alto volumen, estrategia de penetración)
-        directa: 0.40      // +40% para Directa (margen medio, volumen medio, estrategia equilibrada)
-      }
       
       // Generar 3 filas por producto (una por canal) con lógica diferenciada
       Object.entries(markupsPorCanal).forEach(([canal, markup]) => {
@@ -603,9 +640,9 @@ export async function POST(request: NextRequest) {
           codigoVartaCanal = 'N/A'
         }
         
-        // CÁLCULO CORRECTO: Precio Base del Canal × (1 + Markup) + IVA
+        // CÁLCULO CORRECTO: Precio Base del Canal × (1 + Markup) + IVA DINÁMICO
         const precioConMarkup = precioBaseCanal * (1 + markup)
-        const iva = precioConMarkup * 0.21
+        const iva = precioConMarkup * (configuracionSistema.iva / 100 || 0.21)
         const precioConIVA = precioConMarkup + iva
         const precioFinal = aplicarRedondeo(precioConIVA, canal)
         
