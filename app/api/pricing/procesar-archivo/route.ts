@@ -552,7 +552,8 @@ export async function POST(request: NextRequest) {
       const factoresVarta = configuracionSistema.factoresVarta || { base: 40 }
       
       // Lógica: Varta es +X% sobre Moura (más premium) - DESDE CONFIGURACIÓN
-      const factorBase = 1 + (factoresVarta.base / 100) // Convertir % a decimal
+      // SOLO aplicar el factor base, NO duplicar con capacidad
+      const factorVarta = 1 + (factoresVarta.base / 100) // Convertir % a decimal
       
       // Ajuste por capacidad: productos más grandes tienen mejor relación precio/capacidad
       let factorCapacidad = 1.0
@@ -564,7 +565,8 @@ export async function POST(request: NextRequest) {
         factorCapacidad = 1 + (factoresVarta.capacidadMenor60 / 100) || 1.42
       }
       
-      return Math.round(precioMoura * factorBase * factorCapacidad)
+      // APLICAR SOLO UNO DE LOS FACTORES, NO AMBOS
+      return Math.round(precioMoura * factorVarta)
     }
     
     // Función para aplicar redondeo inteligente por canal DESDE CONFIGURACIÓN
@@ -627,8 +629,8 @@ export async function POST(request: NextRequest) {
           precioVartaCanal = precioVarta
           codigoVartaCanal = `Varta ${producto.c20_ah}Ah`
         } else if (canal === 'directa') {
-          // DIRECTA: Precio base +25% (sin equivalencia Varta) + markup alto
-          precioBaseCanal = precioBaseMoura * 1.25
+          // DIRECTA: Precio base original (sin equivalencia Varta) + markup alto
+          precioBaseCanal = precioBaseMoura
           tieneEquivalenciaVarta = false
           precioVartaCanal = 0
           codigoVartaCanal = 'N/A'
