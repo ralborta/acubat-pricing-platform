@@ -37,13 +37,50 @@ export async function POST(request: NextRequest) {
                 producto[header] = valores[index]
               })
           
-          // Convertir precios a números
-          if (producto.precio_lista) {
-            producto.precio_lista = parseFloat(producto.precio_lista) || 0
+          // Convertir precios a números - DETECCIÓN AUTOMÁTICA DE CAMPOS
+          // Buscar campo de precio (puede ser precio_lista, precio, lista, etc.)
+          const campoPrecio = headers.find(h => 
+            h.toLowerCase().includes('precio') || 
+            h.toLowerCase().includes('lista') || 
+            h.toLowerCase().includes('costo') ||
+            h.toLowerCase().includes('valor')
+          )
+          
+          // Buscar campo de capacidad (puede ser c20_ah, capacidad, ah, etc.)
+          const campoCapacidad = headers.find(h => 
+            h.toLowerCase().includes('ah') || 
+            h.toLowerCase().includes('capacidad') || 
+            h.toLowerCase().includes('c20') ||
+            h.toLowerCase().includes('amperaje')
+          )
+          
+          // Buscar campo de código (puede ser codigo, modelo, sku, etc.)
+          const campoCodigo = headers.find(h => 
+            h.toLowerCase().includes('codigo') || 
+            h.toLowerCase().includes('modelo') || 
+            h.toLowerCase().includes('sku') ||
+            h.toLowerCase().includes('referencia')
+          )
+          
+          // Mapear campos encontrados
+          if (campoPrecio) {
+            producto.precio_lista = parseFloat(producto[campoPrecio]) || 0
           }
-          if (producto.c20_ah) {
-            producto.c20_ah = parseInt(producto.c20_ah) || 0
+          if (campoCapacidad) {
+            producto.c20_ah = parseInt(producto[campoCapacidad]) || 0
           }
+          if (campoCodigo) {
+            producto.codigo = producto[campoCodigo]
+          }
+          
+          // Log para debug
+          console.log('🔍 Campos detectados:', {
+            precio: campoPrecio,
+            capacidad: campoCapacidad,
+            codigo: campoCodigo,
+            valorPrecio: producto.precio_lista,
+            valorCapacidad: producto.c20_ah
+          })
           
           datosRealesMoura.push(producto)
         }
