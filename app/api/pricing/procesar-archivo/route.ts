@@ -343,6 +343,12 @@ export async function POST(request: NextRequest) {
           tieneEquivalenciaVarta = false
           precioVartaCanal = 0
           codigoVartaCanal = 'N/A'
+        } else {
+          // CASO POR DEFECTO: Precio base original (por si acaso)
+          precioBaseCanal = precioBaseMoura
+          tieneEquivalenciaVarta = false
+          precioVartaCanal = 0
+          codigoVartaCanal = 'N/A'
         }
         
         // CÁLCULO CORRECTO: Precio Base del Canal × (1 + Markup) + IVA
