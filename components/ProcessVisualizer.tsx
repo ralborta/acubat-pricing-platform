@@ -40,6 +40,7 @@ interface ProcessVisualizerProps {
   isVisible: boolean;
   onComplete: () => void;
   fileName: string;
+  progreso: number;
 }
 
 // ==========================
@@ -65,7 +66,7 @@ function Card({ title, subtitle, children, className = "" }: {
 // ==========================
 // Visualizador Principal
 // ==========================
-export default function ProcessVisualizer({ isVisible, onComplete, fileName }: ProcessVisualizerProps) {
+export default function ProcessVisualizer({ isVisible, onComplete, fileName, progreso }: ProcessVisualizerProps) {
   const [steps, setSteps] = useState<PVStep[]>([
     {
       id: 1,
@@ -134,32 +135,22 @@ export default function ProcessVisualizer({ isVisible, onComplete, fileName }: P
   ]);
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [isRunning, setIsRunning] = useState(false);
 
-  // Auto-start cuando se hace visible
+  // Conectar con el progreso real
   useEffect(() => {
-    if (isVisible && !isRunning) {
-      setIsRunning(true);
-      setCurrentStep(0);
+    if (isVisible && progreso > 0) {
+      // Calcular paso actual basado en progreso
+      const pasoCalculado = Math.floor((progreso / 100) * steps.length);
+      setCurrentStep(Math.min(pasoCalculado, steps.length - 1));
       
-      // Timer simple: avanzar cada 2 segundos
-      const timer = setInterval(() => {
-        setCurrentStep(prev => {
-          if (prev >= steps.length - 1) {
-            // Último paso completado
-            clearInterval(timer);
-            setTimeout(() => {
-              onComplete();
-            }, 1000);
-            return prev;
-          }
-          return prev + 1;
-        });
-      }, 2000);
-
-      return () => clearInterval(timer);
+      // Si progreso es 100%, completar
+      if (progreso >= 100) {
+        setTimeout(() => {
+          onComplete();
+        }, 1000);
+      }
     }
-  }, [isVisible, isRunning, steps.length, onComplete]);
+  }, [isVisible, progreso, steps.length, onComplete]);
 
   // Actualizar estados de los pasos
   useEffect(() => {
@@ -174,7 +165,7 @@ export default function ProcessVisualizer({ isVisible, onComplete, fileName }: P
     }));
   }, [currentStep]);
 
-  const totalProgress = ((currentStep + 1) / steps.length) * 100;
+  const totalProgress = progreso;
 
   if (!isVisible) return null;
 

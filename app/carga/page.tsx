@@ -986,6 +986,7 @@ export default function CargaPage() {
         isVisible={showProcessVisualizer}
         onComplete={handleProcessComplete}
         fileName={archivoNombre || 'Archivo'}
+        progreso={progreso}
       />
     </div>
   )
