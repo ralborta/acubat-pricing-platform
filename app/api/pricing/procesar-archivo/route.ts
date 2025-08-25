@@ -473,7 +473,7 @@ export async function POST(request: NextRequest) {
           mayorista: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'mayorista', 0.15)),
           nbo: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'nbo', 0.25)),
           directa: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'directa', 0.40))
-        }
+        },
         margen_promedio_general: calcularMargenPromedioGeneral(productosConPricingReal),
         rentabilidad_por_canal: {
           mayorista: `${analisisPorCanal.mayorista.rentables}/${analisisPorCanal.mayorista.total} (${((analisisPorCanal.mayorista.rentables / analisisPorCanal.mayorista.total) * 100).toFixed(1)}%)`,
