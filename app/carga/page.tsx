@@ -32,6 +32,16 @@ interface Producto {
       markup: string
       margen_bruto: string
       rentabilidad: string
+      iva_aplicado: number
+      iva_porcentaje: string
+      precio_base_canal: number
+      precio_iva_desglosado: {
+        precio_base: number
+        markup_aplicado: number
+        subtotal: number
+        iva: number
+        precio_final: number
+      }
     }
   }
   utilidad_total_estimada: number
