@@ -166,7 +166,25 @@ export default function CargaPage() {
       // Mostrar visualizador de proceso
       setShowProcessVisualizer(true)
       
-      // Simular llamada a API
+      // Simular progreso del visualizador mientras se procesa
+      const simularProgreso = () => {
+        let paso = 0
+        const interval = setInterval(() => {
+          paso++
+          if (paso <= 8) {
+            // Simular progreso del paso actual
+            setProgreso((paso / 8) * 100)
+          } else {
+            clearInterval(interval)
+          }
+        }, 2000) // 2 segundos por paso
+        
+        return interval
+      }
+      
+      const progresoInterval = simularProgreso()
+      
+      // Llamada real a la API
       const formData = new FormData()
       formData.append('file', archivoSeleccionado)
       
@@ -175,13 +193,22 @@ export default function CargaPage() {
         body: formData
       })
       
+      // Limpiar el intervalo de progreso
+      clearInterval(progresoInterval)
+      
       if (!response.ok) {
         throw new Error('Error al procesar el archivo')
       }
       
       const data = await response.json()
-      setResultado(data)
       
+      if (data.success) {
+        setResultado(data)
+        setProductosAMostrar(data.datos_procesados || [])
+        setProgreso(100) // Completar al 100%
+      } else {
+        setError(data.error || 'Error desconocido')
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
