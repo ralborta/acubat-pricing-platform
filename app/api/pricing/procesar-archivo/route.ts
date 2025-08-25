@@ -264,14 +264,20 @@ export async function POST(request: NextRequest) {
       return Math.round(precioMoura * factorCapacidad)
     }
     
-    // Función para aplicar redondeo inteligente
+    // Función para aplicar redondeo inteligente por canal
     const aplicarRedondeo = (precio: number, canal: string) => {
-      if (canal === 'mayorista') {
-        // Retail: redondear a múltiplos de $100
-        return Math.ceil(precio / 100) * 100
-      } else {
-        // Mayorista y Distribución: redondear a múltiplos de $50
-        return Math.ceil(precio / 50) * 50
+      switch (canal) {
+        case 'mayorista':
+          // Mayorista: redondear a múltiplos de $100 (precios más redondos)
+          return Math.ceil(precio / 100) * 100
+        case 'directa':
+          // Directa: redondear a múltiplos de $50 (precios más flexibles)
+          return Math.ceil(precio / 50) * 50
+        case 'nbo':
+          // NBO: redondear a múltiplos de $75 (intermedio)
+          return Math.ceil(precio / 75) * 75
+        default:
+          return Math.ceil(precio / 50) * 50
       }
     }
     
@@ -293,8 +299,9 @@ export async function POST(request: NextRequest) {
       
       // MARKUPS REALISTAS Y COHERENTES POR CANAL (SOBRE PRECIO DE LISTA + IVA)
       const markupsPorCanal = {
-        mayorista: 0.22,   // +22% para Mayorista (promedio 20-25%)
-        directa: 0.60      // +60% para Directa
+        mayorista: 0.18,   // +18% para Mayorista (margen bajo, alto volumen)
+        directa: 0.45,     // +45% para Directa (margen medio, volumen medio)
+        nbo: 0.35          // +35% para NBO (margen intermedio, volumen variable)
       }
       
       // Generar 3 filas por producto (una por canal)
@@ -308,6 +315,10 @@ export async function POST(request: NextRequest) {
         // Calcular margen real sobre precio FINAL (rentabilidad real)
         const margenBruto = ((precioFinal - precioBaseMoura) / precioFinal * 100).toFixed(1)
         const rentabilidad = parseFloat(margenBruto) >= 15 ? 'RENTABLE' : 'NO RENTABLE'
+        
+        // Mapear nombre del canal
+        const nombreCanal = canal === 'mayorista' ? 'MAYORISTA' : 
+                           canal === 'directa' ? 'DIRECTA' : 'NBO'
         
         productosConPricingReal.push({
           // IDENTIFICACIÓN DEL PRODUCTO
@@ -335,12 +346,12 @@ export async function POST(request: NextRequest) {
           marca_referencia: 'VARTA',
           
           // CANAL ESPECÍFICO
-          canal: canal === 'mayorista' ? 'MAYORISTA' : 'DIRECTA',
+          canal: nombreCanal,
           
           // PRECIOS POR CANAL
           precios_canales: {
             [canal]: {
-              nombre: canal === 'mayorista' ? 'MAYORISTA' : 'DIRECTA',
+              nombre: nombreCanal,
               precio_final: precioFinal,
               markup: `+${(markup * 100).toFixed(0)}%`,
               margen_bruto: `${margenBruto}%`,
@@ -358,7 +369,7 @@ export async function POST(request: NextRequest) {
           // METADATOS
           estado: 'PROCESADO',
           fecha_calculo: new Date().toISOString().split('T')[0],
-          observaciones: `Pricing ${canal === 'mayorista' ? 'MAYORISTA' : 'DIRECTA'} aplicado. Markup: +${(markup * 100).toFixed(0)}%, IVA incluido. Margen: ${margenBruto}%. ${rentabilidad === 'RENTABLE' ? 'RENTABLE' : 'NO RENTABLE'}.`
+          observaciones: `Pricing ${nombreCanal} aplicado. Markup: +${(markup * 100).toFixed(0)}%, IVA incluido. Margen: ${margenBruto}%. ${rentabilidad === 'RENTABLE' ? 'RENTABLE' : 'NO RENTABLE'}.`
         })
       })
     })
@@ -381,6 +392,11 @@ export async function POST(request: NextRequest) {
         total: productosConPricingReal.filter(p => p.canal === 'DIRECTA').length,
         rentables: productosConPricingReal.filter(p => p.canal === 'DIRECTA' && p.rentabilidad_general === 'RENTABLE').length,
         margen_promedio: calcularMargenPromedioPorCanal(productosConPricingReal, 'DIRECTA')
+      },
+      nbo: {
+        total: productosConPricingReal.filter(p => p.canal === 'NBO').length,
+        rentables: productosConPricingReal.filter(p => p.canal === 'NBO' && p.rentabilidad_general === 'RENTABLE').length,
+        margen_promedio: calcularMargenPromedioPorCanal(productosConPricingReal, 'NBO')
       }
     }
     
@@ -393,7 +409,8 @@ export async function POST(request: NextRequest) {
         total_productos: productosConPricingReal.length,
         productos_por_canal: {
           mayorista: analisisPorCanal.mayorista.total,
-          directa: analisisPorCanal.directa.total
+          directa: analisisPorCanal.directa.total,
+          nbo: analisisPorCanal.nbo.total
         },
         productos_rentables: productosRentables.length,
         productos_no_rentables: productosNoRentables.length,
