@@ -25,61 +25,6 @@ export async function POST(request: NextRequest) {
     const workbook = XLSX.read(buffer, { type: 'buffer' })
     const sheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[sheetName]
-    const datosRealesMoura = XLSX.utils.sheet_to_json(worksheet, { header: 1 })
-    
-    // Convertir a formato de objetos
-    const headers = datosRealesMoura[0] as string[]
-    const productosMoura = datosRealesMoura.slice(1).map((row: any, index: number) => {
-      const producto: any = {}
-      headers.forEach((header, i) => {
-        producto[header.toLowerCase().replace(/\s+/g, '_')] = row[i]
-      })
-      
-      // Mapear campos específicos
-      return {
-        codigo: producto.codigo_baterias || producto.codigo || `PROD_${index + 1}`,
-        descripcion: producto.denominacion_comercial || producto.descripcion || 'Batería',
-        precio_lista: parseFloat(producto.precio_de_lista) || 0,
-        c20_ah: parseInt(producto.c20_ah) || 0,
-        categoria: 'Automotriz',
-        tipo: producto.tipo || 'Batería',
-        gtia_meses: parseInt(producto.gtia_meses) || 18,
-        bome: producto.borne || producto.bome || 'D',
-        marca: 'Moura',
-        modelo: producto.tipo || 'Estándar',
-        voltaje: 12,
-        terminales: producto.borne || 'D',
-        dimensiones: `${producto.largo || 0}x${producto.ancho || 0}x${producto.alto || 0}mm`,
-        peso: 18.5,
-        rc_min: parseInt(producto.rc_min) || 0,
-        cca: parseInt(producto.cca) || 0,
-        denominacion: `${producto.denominacion_comercial || 'Batería'} - ${producto.gtia_meses || 18} meses`,
-        largo: parseInt(producto.largo) || 0,
-        ancho: parseInt(producto.ancho) || 0,
-        alto: parseInt(producto.alto) || 0,
-        stock: 25,
-        estado: 'Activo',
-        linea: 'Automotriz',
-        subcategoria: 'Batería de Arranque',
-        aplicacion: 'Vehículos Livianos',
-        tecnologia: 'Plomo-Ácido',
-        mantenimiento: 'Libre de Mantenimiento',
-        ciclo_vida: 'Alto',
-        temperatura_min: -30,
-        temperatura_max: 60
-      }
-        }).filter(p => p.precio_lista > 0) // Solo productos con precio válido
-    
-    console.log(`✅ Archivo procesado: ${productosMoura.length} productos válidos encontrados`)
-    
-    // Verificar que se leyeron los datos correctamente
-    if (productosMoura.length === 0) {
-      throw new Error('No se encontraron productos válidos en el archivo')
-    }
-    
-    console.log('✅ Datos del archivo Excel procesados correctamente')
-    console.log('📊 Productos encontrados:', productosMoura.map(p => ({ codigo: p.codigo, tipo: p.tipo, precio: p.precio_lista })))
-    // Los datos hardcodeados han sido eliminados completamente - ahora se leen del archivo Excel real
     // DATOS COPIADOS DEL EXCEL REAL PARA LA DEMO
     const datosRealesMoura = [
       {
