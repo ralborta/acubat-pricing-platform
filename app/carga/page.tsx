@@ -332,10 +332,26 @@ export default function CargaPage() {
                     <p className="text-gray-600 text-sm mb-4">
                       Mapeo Varta ↔ Moura
                     </p>
-                    <button className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setArchivoSeleccionado(file)
+                          setArchivoNombre(file.name)
+                        }
+                      }}
+                      className="hidden"
+                      id="equivalencias-input"
+                    />
+                    <label
+                      htmlFor="equivalencias-input"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200 cursor-pointer"
+                    >
                       <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
                       Cargar Excel
-                    </button>
+                    </label>
                   </div>
 
                   {/* Lista de Precios Base */}
@@ -349,17 +365,54 @@ export default function CargaPage() {
                     <p className="text-gray-600 text-sm mb-4">
                       Precios Varta de referencia
                     </p>
-                    <button className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors duration-200">
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          setArchivoSeleccionado(file)
+                          setArchivoNombre(file.name)
+                        }
+                      }}
+                      className="hidden"
+                      id="precios-input"
+                    />
+                    <label
+                      htmlFor="precios-input"
+                      className="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors duration-200 cursor-pointer"
+                    >
                       <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
                       Cargar Excel
-                    </button>
+                    </label>
                   </div>
                 </div>
 
                 <div className="mt-6 text-center">
-                  <button className="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md transition-colors duration-200">
+                  {archivoSeleccionado && (
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                      <p className="text-green-800 text-sm">
+                        ✅ Archivo cargado: <strong>{archivoNombre}</strong>
+                      </p>
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => {
+                      if (archivoSeleccionado) {
+                        setOpcionSeleccionada('pricing')
+                      } else {
+                        alert('Por favor, carga un archivo primero')
+                      }
+                    }}
+                    disabled={!archivoSeleccionado}
+                    className={`inline-flex items-center px-6 py-3 font-medium rounded-md transition-colors duration-200 ${
+                      archivoSeleccionado 
+                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer' 
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
                     <CheckCircleIcon className="w-5 h-5 mr-2" />
-                    Validar Archivos Cargados
+                    {archivoSeleccionado ? 'Continuar a Pricing' : 'Cargar Archivo Primero'}
                   </button>
                 </div>
               </div>
