@@ -712,7 +712,15 @@ export async function POST(request: NextRequest) {
               markup: `+${(markup * 100).toFixed(0)}%`,
               margen_bruto: `${margenBruto}%`,
               rentabilidad: rentabilidad,
-              iva_aplicado: iva
+              iva_aplicado: iva,
+              iva_porcentaje: `${configuracionSistema.iva}%`,
+              precio_iva_desglosado: {
+                precio_base: precioBaseCanal,
+                markup_aplicado: precioConMarkup - precioBaseCanal,
+                subtotal: precioConMarkup,
+                iva: iva,
+                precio_final: precioFinal
+              }
             }
           },
           
@@ -723,10 +731,21 @@ export async function POST(request: NextRequest) {
           canales_rentables: rentabilidad === 'RENTABLE' ? 1 : 0,
           total_canales: 1,
           
+          // IVA DESGLOSADO Y VISIBLE
+          iva_total: iva,
+          iva_porcentaje: `${configuracionSistema.iva}%`,
+          precio_desglosado: {
+            precio_base: precioBaseCanal,
+            markup: precioConMarkup - precioBaseCanal,
+            subtotal: precioConMarkup,
+            iva: iva,
+            precio_final: precioFinal
+          },
+          
           // METADATOS
           estado: 'PROCESADO',
           fecha_calculo: new Date().toISOString().split('T')[0],
-          observaciones: `Pricing ${nombreCanal} aplicado. Precio base canal: $${precioBaseCanal}, Markup: +${(markup * 100).toFixed(0)}%, IVA incluido. Margen: ${margenBruto}%. ${rentabilidad === 'RENTABLE' ? 'RENTABLE' : 'NO RENTABLE'}. ${tieneEquivalenciaVarta ? 'Con equivalencia Varta' : 'Sin equivalencia Varta'}.`
+          observaciones: `Pricing ${nombreCanal} aplicado. Precio base: $${precioBaseCanal}, Markup: +${(markup * 100).toFixed(0)}%, Subtotal: $${precioConMarkup}, IVA ${configuracionSistema.iva}%: $${iva}, Precio Final: $${precioFinal}. Margen: ${margenBruto}%. ${rentabilidad === 'RENTABLE' ? 'RENTABLE' : 'NO RENTABLE'}. ${tieneEquivalenciaVarta ? 'Con equivalencia Varta' : 'Sin equivalencia Varta'}.`
         })
       })
     })
@@ -808,30 +827,32 @@ export async function POST(request: NextRequest) {
         filas_procesadas: productosConPricingReal.length
       },
       headers_detectados: ['codigo', 'tipo', 'gtia_meses', 'bome', 'c20_ah', 'rc_min', 'cca', 'denominacion', 'largo', 'ancho', 'alto', 'precio_lista', 'linea'],
-      sistema: {
-        version: '3.0',
-        tipo: 'SISTEMA REAL CON MARKUPS CORRECTOS + IVA',
-        funcionalidades: [
-          'Equivalencias Varta automáticas',
-          'Pricing por canal (Retail, Mayorista, Distribución)',
-          'Markups realistas sobre precio de lista',
-          'IVA 21% incluido en todos los cálculos',
-          'Redondeo inteligente por canal',
-          'Análisis de rentabilidad',
-          'Estadísticas por canal'
-        ],
-        configuracion: {
-          markups: {
-            mayorista: '+20-25% sobre precio lista + IVA',
-            directa: '+60% sobre precio lista + IVA'
-          },
-          redondeo: {
-            mayorista: 'Múltiplos de $100',
-            directa: 'Múltiplos de $100'
-          },
-          iva: '21% incluido en todos los precios finales',
-          margen_minimo: '15%'
-        }
+              sistema: {
+          version: '3.0',
+          tipo: 'SISTEMA REAL CON MARKUPS CORRECTOS + IVA DESGLOSADO',
+          funcionalidades: [
+            'Equivalencias Varta automáticas',
+            'Pricing por canal (Retail, Mayorista, Distribución)',
+            'Markups realistas sobre precio de lista',
+            'IVA desglosado y visible en todos los cálculos',
+            'Desglose completo: Base + Markup + Subtotal + IVA + Final',
+            'Redondeo inteligente por canal',
+            'Análisis de rentabilidad con IVA incluido',
+            'Estadísticas por canal con desglose de precios'
+          ],
+                  configuracion: {
+            markups: {
+              mayorista: '+20-25% sobre precio lista + IVA',
+              directa: '+60% sobre precio lista + IVA'
+            },
+            redondeo: {
+              mayorista: 'Múltiplos de $100',
+              directa: 'Múltiplos de $100'
+            },
+            iva: `${configuracionSistema.iva}% desglosado y visible en todos los precios`,
+            margen_minimo: '15%',
+            desglose_iva: 'COMPLETO: Base + Markup + Subtotal + IVA + Final'
+          }
       }
     }
     

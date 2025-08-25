@@ -703,21 +703,27 @@ export default function CargaPage() {
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                               Precio Base Moura
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Precio Varta
-                            </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Precio Final
-                            </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Markup
-                            </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Margen
-                            </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Rentabilidad
-                            </th>
+                                                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                Precio Varta
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                Precio Final
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                Markup
+                              </th>
+                                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                IVA
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                Desglose
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                Margen
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                Rentabilidad
+                              </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -751,6 +757,18 @@ export default function CargaPage() {
                                 <span className="text-gray-700 font-medium">
                                   {producto.precios_canales[producto.canal.toLowerCase()]?.markup || ''}
                                 </span>
+                              </td>
+                              <td className="px-3 py-2 text-sm border-b">
+                                <span className="text-red-600 font-medium">
+                                  {formatCurrency(producto.precios_canales[producto.canal.toLowerCase()]?.iva_aplicado || 0)}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-sm border-b">
+                                <div className="text-xs text-gray-600 space-y-1">
+                                  <div className="font-medium">Base: {formatCurrency(producto.precios_canales[producto.canal.toLowerCase()]?.precio_base_canal || 0)}</div>
+                                  <div className="text-blue-600">+IVA: {formatCurrency(producto.precios_canales[producto.canal.toLowerCase()]?.iva_aplicado || 0)}</div>
+                                  <div className="text-green-600">Final: {formatCurrency(producto.precio_promedio_final)}</div>
+                                </div>
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
                                 <span className="text-gray-700 font-medium">

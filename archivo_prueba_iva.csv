@@ -1,0 +1,6 @@
+codigo,tipo,gtia_meses,bome,c20_ah,rc_min,cca,denominacion,largo,ancho,alto,precio_lista,linea
+MOU-001,Batería,18,BOM,45,45,900,Batería Automotriz,350,175,190,136490,Automotriz
+MOU-002,Batería,18,BOM,60,60,1200,Batería Automotriz,375,175,190,158000,Automotriz
+MOU-003,Batería,18,BOM,80,80,1600,Batería Automotriz,400,175,190,182000,Automotriz
+MOU-004,Batería,18,BOM,100,100,2000,Batería Automotriz,450,175,190,210000,Automotriz
+MOU-005,Batería,18,BOM,120,120,2400,Batería Automotriz,500,175,190,245000,Automotriz
