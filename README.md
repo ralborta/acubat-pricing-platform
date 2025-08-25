@@ -415,3 +415,4 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 **AcuBat** - Transformando la gestión de precios en call centers 🚀
 
 *Desarrollado con ❤️ por el equipo de AcuBat*
+# Configuración actualizada Sun Aug 24 22:29:20 -03 2025
