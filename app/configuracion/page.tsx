@@ -1288,6 +1288,71 @@ export default function ConfiguracionPage() {
                           </div>
                         </div>
                       )}
+
+                      {/* 📊 REPORTE COMPLETO DE PRICING */}
+                      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                          <h4 className="font-semibold text-gray-800">
+                            📊 Reporte de Pricing - {new Date().toLocaleDateString('es-ES')}
+                          </h4>
+                        </div>
+                        
+                        {resultadosCalculo.productos_detallados ? (
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modelo</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descripción</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Canal</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio Base Moura</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio Varta</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio Final</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Markup</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Margen</th>
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rentabilidad</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {resultadosCalculo.productos_detallados.map((producto: any, index: number) => (
+                                  <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{producto.codigo}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{producto.descripcion || 'Batería Automotriz'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                        producto.canal === 'mayorista' 
+                                          ? 'bg-green-100 text-green-800' 
+                                          : 'bg-purple-100 text-purple-800'
+                                      }`}>
+                                        {producto.canal?.toUpperCase() || 'N/A'}
+                                      </span>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${producto.precio_base_moura?.toLocaleString() || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${producto.precio_varta_canal?.toLocaleString() || '0'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">${producto.precio_final?.toLocaleString() || 'N/A'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{producto.markup_aplicado?.toFixed(1) || 'N/A'}%</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{producto.margen_bruto?.toFixed(1) || 'N/A'}%</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                        producto.rentabilidad === 'RENTABLE' 
+                                          ? 'bg-green-100 text-green-800' 
+                                          : 'bg-red-100 text-red-800'
+                                      }`}>
+                                        {producto.rentabilidad || 'N/A'}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="text-center text-gray-500 py-8">
+                            <p>No hay datos de productos disponibles</p>
+                            <p className="text-sm">Los resultados aparecerán aquí después del cálculo</p>
+                          </div>
+                        )}
+                      </div>
                     </>
                   ) : (
                     <div className="text-center text-gray-500 py-8">
