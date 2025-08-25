@@ -84,6 +84,7 @@ export default function CargaPage() {
   const [procesosCompletados, setProcesosCompletados] = useState<boolean[]>([false, false, false, false])
   const [mostrarTodosProductos, setMostrarTodosProductos] = useState(false)
   const [showProcessVisualizer, setShowProcessVisualizer] = useState(false)
+  const [productosAMostrar, setProductosAMostrar] = useState<Producto[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Función para formatear moneda
@@ -265,8 +266,8 @@ export default function CargaPage() {
   }
 
   // Obtener productos para mostrar (4 iniciales o todos)
-  const productosAMostrar = resultado ? 
-    (mostrarTodosProductos ? resultado.datos_procesados : resultado.datos_procesados.slice(0, 12)) : []
+  const productosParaMostrar = productosAMostrar.length > 0 ? 
+    (mostrarTodosProductos ? productosAMostrar : productosAMostrar.slice(0, 12)) : []
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -728,7 +729,7 @@ export default function CargaPage() {
                         Productos Procesados por Canal
                       </h3>
                       <div className="text-sm text-gray-500">
-                        Mostrando {productosAMostrar.length} de {resultado.datos_procesados.length} productos
+                        Mostrando {productosParaMostrar.length} de {productosAMostrar.length} productos
                       </div>
                     </div>
                     
@@ -772,7 +773,7 @@ export default function CargaPage() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {productosAMostrar.map((producto) => (
+                          {productosParaMostrar.map((producto) => (
                             <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
                               <td className="px-3 py-2 text-sm font-medium text-gray-900 border-b">
                                 {producto.codigo_original}
