@@ -310,11 +310,10 @@ export async function POST(request: NextRequest) {
       const precioVarta = calcularPrecioVarta(precioBaseMoura, producto.c20_ah)
       
       // MARKUPS REALISTAS Y COHERENTES POR CANAL (SOBRE PRECIO DE LISTA + IVA)
-      // IMPORTANTE: Estos markups deben ser coherentes con la estrategia de negocio
+      // IMPORTANTE: Solo 2 canales reales: Mayorista y Directa
       const markupsPorCanal = {
         mayorista: 0.15,   // +15% para Mayorista (margen bajo, alto volumen, estrategia de penetración)
-        directa: 0.40,     // +40% para Directa (margen medio, volumen medio, estrategia equilibrada)
-        nbo: 0.25          // +25% para NBO (margen intermedio, volumen variable, estrategia competitiva)
+        directa: 0.40      // +40% para Directa (margen medio, volumen medio, estrategia equilibrada)
       }
       
       // Generar 3 filas por producto (una por canal) con lógica diferenciada
@@ -331,12 +330,6 @@ export async function POST(request: NextRequest) {
           tieneEquivalenciaVarta = true
           precioVartaCanal = precioVarta
           codigoVartaCanal = `Varta ${producto.c20_ah}Ah`
-        } else if (canal === 'nbo') {
-          // NBO: Precio base +15% (sin equivalencia Varta) + markup medio
-          precioBaseCanal = precioBaseMoura * 1.15
-          tieneEquivalenciaVarta = false
-          precioVartaCanal = 0
-          codigoVartaCanal = 'N/A'
         } else if (canal === 'directa') {
           // DIRECTA: Precio base +25% (sin equivalencia Varta) + markup alto
           precioBaseCanal = precioBaseMoura * 1.25
@@ -445,19 +438,18 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Validando coherencia de precios por producto...')
     datosRealesMoura.forEach((producto, index) => {
       const preciosProducto = productosConPricingReal.filter(p => p.codigo_original === producto.codigo)
-      if (preciosProducto.length === 3) {
+      if (preciosProducto.length === 2) {
         const precioMayorista = preciosProducto.find(p => p.canal === 'MAYORISTA')?.precio_promedio_final || 0
-        const precioNBO = preciosProducto.find(p => p.canal === 'NBO')?.precio_promedio_final || 0
         const precioDirecta = preciosProducto.find(p => p.canal === 'DIRECTA')?.precio_promedio_final || 0
         
-        // Validar jerarquía: Directa > NBO > Mayorista
-        if (!(precioDirecta > precioNBO && precioNBO > precioMayorista)) {
+        // Validar jerarquía: Directa > Mayorista
+        if (!(precioDirecta > precioMayorista)) {
           console.error(`❌ ERROR CRÍTICO: Precios incoherentes para ${producto.codigo}`)
-          console.error(`Mayorista: $${precioMayorista}, NBO: $${precioNBO}, Directa: $${precioDirecta}`)
+          console.error(`Mayorista: $${precioMayorista}, Directa: $${precioDirecta}`)
           throw new Error(`Precios incoherentes para ${producto.codigo}`)
         }
         
-        console.log(`✅ ${producto.codigo}: Mayorista $${precioMayorista} < NBO $${precioNBO} < Directa $${precioDirecta}`)
+        console.log(`✅ ${producto.codigo}: Mayorista $${precioMayorista} < Directa $${precioDirecta}`)
       }
     })
     console.log('✅ Validación de coherencia completada exitosamente')
@@ -478,11 +470,6 @@ export async function POST(request: NextRequest) {
         total: productosConPricingReal.filter(p => p.canal === 'DIRECTA').length,
         rentables: productosConPricingReal.filter(p => p.canal === 'DIRECTA' && p.rentabilidad_general === 'RENTABLE').length,
         margen_promedio: calcularMargenPromedioPorCanal(productosConPricingReal, 'DIRECTA')
-      },
-      nbo: {
-        total: productosConPricingReal.filter(p => p.canal === 'NBO').length,
-        rentables: productosConPricingReal.filter(p => p.canal === 'NBO' && p.rentabilidad_general === 'RENTABLE').length,
-        margen_promedio: calcularMargenPromedioPorCanal(productosConPricingReal, 'NBO')
       }
     }
     
@@ -495,8 +482,7 @@ export async function POST(request: NextRequest) {
         total_productos: productosConPricingReal.length,
         productos_por_canal: {
           mayorista: analisisPorCanal.mayorista.total,
-          directa: analisisPorCanal.directa.total,
-          nbo: analisisPorCanal.nbo.total
+          directa: analisisPorCanal.directa.total
         },
         productos_rentables: productosRentables.length,
         productos_no_rentables: productosNoRentables.length,
@@ -505,7 +491,6 @@ export async function POST(request: NextRequest) {
         // TABLA DE EQUIVALENCIAS COMPLETA POR CANAL
         tabla_equivalencias: {
           mayorista: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'mayorista', 0.15)),
-          nbo: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'nbo', 0.25)),
           directa: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'directa', 0.40))
         },
         margen_promedio_general: calcularMargenPromedioGeneral(productosConPricingReal),
