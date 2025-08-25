@@ -317,32 +317,58 @@ export async function POST(request: NextRequest) {
         nbo: 0.25          // +25% para NBO (margen intermedio, volumen variable, estrategia competitiva)
       }
       
-      // Generar 3 filas por producto (una por canal)
+      // Generar 3 filas por producto (una por canal) con lógica diferenciada
       Object.entries(markupsPorCanal).forEach(([canal, markup]) => {
-        // CÁLCULO CORRECTO: Precio Lista × (1 + Markup) + IVA
-        const precioConMarkup = precioBaseMoura * (1 + markup)
+        let precioBaseCanal: number
+        let tieneEquivalenciaVarta: boolean
+        let precioVartaCanal: number
+        let codigoVartaCanal: string
+        
+        // LÓGICA DIFERENCIADA POR CANAL:
+        if (canal === 'mayorista') {
+          // MAYORISTA: Precio base + equivalencia Varta + markup bajo
+          precioBaseCanal = precioBaseMoura
+          tieneEquivalenciaVarta = true
+          precioVartaCanal = precioVarta
+          codigoVartaCanal = `Varta ${producto.c20_ah}Ah`
+        } else if (canal === 'nbo') {
+          // NBO: Precio base +15% (sin equivalencia Varta) + markup medio
+          precioBaseCanal = precioBaseMoura * 1.15
+          tieneEquivalenciaVarta = false
+          precioVartaCanal = 0
+          codigoVartaCanal = 'N/A'
+        } else if (canal === 'directa') {
+          // DIRECTA: Precio base +25% (sin equivalencia Varta) + markup alto
+          precioBaseCanal = precioBaseMoura * 1.25
+          tieneEquivalenciaVarta = false
+          precioVartaCanal = 0
+          codigoVartaCanal = 'N/A'
+        }
+        
+        // CÁLCULO CORRECTO: Precio Base del Canal × (1 + Markup) + IVA
+        const precioConMarkup = precioBaseCanal * (1 + markup)
         const iva = precioConMarkup * 0.21
         const precioConIVA = precioConMarkup + iva
         const precioFinal = aplicarRedondeo(precioConIVA, canal)
         
         // VALIDACIÓN CRÍTICA: Asegurar coherencia de precios entre canales
-        if (canal === 'mayorista' && precioFinal <= precioBaseMoura) {
+        if (canal === 'mayorista' && precioFinal <= precioBaseCanal) {
           console.error('❌ ERROR CRÍTICO: Precio mayorista debe ser mayor al precio base')
           throw new Error('Precio mayorista incoherente')
         }
         
-        if (canal === 'nbo' && precioFinal <= precioBaseMoura) {
+        if (canal === 'nbo' && precioFinal <= precioBaseCanal) {
           console.error('❌ ERROR CRÍTICO: Precio NBO debe ser mayor al precio base')
           throw new Error('Precio NBO incoherente')
         }
         
-        if (canal === 'directa' && precioFinal <= precioBaseMoura) {
+        if (canal === 'directa' && precioFinal <= precioBaseCanal) {
           console.error('❌ ERROR CRÍTICO: Precio directa debe ser mayor al precio base')
           throw new Error('Precio directa incoherente')
         }
         
-        // Calcular margen real sobre precio BASE (rentabilidad real y coherente)
-        const margenBruto = ((precioFinal - precioBaseMoura) / precioBaseMoura * 100).toFixed(1)
+        // Calcular margen real sobre precio BASE del canal (rentabilidad real y coherente)
+        const margenBruto = ((precioFinal - precioBaseCanal) / precioBaseCanal * 100).toFixed(1)
         const rentabilidad = parseFloat(margenBruto) >= 15 ? 'RENTABLE' : 'NO RENTABLE'
         
         // Mapear nombre del canal
@@ -363,16 +389,17 @@ export async function POST(request: NextRequest) {
           dimensiones: `${producto.largo}x${producto.ancho}x${producto.alto} mm`,
           linea: producto.linea,
           
-          // PRECIOS BASE
-          precio_lista_moura: precioBaseMoura,
-          precio_varta_equivalente: precioVarta,
-          precio_promedio_final: precioFinal, // Este será el precio del canal específico
+          // PRECIOS BASE DIFERENCIADOS POR CANAL
+          precio_lista_moura: precioBaseMoura, // Precio original Moura
+          precio_base_canal: precioBaseCanal,  // Precio base del canal específico
+          precio_varta_equivalente: precioVartaCanal,
+          precio_promedio_final: precioFinal,
           
-          // EQUIVALENCIA VARTA
-          tiene_equivalencia_varta: true,
-          codigo_varta: `Varta ${producto.c20_ah}Ah`,
-          precio_varta: precioVarta,
-          marca_referencia: 'VARTA',
+          // EQUIVALENCIA VARTA SOLO PARA MAYORISTA
+          tiene_equivalencia_varta: tieneEquivalenciaVarta,
+          codigo_varta: codigoVartaCanal,
+          precio_varta: precioVartaCanal,
+          marca_referencia: tieneEquivalenciaVarta ? 'VARTA' : 'N/A',
           
           // CANAL ESPECÍFICO
           canal: nombreCanal,
@@ -383,6 +410,7 @@ export async function POST(request: NextRequest) {
               nombre: nombreCanal,
               precio_final: precioFinal,
               precio_sin_iva: precioConMarkup,
+              precio_base_canal: precioBaseCanal,
               markup: `+${(markup * 100).toFixed(0)}%`,
               margen_bruto: `${margenBruto}%`,
               rentabilidad: rentabilidad,
@@ -391,7 +419,7 @@ export async function POST(request: NextRequest) {
           },
           
           // ESTADÍSTICAS GENERALES
-          utilidad_total_estimada: precioFinal - precioBaseMoura,
+          utilidad_total_estimada: precioFinal - precioBaseCanal,
           margen_promedio: `${margenBruto}%`,
           rentabilidad_general: rentabilidad,
           canales_rentables: rentabilidad === 'RENTABLE' ? 1 : 0,
@@ -400,7 +428,7 @@ export async function POST(request: NextRequest) {
           // METADATOS
           estado: 'PROCESADO',
           fecha_calculo: new Date().toISOString().split('T')[0],
-          observaciones: `Pricing ${nombreCanal} aplicado. Markup: +${(markup * 100).toFixed(0)}%, IVA incluido. Margen: ${margenBruto}%. ${rentabilidad === 'RENTABLE' ? 'RENTABLE' : 'NO RENTABLE'}.`
+          observaciones: `Pricing ${nombreCanal} aplicado. Precio base canal: $${precioBaseCanal}, Markup: +${(markup * 100).toFixed(0)}%, IVA incluido. Margen: ${margenBruto}%. ${rentabilidad === 'RENTABLE' ? 'RENTABLE' : 'NO RENTABLE'}. ${tieneEquivalenciaVarta ? 'Con equivalencia Varta' : 'Sin equivalencia Varta'}.`
         })
       })
     })
