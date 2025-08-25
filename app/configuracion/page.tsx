@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Cog6ToothIcon, CurrencyDollarIcon, ChartBarIcon, DocumentTextIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
@@ -139,9 +139,49 @@ export default function ConfiguracionPage() {
     })
   }
 
-  // 🚀 FUNCIÓN DE CÁLCULO EN TIEMPO REAL
-  const calcularPreciosEnTiempoReal = () => {
-    // Producto de ejemplo para mostrar cálculos
+  // 🚀 FUNCIÓN DE CÁLCULO EN TIEMPO REAL CON API REAL
+  const [resultadosCalculo, setResultadosCalculo] = useState<any>(null)
+  const [calculando, setCalculando] = useState(false)
+
+  const calcularPreciosEnTiempoReal = async () => {
+    setCalculando(true)
+    
+    try {
+      // Llamar al API real con la configuración actual
+      const response = await fetch('/api/pricing/procesar-archivo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          configuracion: configuracion,
+          modo: 'configuracion' // Modo especial para cálculos de configuración
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setResultadosCalculo(data)
+        console.log('✅ Cálculos realizados:', data)
+      } else {
+        console.error('❌ Error en cálculo:', response.statusText)
+      }
+    } catch (error) {
+      console.error('❌ Error en cálculo:', error)
+    } finally {
+      setCalculando(false)
+    }
+  }
+
+  // Calcular automáticamente cuando cambie la configuración
+  useEffect(() => {
+    if (configuracion) {
+      calcularPreciosEnTiempoReal()
+    }
+  }, [configuracion])
+
+  // Función auxiliar para cálculos básicos (fallback)
+  const calcularPreciosBasicos = () => {
     const productoEjemplo = {
       codigo: 'M40FD',
       descripcion: 'Batería Moura 12X45',
@@ -149,34 +189,33 @@ export default function ConfiguracionPage() {
       c20_ah: 45
     }
     
-    // Cálculos con configuración actual
     const markupMayorista = configuracion.markups.mayorista / 100
     const markupDirecta = configuracion.markups.directa / 100
     const iva = configuracion.iva / 100
     const factorVarta = configuracion.factoresVarta.base / 100
     
-    // Precios calculados
-    const preciosCalculados = {
-      mayorista: {
-        precioBase: productoEjemplo.precio_lista,
-        precioConMarkup: productoEjemplo.precio_lista * (1 + markupMayorista),
-        iva: productoEjemplo.precio_lista * (1 + markupMayorista) * iva,
-        precioFinal: Math.ceil((productoEjemplo.precio_lista * (1 + markupMayorista) * (1 + iva)) / 100) * 100
-      },
-      directa: {
-        precioBase: productoEjemplo.precio_lista,
-        precioConMarkup: productoEjemplo.precio_lista * (1 + markupDirecta),
-        iva: productoEjemplo.precio_lista * (1 + markupDirecta) * iva,
-        precioFinal: Math.ceil((productoEjemplo.precio_lista * (1 + markupDirecta) * (1 + iva)) / 50) * 50
-      },
-      varta: {
-        precioBase: productoEjemplo.precio_lista,
-        precioVarta: productoEjemplo.precio_lista * (1 + factorVarta),
-        diferencia: productoEjemplo.precio_lista * (1 + factorVarta) - productoEjemplo.precio_lista
+    return {
+      producto: productoEjemplo,
+      precios: {
+        mayorista: {
+          precioBase: productoEjemplo.precio_lista,
+          precioConMarkup: productoEjemplo.precio_lista * (1 + markupMayorista),
+          iva: productoEjemplo.precio_lista * (1 + markupMayorista) * iva,
+          precioFinal: Math.ceil((productoEjemplo.precio_lista * (1 + markupMayorista) * (1 + iva)) / 100) * 100
+        },
+        directa: {
+          precioBase: productoEjemplo.precio_lista,
+          precioConMarkup: productoEjemplo.precio_lista * (1 + markupDirecta),
+          iva: productoEjemplo.precio_lista * (1 + markupDirecta) * iva,
+          precioFinal: Math.ceil((productoEjemplo.precio_lista * (1 + markupDirecta) * (1 + iva)) / 50) * 50
+        },
+        varta: {
+          precioBase: productoEjemplo.precio_lista,
+          precioVarta: productoEjemplo.precio_lista * (1 + factorVarta),
+          diferencia: productoEjemplo.precio_lista * (1 + factorVarta) - productoEjemplo.precio_lista
+        }
       }
     }
-    
-    return { producto: productoEjemplo, precios: preciosCalculados }
   }
   
   const guardarConfiguracion = () => {
@@ -1131,43 +1170,145 @@ export default function ConfiguracionPage() {
 
                 {/* 🚀 SECCIÓN DE RESULTADOS EN TIEMPO REAL */}
                 <div className="bg-white rounded-lg shadow-md p-6 mt-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    <ChartBarIcon className="w-5 h-5 inline mr-2" />
-                    Resultados en Tiempo Real
-                  </h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Producto de Ejemplo */}
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-blue-800 mb-2">Producto de Ejemplo</h4>
-                      <p className="text-sm text-gray-600">Código: {calcularPreciosEnTiempoReal().producto.codigo}</p>
-                      <p className="text-sm text-gray-600">Descripción: {calcularPreciosEnTiempoReal().producto.descripcion}</p>
-                      <p className="text-sm text-gray-600">Precio Base: ${calcularPreciosEnTiempoReal().producto.precio_lista.toLocaleString()}</p>
-                    </div>
-                    
-                    {/* Precios Mayorista */}
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-green-800 mb-2">Mayorista (+{configuracion.markups.mayorista}%)</h4>
-                      <p className="text-sm text-gray-600">Con Markup: ${calcularPreciosEnTiempoReal().precios.mayorista.precioConMarkup.toLocaleString()}</p>
-                      <p className="text-sm text-gray-600">IVA ({configuracion.iva}%): ${calcularPreciosEnTiempoReal().precios.mayorista.iva.toLocaleString()}</p>
-                      <p className="text-sm font-semibold text-green-700">Precio Final: ${calcularPreciosEnTiempoReal().precios.mayorista.precioFinal.toLocaleString()}</p>
-                    </div>
-                    
-                    {/* Precios Directa */}
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <h4 className="font-semibold text-purple-800 mb-2">Directa (+{configuracion.markups.directa}%)</h4>
-                      <p className="text-sm text-gray-600">Con Markup: ${calcularPreciosEnTiempoReal().precios.directa.precioConMarkup.toLocaleString()}</p>
-                      <p className="text-sm text-gray-600">IVA ({configuracion.iva}%): ${calcularPreciosEnTiempoReal().precios.directa.iva.toLocaleString()}</p>
-                      <p className="text-sm font-semibold text-purple-700">Precio Final: ${calcularPreciosEnTiempoReal().precios.directa.precioFinal.toLocaleString()}</p>
-                    </div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      <ChartBarIcon className="w-5 h-5 inline mr-2" />
+                      Resultados en Tiempo Real
+                    </h3>
+                    {calculando && (
+                      <div className="flex items-center text-blue-600">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                        Calculando...
+                      </div>
+                    )}
                   </div>
                   
-                  {/* Información Varta */}
-                  <div className="mt-4 bg-yellow-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-yellow-800 mb-2">Equivalencia Varta (+{configuracion.factoresVarta.base}%)</h4>
-                    <p className="text-sm text-gray-600">Precio Varta: ${calcularPreciosEnTiempoReal().precios.varta.precioVarta.toLocaleString()}</p>
-                    <p className="text-sm text-gray-600">Diferencia con Moura: ${calcularPreciosEnTiempoReal().precios.varta.diferencia.toLocaleString()}</p>
-                  </div>
+                  {resultadosCalculo ? (
+                    <>
+                      {/* 📊 RESUMEN GENERAL */}
+                      <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                        <h4 className="font-semibold text-gray-800 mb-3">📊 Resumen del Sistema</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">IVA:</span>
+                            <span className="font-semibold ml-2">{configuracion.iva}%</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Promociones:</span>
+                            <span className="font-semibold ml-2">{configuracion.promociones.activo ? 'Activas' : 'Inactivas'}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Margen Mínimo:</span>
+                            <span className="font-semibold ml-2">{configuracion.rentabilidad.margenMinimo}%</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Productos Procesados:</span>
+                            <span className="font-semibold ml-2">{resultadosCalculo.productos_procesados || 0}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 🏪 PRECIOS POR CANAL */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        {/* Mayorista */}
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          <h4 className="font-semibold text-green-800 mb-3">🏪 Canal Mayorista (+{configuracion.markups.mayorista}%)</h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Precio Promedio:</span>
+                              <span className="font-semibold">${resultadosCalculo.precios_canales?.mayorista?.precio_promedio_final?.toLocaleString() || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Margen Promedio:</span>
+                              <span className="font-semibold">{resultadosCalculo.precios_canales?.mayorista?.margen_promedio?.toFixed(1) || 'N/A'}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Redondeo:</span>
+                              <span className="font-semibold">${configuracion.redondeo.mayorista}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Directa */}
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                          <h4 className="font-semibold text-purple-800 mb-3">🏪 Canal Directa (+{configuracion.markups.directa}%)</h4>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Precio Promedio:</span>
+                              <span className="font-semibold">${resultadosCalculo.precios_canales?.directa?.precio_promedio_final?.toLocaleString() || 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Margen Promedio:</span>
+                              <span className="font-semibold">{resultadosCalculo.precios_canales?.directa?.margen_promedio?.toFixed(1) || 'N/A'}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Redondeo:</span>
+                              <span className="font-semibold">${configuracion.redondeo.directa}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 🎯 EQUIVALENCIAS VARTA */}
+                      <div className="bg-yellow-50 p-4 rounded-lg mb-6">
+                        <h4 className="font-semibold text-yellow-800 mb-3">🎯 Equivalencias Varta (+{configuracion.factoresVarta.base}%)</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="text-gray-600">Productos con Equivalencia:</span>
+                            <span className="font-semibold ml-2">{resultadosCalculo.tabla_equivalencias?.mayorista?.length || 0}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Factor Base:</span>
+                            <span className="font-semibold ml-2">+{configuracion.factoresVarta.base}%</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Aplicación:</span>
+                            <span className="font-semibold ml-2">Solo Mayorista</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 💰 PROMOCIONES Y DESCUENTOS */}
+                      {configuracion.promociones.activo && (
+                        <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                          <h4 className="font-semibold text-blue-800 mb-3">💰 Promociones Activas</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-600">Descuento:</span>
+                              <span className="font-semibold ml-2">{configuracion.promociones.porcentaje}%</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Aplica desde:</span>
+                              <span className="font-semibold ml-2">${configuracion.promociones.aplicaDesde.toLocaleString()}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Descuento Efectivo:</span>
+                              <span className="font-semibold ml-2">{configuracion.otros.descuentoEfectivo}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">
+                      {calculando ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mr-3"></div>
+                          Calculando precios con nueva configuración...
+                        </div>
+                      ) : (
+                        <div>
+                          <p>No hay resultados de cálculo disponibles</p>
+                          <button 
+                            onClick={calcularPreciosEnTiempoReal}
+                            className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                          >
+                            Calcular Ahora
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Botones de Acción */}
