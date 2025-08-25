@@ -298,10 +298,11 @@ export async function POST(request: NextRequest) {
       const precioVarta = calcularPrecioVarta(precioBaseMoura, producto.c20_ah)
       
       // MARKUPS REALISTAS Y COHERENTES POR CANAL (SOBRE PRECIO DE LISTA + IVA)
+      // IMPORTANTE: Estos markups deben ser coherentes con la estrategia de negocio
       const markupsPorCanal = {
-        mayorista: 0.18,   // +18% para Mayorista (margen bajo, alto volumen)
-        directa: 0.45,     // +45% para Directa (margen medio, volumen medio)
-        nbo: 0.35          // +35% para NBO (margen intermedio, volumen variable)
+        mayorista: 0.15,   // +15% para Mayorista (margen bajo, alto volumen, estrategia de penetración)
+        directa: 0.40,     // +40% para Directa (margen medio, volumen medio, estrategia equilibrada)
+        nbo: 0.25          // +25% para NBO (margen intermedio, volumen variable, estrategia competitiva)
       }
       
       // Generar 3 filas por producto (una por canal)
@@ -312,8 +313,24 @@ export async function POST(request: NextRequest) {
         const precioConIVA = precioConMarkup + iva
         const precioFinal = aplicarRedondeo(precioConIVA, canal)
         
-        // Calcular margen real sobre precio FINAL (rentabilidad real)
-        const margenBruto = ((precioFinal - precioBaseMoura) / precioFinal * 100).toFixed(1)
+        // VALIDACIÓN CRÍTICA: Asegurar coherencia de precios entre canales
+        if (canal === 'mayorista' && precioFinal <= precioBaseMoura) {
+          console.error('❌ ERROR CRÍTICO: Precio mayorista debe ser mayor al precio base')
+          throw new Error('Precio mayorista incoherente')
+        }
+        
+        if (canal === 'nbo' && precioFinal <= precioBaseMoura) {
+          console.error('❌ ERROR CRÍTICO: Precio NBO debe ser mayor al precio base')
+          throw new Error('Precio NBO incoherente')
+        }
+        
+        if (canal === 'directa' && precioFinal <= precioBaseMoura) {
+          console.error('❌ ERROR CRÍTICO: Precio directa debe ser mayor al precio base')
+          throw new Error('Precio directa incoherente')
+        }
+        
+        // Calcular margen real sobre precio BASE (rentabilidad real y coherente)
+        const margenBruto = ((precioFinal - precioBaseMoura) / precioBaseMoura * 100).toFixed(1)
         const rentabilidad = parseFloat(margenBruto) >= 15 ? 'RENTABLE' : 'NO RENTABLE'
         
         // Mapear nombre del canal
@@ -375,6 +392,27 @@ export async function POST(request: NextRequest) {
     })
     
     console.log('✅ Pricing real aplicado a', productosConPricingReal.length, 'productos (3 canales ×', datosRealesMoura.length, 'productos)')
+    
+    // 🔍 VALIDACIÓN FINAL CRÍTICA: Verificar coherencia de precios por producto
+    console.log('🔍 Validando coherencia de precios por producto...')
+    datosRealesMoura.forEach((producto, index) => {
+      const preciosProducto = productosConPricingReal.filter(p => p.codigo_original === producto.codigo)
+      if (preciosProducto.length === 3) {
+        const precioMayorista = preciosProducto.find(p => p.canal === 'MAYORISTA')?.precio_promedio_final || 0
+        const precioNBO = preciosProducto.find(p => p.canal === 'NBO')?.precio_promedio_final || 0
+        const precioDirecta = preciosProducto.find(p => p.canal === 'DIRECTA')?.precio_promedio_final || 0
+        
+        // Validar jerarquía: Directa > NBO > Mayorista
+        if (!(precioDirecta > precioNBO && precioNBO > precioMayorista)) {
+          console.error(`❌ ERROR CRÍTICO: Precios incoherentes para ${producto.codigo}`)
+          console.error(`Mayorista: $${precioMayorista}, NBO: $${precioNBO}, Directa: $${precioDirecta}`)
+          throw new Error(`Precios incoherentes para ${producto.codigo}`)
+        }
+        
+        console.log(`✅ ${producto.codigo}: Mayorista $${precioMayorista} < NBO $${precioNBO} < Directa $${precioDirecta}`)
+      }
+    })
+    console.log('✅ Validación de coherencia completada exitosamente')
     
     // 📊 ESTADÍSTICAS REALES Y COHERENTES
     const productosRentables = productosConPricingReal.filter(p => p.rentabilidad_general === 'RENTABLE')
