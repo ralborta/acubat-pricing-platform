@@ -26,16 +26,16 @@ export async function POST(request: NextRequest) {
     const headers = lineas[0].split(',').map(h => h.trim().replace(/"/g, ''))
     console.log('📊 Headers detectados:', headers)
     
-    // Procesar datos reales de tu archivo
-    const datosRealesMoura = []
-    for (let i = 1; i < lineas.length; i++) {
-      if (lineas[i].trim()) {
-        const valores = lineas[i].split(',').map(v => v.trim().replace(/"/g, ''))
-        if (valores.length >= headers.length) {
-          const producto = {}
-          headers.forEach((header, index) => {
-            producto[header] = valores[index]
-          })
+            // Procesar datos reales de tu archivo
+        const datosRealesMoura: any[] = []
+        for (let i = 1; i < lineas.length; i++) {
+          if (lineas[i].trim()) {
+            const valores = lineas[i].split(',').map(v => v.trim().replace(/"/g, ''))
+            if (valores.length >= headers.length) {
+              const producto: any = {}
+              headers.forEach((header, index) => {
+                producto[header] = valores[index]
+              })
           
           // Convertir precios a números
           if (producto.precio_lista) {
