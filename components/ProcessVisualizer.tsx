@@ -1,22 +1,22 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  CheckCircle, 
-  Circle, 
-  Loader2, 
-  Play, 
-  Pause, 
-  RotateCcw, 
-  Zap, 
-  FileText, 
-  ArrowLeftRight, 
-  Calculator, 
-  Percent, 
-  TrendingUp, 
-  BarChart3, 
-  DollarSign, 
+import {
+  CheckCircle,
+  Circle,
+  Loader2,
+  Play,
+  Pause,
+  RotateCcw,
+  Zap,
+  FileText,
+  ArrowLeftRight,
+  Calculator,
+  Percent,
+  TrendingUp,
+  BarChart3,
+  DollarSign,
   Upload,
   Clock,
   CheckCircle2
@@ -33,7 +33,6 @@ interface PVStep {
   description: string;
   icon: React.ComponentType<{ className?: string }>;
   status: PVStatus;
-  duration: number; // ms
   details?: string[];
 }
 
@@ -46,9 +45,9 @@ interface ProcessVisualizerProps {
 // ==========================
 // Componentes de UI
 // ==========================
-function Card({ title, subtitle, children, className = "" }: { 
-  title: string; 
-  subtitle?: string; 
+function Card({ title, subtitle, children, className = "" }: {
+  title: string;
+  subtitle?: string;
   children: React.ReactNode;
   className?: string;
 }) {
@@ -64,222 +63,118 @@ function Card({ title, subtitle, children, className = "" }: {
 }
 
 // ==========================
-// Donut por Etapas (Principal)
-// ==========================
-function ProgressDonutSteps({ steps }: { steps: PVStep[] }) {
-  const total = steps.length;
-  const size = 180; 
-  const cx = size/2; 
-  const cy = size/2;
-  const rOuter = 75; 
-  const rInner = 55;
-  const gap = 6; // grados de separación
-  const stepAngle = 360 / total;
-
-  const toRad = (deg: number) => (deg - 90) * Math.PI / 180;
-  const polar = (r: number, deg: number) => ({ 
-    x: cx + r * Math.cos(toRad(deg)), 
-    y: cy + r * Math.sin(toRad(deg)) 
-  });
-
-  const ringSlice = (startDeg: number, endDeg: number) => {
-    const largeArc = endDeg - startDeg > 180 ? 1 : 0;
-    const a1 = polar(rOuter, startDeg);
-    const a2 = polar(rOuter, endDeg);
-    const b2 = polar(rInner, endDeg);
-    const b1 = polar(rInner, startDeg);
-    return `M ${a1.x} ${a1.y} A ${rOuter} ${rOuter} 0 ${largeArc} 1 ${a2.x} ${a2.y} L ${b2.x} ${b2.y} A ${rInner} ${rInner} 0 ${largeArc} 0 ${b1.x} ${b1.y} Z`;
-  };
-
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="drop-shadow-lg">
-      {steps.map((s, i) => {
-        const start = i * stepAngle + gap/2;
-        const end = (i + 1) * stepAngle - gap/2;
-        const d = ringSlice(start, end);
-        const fill = s.status === 'completed' ? '#22c55e' : s.status === 'active' ? '#6366f1' : '#e5e7eb';
-        
-        return (
-          <motion.path
-            key={s.id}
-            d={d}
-            fill={fill}
-            initial={{ opacity: 0.8, scale: 0.95 }}
-            animate={{ 
-              opacity: s.status === 'pending' ? 0.6 : 1, 
-              scale: s.status === 'active' ? 1.05 : 1 
-            }}
-            transform-origin={`${cx} ${cy}`}
-            transition={{ 
-              type: 'spring', 
-              stiffness: 200, 
-              damping: 18,
-              duration: 0.6
-            }}
-          />
-        );
-      })}
-    </svg>
-  );
-}
-
-// ==========================
 // Visualizador Principal
 // ==========================
 export default function ProcessVisualizer({ isVisible, onComplete, fileName }: ProcessVisualizerProps) {
   const [steps, setSteps] = useState<PVStep[]>([
-    { 
-      id: 1, 
-      title: 'Toma Lista de Precios', 
-      description: 'Cargando archivo de precios base', 
-      icon: FileText, 
-      status: 'pending', 
-      duration: 2000, 
+    {
+      id: 1,
+      title: 'Toma Lista de Precios',
+      description: 'Cargando archivo de precios base',
+      icon: FileText,
+      status: 'pending',
       details: ['Leyendo archivo Excel/CSV', 'Validando estructura de datos', 'Extrayendo productos y precios']
     },
-    { 
-      id: 2, 
-      title: 'Genera Tabla de Equivalencia', 
-      description: 'Creando equivalencias entre marcas', 
-      icon: ArrowLeftRight, 
-      status: 'pending', 
-      duration: 2500, 
+    {
+      id: 2,
+      title: 'Genera Tabla de Equivalencia',
+      description: 'Creando equivalencias entre marcas',
+      icon: ArrowLeftRight,
+      status: 'pending',
       details: ['Mapeando productos Moura', 'Buscando equivalentes Varta', 'Estableciendo relaciones de capacidad']
     },
-    { 
-      id: 3, 
-      title: 'Calcula Precios Mayoristas', 
-      description: 'Aplicando markups por canal', 
-      icon: Calculator, 
-      status: 'pending', 
-      duration: 3000, 
+    {
+      id: 3,
+      title: 'Calcula Precios Mayoristas',
+      description: 'Aplicando markups por canal',
+      icon: Calculator,
+      status: 'pending',
       details: ['Aplicando markup mayorista (+22%)', 'Aplicando markup directa (+60%)', 'Validando coherencia de precios']
     },
-    { 
-      id: 4, 
-      title: 'Calcula IVA', 
-      description: 'Aplicando impuesto al valor agregado', 
-      icon: Percent, 
-      status: 'pending', 
-      duration: 2000, 
+    {
+      id: 4,
+      title: 'Calcula IVA',
+      description: 'Aplicando impuesto al valor agregado',
+      icon: Percent,
+      status: 'pending',
       details: ['Calculando IVA 21%', 'Aplicando sobre precios con markup', 'Desglosando montos por producto']
     },
-    { 
-      id: 5, 
-      title: 'Calcula Markup Final', 
-      description: 'Aplicando márgenes de rentabilidad', 
-      icon: TrendingUp, 
-      status: 'pending', 
-      duration: 2500, 
+    {
+      id: 5,
+      title: 'Calcula Markup Final',
+      description: 'Aplicando márgenes de rentabilidad',
+      icon: TrendingUp,
+      status: 'pending',
       details: ['Ajustando precios por canal', 'Aplicando redondeo inteligente', 'Optimizando márgenes']
     },
-    { 
-      id: 6, 
-      title: 'Calcula Rentabilidad', 
-      description: 'Analizando viabilidad económica', 
-      icon: BarChart3, 
-      status: 'pending', 
-      duration: 3000, 
+    {
+      id: 6,
+      title: 'Calcula Rentabilidad',
+      description: 'Analizando viabilidad económica',
+      icon: BarChart3,
+      status: 'pending',
       details: ['Evaluando márgenes por canal', 'Calculando rentabilidad por producto', 'Identificando productos críticos']
     },
-    { 
-      id: 7, 
-      title: 'Define Precios Finales', 
-      description: 'Estableciendo precios de venta', 
-      icon: DollarSign, 
-      status: 'pending', 
-      duration: 2000, 
+    {
+      id: 7,
+      title: 'Define Precios Finales',
+      description: 'Estableciendo precios de venta',
+      icon: DollarSign,
+      status: 'pending',
       details: ['Confirmando precios por canal', 'Validando coherencia general', 'Aplicando reglas de negocio']
     },
-    { 
-      id: 8, 
-      title: 'Prepara Datos para Transferencia', 
-      description: 'Generando archivo de resultados', 
-      icon: Upload, 
-      status: 'pending', 
-      duration: 1500, 
+    {
+      id: 8,
+      title: 'Prepara Datos para Transferencia',
+      description: 'Generando archivo de resultados',
+      icon: Upload,
+      status: 'pending',
       details: ['Formateando resultados', 'Generando Excel de salida', 'Preparando para descarga']
     },
   ]);
 
-  const [running, setRunning] = useState(false);
-  const [current, setCurrent] = useState(0);
-  const [stepPct, setStepPct] = useState(0); // 0..100 del paso actual
-
-  const totalPct = useMemo(() => {
-    const completed = steps.filter(s => s.status === 'completed').length;
-    const base = (completed / steps.length) * 100;
-    return Math.min(base + stepPct / steps.length, 100);
-  }, [steps, stepPct]);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [isRunning, setIsRunning] = useState(false);
 
   // Auto-start cuando se hace visible
   useEffect(() => {
-    if (isVisible && !running) {
-      start();
-    }
-  }, [isVisible]);
-
-  // Lógica de progreso
-  useEffect(() => {
-    if (!running) return;
-    if (current >= steps.length) return;
-
-    // Marcar paso como activo
-    setSteps(prev => prev.map((s, i) => i === current ? { ...s, status: 'active' } : s));
-
-    const duration = steps[current].duration;
-    const tickMs = 50;
-    const inc = (100 / (duration / tickMs));
-
-    let cancelled = false;
-    const id = setInterval(() => {
-      setStepPct(prev => {
-        const next = prev + inc;
-        if (next >= 100) {
-          clearInterval(id);
-          if (!cancelled) {
-            // Completar paso y avanzar
-            setSteps(p => p.map((s, i) => i === current ? { ...s, status: 'completed' } : s));
-            setStepPct(0);
-            setCurrent(c => c + 1);
+    if (isVisible && !isRunning) {
+      setIsRunning(true);
+      setCurrentStep(0);
+      
+      // Timer simple: avanzar cada 2 segundos
+      const timer = setInterval(() => {
+        setCurrentStep(prev => {
+          if (prev >= steps.length - 1) {
+            // Último paso completado
+            clearInterval(timer);
+            setTimeout(() => {
+              onComplete();
+            }, 1000);
+            return prev;
           }
-        }
-        return Math.min(100, next);
-      });
-    }, tickMs);
+          return prev + 1;
+        });
+      }, 2000);
 
-    return () => { 
-      cancelled = true; 
-      clearInterval(id); 
-    };
-  }, [running, current, steps]);
-
-  // Completar proceso
-  useEffect(() => {
-    if (!running) return;
-    if (current === steps.length) {
-      setRunning(false);
-      setTimeout(() => {
-        onComplete();
-      }, 1000);
+      return () => clearInterval(timer);
     }
-  }, [current, running, onComplete]);
+  }, [isVisible, isRunning, steps.length, onComplete]);
 
-  const start = () => {
-    if (running) return;
-    setRunning(true);
-  };
+  // Actualizar estados de los pasos
+  useEffect(() => {
+    setSteps(prev => prev.map((step, index) => {
+      if (index < currentStep) {
+        return { ...step, status: 'completed' as PVStatus };
+      } else if (index === currentStep) {
+        return { ...step, status: 'active' as PVStatus };
+      } else {
+        return { ...step, status: 'pending' as PVStatus };
+      }
+    }));
+  }, [currentStep]);
 
-  const pause = () => setRunning(false);
-  
-  const reset = () => {
-    setRunning(false);
-    setCurrent(0);
-    setStepPct(0);
-    setSteps(prev => prev.map(s => ({ ...s, status: 'pending' })));
-  };
-
-  const active = steps[current];
+  const totalProgress = ((currentStep + 1) / steps.length) * 100;
 
   if (!isVisible) return null;
 
@@ -316,29 +211,12 @@ export default function ProcessVisualizer({ isVisible, onComplete, fileName }: P
                     <span className="text-sm font-medium">Procesando...</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    {!running ? (
-                      <button 
-                        onClick={start} 
-                        className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl backdrop-blur-sm transition-colors"
-                      >
-                        <Play className="h-4 w-4" />
-                        <span className="text-sm font-medium">Continuar</span>
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={pause} 
-                        className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl backdrop-blur-sm transition-colors"
-                      >
-                        <Pause className="h-4 w-4" />
-                        <span className="text-sm font-medium">Pausar</span>
-                      </button>
-                    )}
-                    <button 
-                      onClick={reset} 
+                    <button
+                      onClick={() => onComplete()}
                       className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 px-4 py-2 rounded-xl backdrop-blur-sm transition-colors"
                     >
-                      <RotateCcw className="h-4 w-4" />
-                      <span className="text-sm font-medium">Reiniciar</span>
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span className="text-sm font-medium">Completar</span>
                     </button>
                   </div>
                 </div>
@@ -352,16 +230,43 @@ export default function ProcessVisualizer({ isVisible, onComplete, fileName }: P
               {/* Donut Circular */}
               <div className="flex flex-col items-center">
                 <div className="relative">
-                  <ProgressDonutSteps steps={steps} />
-                  <div className="absolute inset-0 grid place-items-center">
+                  <div className="w-48 h-48 rounded-full border-8 border-gray-200 flex items-center justify-center">
                     <div className="text-center">
-                      <div className="text-4xl font-bold tabular-nums text-gray-800">
-                        {Math.round(totalPct)}%
+                      <div className="text-5xl font-bold tabular-nums text-gray-800">
+                        {Math.round(totalProgress)}%
                       </div>
                       <div className="text-sm text-gray-500 font-medium">
-                        Paso {Math.min(current + 1, steps.length)} de {steps.length}
+                        Paso {currentStep + 1} de {steps.length}
                       </div>
                     </div>
+                  </div>
+                  {/* Barra de progreso circular */}
+                  <div className="absolute inset-0 w-48 h-48">
+                    <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                      <circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        className="text-gray-200"
+                      />
+                      <motion.circle
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="8"
+                        className="text-blue-500"
+                        strokeDasharray="251.2"
+                        strokeDashoffset="251.2"
+                        initial={{ strokeDashoffset: 251.2 }}
+                        animate={{ strokeDashoffset: 251.2 - (251.2 * totalProgress / 100) }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                      />
+                    </svg>
                   </div>
                 </div>
 
@@ -432,12 +337,8 @@ export default function ProcessVisualizer({ isVisible, onComplete, fileName }: P
                         }`}>
                           {step.title}
                         </h3>
-                        <div className="ml-auto text-sm font-medium text-gray-500">
-                          {step.status === 'active' ? `${Math.round(stepPct)}%` : 
-                           step.status === 'completed' ? '100%' : '0%'}
-                        </div>
                       </div>
-                      
+
                       <p className={`text-sm transition-colors duration-300 ${
                         step.status === 'completed'
                           ? 'text-emerald-700'
@@ -470,25 +371,6 @@ export default function ProcessVisualizer({ isVisible, onComplete, fileName }: P
                           ))}
                         </motion.ul>
                       )}
-
-                      {/* Barra de Progreso del Paso */}
-                      {step.status === 'active' && (
-                        <motion.div
-                          initial={{ opacity: 0, scaleX: 0 }}
-                          animate={{ opacity: 1, scaleX: 1 }}
-                          transition={{ delay: 0.4, duration: 0.3 }}
-                          className="mt-3"
-                        >
-                          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                            <motion.div
-                              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                              initial={{ width: 0 }}
-                              animate={{ width: `${stepPct}%` }}
-                              transition={{ duration: 0.3, ease: "easeOut" }}
-                            />
-                          </div>
-                        </motion.div>
-                      )}
                     </div>
 
                     {/* Línea de Conexión */}
@@ -507,17 +389,15 @@ export default function ProcessVisualizer({ isVisible, onComplete, fileName }: P
           <div className="bg-gray-50 p-6 border-t border-gray-100">
             <div className="text-center">
               <motion.p
-                key={running ? 'running' : 'complete'}
+                key={currentStep}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
                 className="text-sm text-gray-600 font-medium"
               >
-                {running 
-                  ? `Procesando paso ${current + 1} de ${steps.length}...`
-                  : totalPct === 100 
-                    ? '¡Proceso completado exitosamente! 🎉'
-                    : 'Listo para comenzar...'
+                {currentStep < steps.length - 1
+                  ? `Procesando paso ${currentStep + 1} de ${steps.length}...`
+                  : '¡Proceso completado exitosamente! 🎉'
                 }
               </motion.p>
             </div>
