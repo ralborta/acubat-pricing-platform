@@ -281,13 +281,25 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Función para generar markup variable para distribución
-    const generarMarkupDistribucion = (producto: any) => {
-      // Markup variable entre 20% y 35% basado en características del producto
-      const baseMarkup = 0.20 // 20% base
-      const factorCapacidad = producto.c20_ah >= 80 ? 0.15 : producto.c20_ah >= 60 ? 0.10 : 0.05
-      const factorLinea = producto.linea === "ESTANDAR" ? 0.05 : 0.10
-      return baseMarkup + factorCapacidad + factorLinea
+    // Función para generar tabla de equivalencias completa por canal
+    const generarTablaEquivalencias = (producto: any, canal: string, markup: number) => {
+      const precioBaseMoura = producto.precio_lista
+      const precioConMarkup = precioBaseMoura * (1 + markup)
+      const iva = precioConMarkup * 0.21
+      const precioConIVA = precioConMarkup + iva
+      const precioFinal = aplicarRedondeo(precioConIVA, canal)
+      
+      return {
+        codigo_moura: producto.codigo,
+        codigo_varta: `Varta ${producto.c20_ah}Ah`,
+        capacidad: producto.c20_ah,
+        canal: canal.toUpperCase(),
+        precio_base_moura: precioBaseMoura,
+        precio_varta_equivalente: calcularPrecioVarta(precioBaseMoura, producto.c20_ah),
+        precio_final_canal: precioFinal,
+        markup_aplicado: `${(markup * 100).toFixed(0)}%`,
+        diferencia_con_varta: precioFinal - calcularPrecioVarta(precioBaseMoura, producto.c20_ah)
+      }
     }
     
     // Generar productos con 3 canales cada uno
@@ -354,7 +366,7 @@ export async function POST(request: NextRequest) {
           // PRECIOS BASE
           precio_lista_moura: precioBaseMoura,
           precio_varta_equivalente: precioVarta,
-          precio_promedio_final: precioFinal,
+          precio_promedio_final: precioFinal, // Este será el precio del canal específico
           
           // EQUIVALENCIA VARTA
           tiene_equivalencia_varta: true,
@@ -370,9 +382,11 @@ export async function POST(request: NextRequest) {
             [canal]: {
               nombre: nombreCanal,
               precio_final: precioFinal,
+              precio_sin_iva: precioConMarkup,
               markup: `+${(markup * 100).toFixed(0)}%`,
               margen_bruto: `${margenBruto}%`,
-              rentabilidad: rentabilidad
+              rentabilidad: rentabilidad,
+              iva_aplicado: iva
             }
           },
           
@@ -453,6 +467,13 @@ export async function POST(request: NextRequest) {
         productos_rentables: productosRentables.length,
         productos_no_rentables: productosNoRentables.length,
         con_equivalencia_varta: conEquivalenciaVarta.length,
+        
+        // TABLA DE EQUIVALENCIAS COMPLETA POR CANAL
+        tabla_equivalencias: {
+          mayorista: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'mayorista', 0.15)),
+          nbo: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'nbo', 0.25)),
+          directa: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'directa', 0.40))
+        }
         margen_promedio_general: calcularMargenPromedioGeneral(productosConPricingReal),
         rentabilidad_por_canal: {
           mayorista: `${analisisPorCanal.mayorista.rentables}/${analisisPorCanal.mayorista.total} (${((analisisPorCanal.mayorista.rentables / analisisPorCanal.mayorista.total) * 100).toFixed(1)}%)`,
