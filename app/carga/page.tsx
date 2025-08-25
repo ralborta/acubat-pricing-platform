@@ -229,7 +229,8 @@ export default function CargaPage() {
     if (!resultado) return
 
     const headers = [
-      'Modelo',
+      'Código',
+      'Tipo',
       'Descripción',
       'Canal',
       'Precio Base Moura',
@@ -244,6 +245,7 @@ export default function CargaPage() {
       headers.join(','),
       ...resultado.datos_procesados.map(producto => [
         producto.codigo_original,
+        producto.tipo,
         producto.denominacion,
         producto.canal,
         producto.precio_lista_moura,
@@ -739,7 +741,10 @@ export default function CargaPage() {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Modelo
+                              Código
+                            </th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              Tipo
                             </th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                               Descripción
@@ -778,6 +783,11 @@ export default function CargaPage() {
                             <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
                               <td className="px-3 py-2 text-sm font-medium text-gray-900 border-b">
                                 {producto.codigo_original}
+                              </td>
+                              <td className="px-3 py-2 text-sm border-b">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {producto.tipo}
+                                </span>
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-600 border-b max-w-xs truncate">
                                 {producto.denominacion}
