@@ -139,6 +139,46 @@ export default function ConfiguracionPage() {
     })
   }
 
+  // 🚀 FUNCIÓN DE CÁLCULO EN TIEMPO REAL
+  const calcularPreciosEnTiempoReal = () => {
+    // Producto de ejemplo para mostrar cálculos
+    const productoEjemplo = {
+      codigo: 'M40FD',
+      descripcion: 'Batería Moura 12X45',
+      precio_lista: 136490,
+      c20_ah: 45
+    }
+    
+    // Cálculos con configuración actual
+    const markupMayorista = configuracion.markups.mayorista / 100
+    const markupDirecta = configuracion.markups.directa / 100
+    const iva = configuracion.iva / 100
+    const factorVarta = configuracion.factoresVarta.base / 100
+    
+    // Precios calculados
+    const preciosCalculados = {
+      mayorista: {
+        precioBase: productoEjemplo.precio_lista,
+        precioConMarkup: productoEjemplo.precio_lista * (1 + markupMayorista),
+        iva: productoEjemplo.precio_lista * (1 + markupMayorista) * iva,
+        precioFinal: Math.ceil((productoEjemplo.precio_lista * (1 + markupMayorista) * (1 + iva)) / 100) * 100
+      },
+      directa: {
+        precioBase: productoEjemplo.precio_lista,
+        precioConMarkup: productoEjemplo.precio_lista * (1 + markupDirecta),
+        iva: productoEjemplo.precio_lista * (1 + markupDirecta) * iva,
+        precioFinal: Math.ceil((productoEjemplo.precio_lista * (1 + markupDirecta) * (1 + iva)) / 50) * 50
+      },
+      varta: {
+        precioBase: productoEjemplo.precio_lista,
+        precioVarta: productoEjemplo.precio_lista * (1 + factorVarta),
+        diferencia: productoEjemplo.precio_lista * (1 + factorVarta) - productoEjemplo.precio_lista
+      }
+    }
+    
+    return { producto: productoEjemplo, precios: preciosCalculados }
+  }
+  
   const guardarConfiguracion = () => {
     // Aquí iría la lógica para guardar en base de datos o localStorage
     console.log('Configuración guardada:', configuracion)
@@ -1086,6 +1126,47 @@ export default function ConfiguracionPage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                </div>
+
+                {/* 🚀 SECCIÓN DE RESULTADOS EN TIEMPO REAL */}
+                <div className="bg-white rounded-lg shadow-md p-6 mt-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    <ChartBarIcon className="w-5 h-5 inline mr-2" />
+                    Resultados en Tiempo Real
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Producto de Ejemplo */}
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-blue-800 mb-2">Producto de Ejemplo</h4>
+                      <p className="text-sm text-gray-600">Código: {calcularPreciosEnTiempoReal().producto.codigo}</p>
+                      <p className="text-sm text-gray-600">Descripción: {calcularPreciosEnTiempoReal().producto.descripcion}</p>
+                      <p className="text-sm text-gray-600">Precio Base: ${calcularPreciosEnTiempoReal().producto.precio_lista.toLocaleString()}</p>
+                    </div>
+                    
+                    {/* Precios Mayorista */}
+                    <div className="bg-green-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-green-800 mb-2">Mayorista (+{configuracion.markups.mayorista}%)</h4>
+                      <p className="text-sm text-gray-600">Con Markup: ${calcularPreciosEnTiempoReal().precios.mayorista.precioConMarkup.toLocaleString()}</p>
+                      <p className="text-sm text-gray-600">IVA ({configuracion.iva}%): ${calcularPreciosEnTiempoReal().precios.mayorista.iva.toLocaleString()}</p>
+                      <p className="text-sm font-semibold text-green-700">Precio Final: ${calcularPreciosEnTiempoReal().precios.mayorista.precioFinal.toLocaleString()}</p>
+                    </div>
+                    
+                    {/* Precios Directa */}
+                    <div className="bg-purple-50 p-4 rounded-lg">
+                      <h4 className="font-semibold text-purple-800 mb-2">Directa (+{configuracion.markups.directa}%)</h4>
+                      <p className="text-sm text-gray-600">Con Markup: ${calcularPreciosEnTiempoReal().precios.directa.precioConMarkup.toLocaleString()}</p>
+                      <p className="text-sm text-gray-600">IVA ({configuracion.iva}%): ${calcularPreciosEnTiempoReal().precios.directa.iva.toLocaleString()}</p>
+                      <p className="text-sm font-semibold text-purple-700">Precio Final: ${calcularPreciosEnTiempoReal().precios.directa.precioFinal.toLocaleString()}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Información Varta */}
+                  <div className="mt-4 bg-yellow-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-yellow-800 mb-2">Equivalencia Varta (+{configuracion.factoresVarta.base}%)</h4>
+                    <p className="text-sm text-gray-600">Precio Varta: ${calcularPreciosEnTiempoReal().precios.varta.precioVarta.toLocaleString()}</p>
+                    <p className="text-sm text-gray-600">Diferencia con Moura: ${calcularPreciosEnTiempoReal().precios.varta.diferencia.toLocaleString()}</p>
                   </div>
                 </div>
 
