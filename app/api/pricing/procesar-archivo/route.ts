@@ -14,241 +14,49 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ Archivo recibido:', file.name)
     
-    // 🎭 SISTEMA REAL - BASADO EN TU DOCUMENTO
-    console.log('🎭 GENERANDO DATOS REALES BASADOS EN TU DOCUMENTO...')
+    // 🚨 SISTEMA REAL - PROCESANDO TU ARCHIVO REAL
+    console.log('🚨 PROCESANDO TU ARCHIVO REAL...')
     
-    // Simular delay para que se vea real y profesional
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Leer y procesar tu archivo real
+    const contenidoArchivo = await file.text()
+    console.log('📄 Contenido del archivo:', contenidoArchivo.substring(0, 200) + '...')
     
-    // DATOS REALES BASADOS EN TU DOCUMENTO MOURA - MÁS PRODUCTOS
-    const datosRealesMoura = [
-      // LINEA ESTANDAR
-      {
-        codigo: "M40FD",
-        tipo: "12X45",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 40,
-        rc_min: 55,
-        cca: 300,
-        denominacion: "Clio mio, Prisma, Onix, Palio 8v, Uno mod 'N'",
-        largo: 212,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 136490,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M45FD",
-        tipo: "12X50",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 45,
-        rc_min: 60,
-        cca: 350,
-        denominacion: "Gol, Voyage, Celta, Corsa, Clio",
-        largo: 212,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 148900,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M50FD",
-        tipo: "12X55",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 50,
-        rc_min: 65,
-        cca: 400,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 162300,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M55FD",
-        tipo: "12X60",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 55,
-        rc_min: 70,
-        cca: 450,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 175800,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M60FD",
-        tipo: "12X65",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 60,
-        rc_min: 75,
-        cca: 500,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 189200,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M65FD",
-        tipo: "12X70",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 65,
-        rc_min: 80,
-        cca: 550,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 202600,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M70FD",
-        tipo: "12X75",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 70,
-        rc_min: 85,
-        cca: 600,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 216000,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M75FD",
-        tipo: "12X80",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 75,
-        rc_min: 90,
-        cca: 650,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 229400,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M80FD",
-        tipo: "12X85",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 80,
-        rc_min: 95,
-        cca: 700,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 242800,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M85FD",
-        tipo: "12X90",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 85,
-        rc_min: 100,
-        cca: 750,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 256200,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M90FD",
-        tipo: "12X95",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 90,
-        rc_min: 105,
-        cca: 800,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 269600,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M95FD",
-        tipo: "12X100",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 95,
-        rc_min: 110,
-        cca: 850,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 283000,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M100FD",
-        tipo: "12X105",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 100,
-        rc_min: 115,
-        cca: 900,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 296400,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M110FD",
-        tipo: "12X115",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 110,
-        rc_min: 125,
-        cca: 1000,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 323200,
-        linea: "ESTANDAR"
-      },
-      {
-        codigo: "M120FD",
-        tipo: "12X125",
-        gtia_meses: 18,
-        bome: "D",
-        c20_ah: 120,
-        rc_min: 135,
-        cca: 1100,
-        denominacion: "Voyage, Celta, Corsa, Clio, Palio",
-        largo: 242,
-        ancho: 175,
-        alto: 175,
-        precio_lista: 350000,
-        linea: "ESTANDAR"
+    // Parsear CSV/Excel real
+    const lineas = contenidoArchivo.split('\n')
+    const headers = lineas[0].split(',').map(h => h.trim().replace(/"/g, ''))
+    console.log('📊 Headers detectados:', headers)
+    
+    // Procesar datos reales de tu archivo
+    const datosRealesMoura = []
+    for (let i = 1; i < lineas.length; i++) {
+      if (lineas[i].trim()) {
+        const valores = lineas[i].split(',').map(v => v.trim().replace(/"/g, ''))
+        if (valores.length >= headers.length) {
+          const producto = {}
+          headers.forEach((header, index) => {
+            producto[header] = valores[index]
+          })
+          
+          // Convertir precios a números
+          if (producto.precio_lista) {
+            producto.precio_lista = parseFloat(producto.precio_lista) || 0
+          }
+          if (producto.c20_ah) {
+            producto.c20_ah = parseInt(producto.c20_ah) || 0
+          }
+          
+          datosRealesMoura.push(producto)
+        }
       }
-    ]
+    }
+    
+        console.log('✅ Productos reales procesados:', datosRealesMoura.length)
+    console.log('📊 Primer producto:', datosRealesMoura[0])
+    
+    // Validar que se procesaron datos reales
+    if (datosRealesMoura.length === 0) {
+      throw new Error('❌ No se pudieron procesar datos del archivo. Verifica el formato CSV/Excel.')
+    }
     
     console.log('✅ Datos reales cargados:', datosRealesMoura.length, 'productos')
     
