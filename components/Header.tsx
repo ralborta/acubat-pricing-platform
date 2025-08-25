@@ -1,8 +1,11 @@
 'use client'
 
 import { Search, Bell, Settings, User, TrendingUp } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function Header() {
+  const router = useRouter()
+  
   const currentDate = new Date().toLocaleDateString('es-ES', {
     weekday: 'long',
     year: 'numeric',
@@ -54,7 +57,10 @@ export default function Header() {
             <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
               <Bell className="w-5 h-5" />
             </button>
-            <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => router.push('/configuracion')}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+            >
               <Settings className="w-5 h-5" />
             </button>
             <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">

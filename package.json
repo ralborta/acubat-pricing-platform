@@ -16,6 +16,7 @@
     "vercel-deploy": "vercel --prod"
   },
   "dependencies": {
+    "@heroicons/react": "^2.2.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/xlsx": "^0.0.35",
     "autoprefixer": "^10.4.21",
