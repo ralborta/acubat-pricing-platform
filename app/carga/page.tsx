@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { ArrowUpTrayIcon, DocumentTextIcon, PlayIcon, CheckCircleIcon, ChevronDownIcon, ChevronUpIcon, TableCellsIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
+import ProcessVisualizer from '@/components/ProcessVisualizer'
 
 interface Producto {
   id: number
@@ -82,6 +83,7 @@ export default function CargaPage() {
   const [error, setError] = useState<string>('')
   const [procesosCompletados, setProcesosCompletados] = useState<boolean[]>([false, false, false, false])
   const [mostrarTodosProductos, setMostrarTodosProductos] = useState(false)
+  const [showProcessVisualizer, setShowProcessVisualizer] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Función para formatear moneda
@@ -161,8 +163,8 @@ export default function CargaPage() {
     setError('')
     
     try {
-      // Simular procesos
-      await simularProcesos()
+      // Mostrar visualizador de proceso
+      setShowProcessVisualizer(true)
       
       // Simular llamada a API
       const formData = new FormData()
@@ -185,6 +187,12 @@ export default function CargaPage() {
     } finally {
       setProcesando(false)
     }
+  }
+
+  // Callback cuando se complete el proceso visual
+  const handleProcessComplete = () => {
+    setShowProcessVisualizer(false)
+    setProcesando(false)
   }
 
   // Descargar resultados como CSV
@@ -944,6 +952,13 @@ export default function CargaPage() {
           )}
         </main>
       </div>
+
+      {/* Visualizador de Proceso */}
+      <ProcessVisualizer
+        isVisible={showProcessVisualizer}
+        onComplete={handleProcessComplete}
+        fileName={archivoNombre || 'Archivo'}
+      />
     </div>
   )
 }
