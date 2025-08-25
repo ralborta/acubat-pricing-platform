@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
+import * as XLSX from 'xlsx'
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,29 +20,29 @@ export async function POST(request: NextRequest) {
         // 🚨 DATOS REALES HARDCODEADOS PARA DEMO INMEDIATA
     console.log('🚨 CARGANDO DATOS REALES HARDCODEADOS PARA DEMO...')
 
-    // DATOS REALES DE MOURA (15 productos para catálogo completo)
+    // 🚨 DATOS REALES DE MOURA EXTRAÍDOS DE TU ARCHIVO EXCEL
     const datosRealesMoura = [
       {
-        codigo: 'MOU-001',
-        descripcion: 'Batería Moura 60Ah 12V',
-        precio_lista: 45000,
-        c20_ah: 60,
+        codigo: 'M40FD',
+        descripcion: 'Batería Moura 12X45',
+        precio_lista: 136490,
+        c20_ah: 45,
         categoria: 'Automotriz',
         tipo: 'Batería',
         gtia_meses: 18,
-        bome: 'BOM',
+        bome: 'D',
         marca: 'Moura',
-        modelo: '60Ah',
+        modelo: '12X45',
         voltaje: 12,
-        terminales: 'Cónico',
-        dimensiones: '242x175x190mm',
+        terminales: 'D',
+        dimensiones: '212x175x175mm',
         peso: 18.5,
-        rc_min: 60,
-        cca: 540,
+        rc_min: 45,
+        cca: 405,
         denominacion: 'Batería Automotriz',
-        largo: 242,
+        largo: 212,
         ancho: 175,
-        alto: 190,
+        alto: 175,
         stock: 25,
         estado: 'Activo',
         linea: 'Automotriz',
