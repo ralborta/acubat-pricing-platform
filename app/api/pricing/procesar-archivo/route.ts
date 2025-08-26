@@ -414,6 +414,12 @@ export async function POST(request: NextRequest) {
       directa: configuracionSistema.markups?.directa / 100 || 0.40
     }
     
+    // ✅ MARKUPS REALES Y COHERENTES DESDE CONFIGURACIÓN
+    console.log('📊 Markups REALES cargados:', {
+      mayorista: `${(markupsPorCanal.mayorista * 100).toFixed(0)}%`,
+      directa: `${(markupsPorCanal.directa * 100).toFixed(0)}%`
+    })
+    
     console.log('📊 Markups cargados:', {
       mayorista: `${(markupsPorCanal.mayorista * 100).toFixed(0)}%`,
       directa: `${(markupsPorCanal.directa * 100).toFixed(0)}%`
@@ -496,16 +502,16 @@ export async function POST(request: NextRequest) {
         let precioVartaCanal: number
         let codigoVartaCanal: string
         
-        // LÓGICA DIFERENCIADA POR CANAL:
+        // ✅ LÓGICA COHERENTE POR CANAL:
         if (canal === 'mayorista') {
-          // MAYORISTA: Precio base + equivalencia Varta + markup bajo
+          // MAYORISTA: Precio base Moura + markup bajo + equivalencia Varta
           precioBaseCanal = precioBaseMoura
           tieneEquivalenciaVarta = true
           precioVartaCanal = precioVarta
           codigoVartaCanal = `Varta ${producto.c20_ah}Ah`
         } else if (canal === 'directa') {
-          // DIRECTA: Precio base + markup alto (sin equivalencia Varta)
-          precioBaseCanal = precioBaseMoura * 1.1 // 10% más alto que mayorista
+          // DIRECTA: Precio base Moura + markup alto (SIN equivalencia Varta)
+          precioBaseCanal = precioBaseMoura
           tieneEquivalenciaVarta = false
           precioVartaCanal = 0
           codigoVartaCanal = 'N/A'
@@ -523,15 +529,10 @@ export async function POST(request: NextRequest) {
         const precioConIVA = precioConMarkup + iva
         const precioFinal = aplicarRedondeo(precioConIVA, canal)
         
-        // VALIDACIÓN CRÍTICA: Asegurar coherencia de precios entre canales
+        // ✅ VALIDACIÓN CRÍTICA: Asegurar coherencia de precios entre canales
         if (canal === 'mayorista' && precioFinal <= precioBaseCanal) {
           console.error('❌ ERROR CRÍTICO: Precio mayorista debe ser mayor al precio base')
           throw new Error('Precio mayorista incoherente')
-        }
-        
-        if (canal === 'nbo' && precioFinal <= precioBaseCanal) {
-          console.error('❌ ERROR CRÍTICO: Precio NBO debe ser mayor al precio base')
-          throw new Error('Precio NBO incoherente')
         }
         
         if (canal === 'directa' && precioFinal <= precioBaseCanal) {
@@ -539,9 +540,12 @@ export async function POST(request: NextRequest) {
           throw new Error('Precio directa incoherente')
         }
         
-        // Calcular margen real sobre precio BASE del canal (rentabilidad real y coherente)
-        const margenBruto = ((precioFinal - precioBaseCanal) / precioBaseCanal * 100).toFixed(1)
-        const rentabilidad = parseFloat(margenBruto) >= 15 ? 'RENTABLE' : 'NO RENTABLE'
+        // ✅ CALCULAR MARGEN REAL sobre precio BASE de Moura (rentabilidad CORRECTA)
+        const margenBruto = ((precioFinal - producto.precio_lista) / producto.precio_lista * 100).toFixed(1)
+        
+        // ✅ USAR CONFIGURACIÓN DINÁMICA para rentabilidad
+        const margenMinimo = configuracionSistema.rentabilidad?.margenMinimo || 15
+        const rentabilidad = parseFloat(margenBruto) >= margenMinimo ? 'RENTABLE' : 'NO RENTABLE'
         
         // Mapear nombre del canal
         const nombreCanal = canal === 'mayorista' ? 'MAYORISTA' : 
@@ -562,7 +566,7 @@ export async function POST(request: NextRequest) {
           linea: producto.linea,
           
           // PRECIOS BASE DIFERENCIADOS POR CANAL
-          precio_lista_moura: precioBaseMoura, // Precio original Moura
+          precio_lista_moura: producto.precio_lista, // Precio original Moura
           precio_base_canal: precioBaseCanal,  // Precio base del canal específico
           precio_varta_equivalente: precioVartaCanal,
           precio_promedio_final: precioFinal,
@@ -599,7 +603,7 @@ export async function POST(request: NextRequest) {
           },
           
           // ESTADÍSTICAS GENERALES
-          utilidad_total_estimada: precioFinal - precioBaseCanal,
+          utilidad_total_estimada: precioFinal - producto.precio_lista,
           margen_promedio: `${margenBruto}%`,
           rentabilidad_general: rentabilidad,
           canales_rentables: rentabilidad === 'RENTABLE' ? 1 : 0,
@@ -609,8 +613,8 @@ export async function POST(request: NextRequest) {
           iva_total: iva,
           iva_porcentaje: `${configuracionSistema.iva}%`,
           precio_desglosado: {
-            precio_base: precioBaseCanal,
-            markup: precioConMarkup - precioBaseCanal,
+            precio_base: producto.precio_lista,
+            markup: precioConMarkup - producto.precio_lista,
             subtotal: precioConMarkup,
             iva: iva,
             precio_final: precioFinal
