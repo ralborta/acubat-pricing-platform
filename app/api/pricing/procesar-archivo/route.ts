@@ -542,9 +542,9 @@ export async function POST(request: NextRequest) {
         console.log(`   - Usando precio base: ${mayoristaBase}`)
       }
       
-      const mayoristaNeto = mayoristaBase * 1.30 // 30% sobre precio base (MENOS que minorista)
-      const mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
-      const mayoristaRentabilidad = ((mayoristaNeto - mayoristaBase) / mayoristaNeto) * 100
+      let mayoristaNeto = mayoristaBase * 1.30 // 30% sobre precio base (MENOS que minorista)
+      let mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
+      let mayoristaRentabilidad = ((mayoristaNeto - mayoristaBase) / mayoristaNeto) * 100
       
       console.log(`   - Base: ${mayoristaBase}`)
       console.log(`   - +30%: ${mayoristaBase} * 1.30 = ${mayoristaNeto}`)
