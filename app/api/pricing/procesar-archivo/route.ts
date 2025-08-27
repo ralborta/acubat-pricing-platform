@@ -436,20 +436,21 @@ export async function POST(request: NextRequest) {
       if (columnMapping.precio && producto[columnMapping.precio]) {
         precioBase = parseFloat(producto[columnMapping.precio]) || 0
         console.log(`✅ Precio encontrado en columna '${columnMapping.precio}': ${precioBase}`)
+        console.log(`🔍 DEBUG: Valor de producto[${columnMapping.precio}]: ${producto[columnMapping.precio]}`)
       } else if (columnMapping.pdv && producto[columnMapping.pdv]) {
         precioBase = parseFloat(producto[columnMapping.pdv]) || 0
         console.log(`✅ Precio encontrado en columna '${columnMapping.pdv}': ${precioBase}`)
       } else if (columnMapping.pvp && producto[columnMapping.pvp]) {
         precioBase = parseFloat(producto[columnMapping.pvp]) || 0
         console.log(`✅ Precio encontrado en columna '${columnMapping.pvp}': ${precioBase}`)
-      } else {
+      } else if (precioBase === 0) {
         console.log(`❌ NO SE ENCONTRÓ PRECIO para producto ${index + 1}`)
         console.log(`🔍 Columnas de precio disponibles:`)
         console.log(`   - Precio: ${columnMapping.precio} (valor: ${columnMapping.precio ? producto[columnMapping.precio] : 'N/A'})`)
         console.log(`   - PDV: ${columnMapping.pdv} (valor: ${columnMapping.pdv ? producto[columnMapping.pdv] : 'N/A'})`)
         console.log(`   - PVP: ${columnMapping.pvp} (valor: ${columnMapping.pvp ? producto[columnMapping.pvp] : 'N/A'})`)
         
-        // 🔍 BÚSQUEDA ALTERNATIVA: Buscar cualquier columna que contenga números
+        // 🔍 BÚSQUEDA ALTERNATIVA: Solo si NO se encontró precio
         console.log(`🔍 BÚSQUEDA ALTERNATIVA DE PRECIO...`)
         for (const [key, value] of Object.entries(producto)) {
           if (typeof value === 'number' && value > 1000 && value < 1000000) {
@@ -459,7 +460,7 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // 🔍 BÚSQUEDA ESPECÍFICA: Buscar columnas de precio comunes
+        // 🔍 BÚSQUEDA ESPECÍFICA: Solo si NO se encontró precio
         if (precioBase === 0) {
           const columnasPrecio = [
             'Precio de Lista', 'Precio Lista', 'Precio', 'Price', 'Costo', 'Cost',
@@ -478,7 +479,7 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // 🔍 BÚSQUEDA POR CONTENIDO: Buscar cualquier columna que contenga números grandes
+        // 🔍 BÚSQUEDA POR CONTENIDO: Solo si NO se encontró precio
         if (precioBase === 0) {
           console.log(`🔍 BÚSQUEDA POR CONTENIDO DE COLUMNAS...`)
           for (const [key, value] of Object.entries(producto)) {
