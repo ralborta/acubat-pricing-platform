@@ -69,21 +69,21 @@ export function exportarAExcel(
   // Agregar cada producto
   productos.forEach(producto => {
     productosData.push([
-      producto.producto,
-      producto.tipo,
-      producto.descripcion,
-      producto.canal,
-      producto.precio_base,
-      producto.costo_estimado,
-      producto.precio_final_minorista,
-      producto.precio_final_mayorista,
-      producto.markup_minorista,
-      producto.markup_mayorista,
-      producto.iva_minorista,
-      producto.iva_mayorista,
+      String(producto.producto),
+      String(producto.tipo),
+      String(producto.descripcion),
+      String(producto.canal),
+      String(producto.precio_base),
+      String(producto.costo_estimado),
+      String(producto.precio_final_minorista),
+      String(producto.precio_final_mayorista),
+      String(producto.markup_minorista),
+      String(producto.markup_mayorista),
+      String(producto.iva_minorista),
+      String(producto.iva_mayorista),
       producto.equivalencia_varta?.encontrada ? 'SÍ' : 'NO',
       producto.equivalencia_varta?.codigo || '',
-      producto.equivalencia_varta?.precio_varta || ''
+      producto.equivalencia_varta?.precio_varta ? String(producto.equivalencia_varta.precio_varta) : ''
     ])
   })
 

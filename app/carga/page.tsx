@@ -5,7 +5,7 @@ import { ArrowUpTrayIcon, DocumentTextIcon, PlayIcon, CheckCircleIcon, ChevronDo
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import ProcessVisualizer from '@/components/ProcessVisualizer'
-import { exportarAExcel } from '@/lib/excel-export'
+import { exportarAExcel } from '../../src/lib/excel-export'
 
 interface Producto {
   id: number
