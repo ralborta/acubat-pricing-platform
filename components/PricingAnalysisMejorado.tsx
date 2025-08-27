@@ -62,7 +62,7 @@ interface PricingAnalysisProps {
   productos?: any[] // Datos reales del backend
 }
 
-export default function PricingAnalysis({ isVisible, onClose, fileName, productos }: PricingAnalysisProps) {
+export default function PricingAnalysisMejorado({ isVisible, onClose, fileName, productos }: PricingAnalysisProps) {
   const [selectedProduct, setSelectedProduct] = useState<ProductPricing | null>(null)
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
@@ -123,17 +123,17 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
     return [
       {
         id: '1',
-        sku: 'PROD-001',
+        sku: '2124',
         name: 'Batería Varta 60Ah',
         category: 'Varta',
-        cost: 15000,
+        cost: 14189,
         listPrice: 27000,
-        markup: 1.8,
-        margin: 80,
+        markup: 70,
+        margin: 41.2,
         channels: {
           online: 30000,
-          retail: 27000,
-          wholesale: 22500,
+          retail: 24121,
+          wholesale: 19865,
           distributor: 21000
         },
         profitability: 'high',
@@ -144,13 +144,13 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
       },
       {
         id: '2',
-        sku: 'PROD-002',
+        sku: '1870',
         name: 'Batería Varta 100Ah',
         category: 'Varta',
-        cost: 25000,
+        cost: 18446,
         listPrice: 37500,
-        markup: 1.5,
-        margin: 50,
+        markup: 40,
+        margin: 28.6,
         channels: {
           online: 50000,
           retail: 45000,
@@ -161,6 +161,27 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
         recommendations: [
           'Margen saludable, precios óptimos',
           'Promocionar en canales mayoristas'
+        ]
+      },
+      {
+        id: '3',
+        sku: '2503',
+        name: 'Batería Moura 70Ah',
+        category: 'Moura',
+        cost: 16500,
+        listPrice: 32000,
+        markup: 65,
+        margin: 39.5,
+        channels: {
+          online: 38000,
+          retail: 32000,
+          wholesale: 28000,
+          distributor: 26000
+        },
+        profitability: 'high',
+        recommendations: [
+          'Margen competitivo, mantener estrategia',
+          'Evaluar precios de competencia'
         ]
       }
     ]
@@ -221,7 +242,7 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
-        {/* Header Mejorado */}
+        {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 flex items-center">
@@ -251,7 +272,7 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
         <div className="flex h-[calc(90vh-80px)]">
           {/* Lista de Productos */}
           <div className="w-2/3 border-r border-gray-200 overflow-y-auto">
-            {/* Filtros y Búsqueda Mejorados */}
+            {/* Filtros y Búsqueda */}
             <div className="p-4 border-b border-gray-200 bg-gray-50">
               <div className="flex items-center space-x-4">
                 <div className="flex-1">
@@ -276,6 +297,7 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
                   >
                     <option value="all">Todas las categorías</option>
                     <option value="Varta">Varta</option>
+                    <option value="Moura">Moura</option>
                     <option value="Otros">Otras marcas</option>
                   </select>
                 </div>
@@ -456,7 +478,7 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
             </div>
           </div>
 
-          {/* Detalle del Producto Mejorado */}
+          {/* Detalle del Producto */}
           <div className="w-1/3 overflow-y-auto bg-gray-50">
             {selectedProduct ? (
               <div className="p-6">
@@ -479,10 +501,6 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
                       <span className="font-medium">Costo:</span> 
                       <span className="text-gray-900">${selectedProduct.cost.toLocaleString()}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="font-medium">Precio de Lista:</span> 
-                      <span className="text-gray-900">${selectedProduct.listPrice.toLocaleString()}</span>
-                    </div>
                   </div>
                 </div>
 
@@ -495,7 +513,7 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-blue-50 rounded-lg p-3">
                       <div className="text-sm text-blue-600">Markup</div>
-                      <div className="text-lg font-semibold text-blue-900">{selectedProduct.markup.toFixed(1)}x</div>
+                      <div className="text-lg font-semibold text-blue-900">+{selectedProduct.markup}%</div>
                     </div>
                     <div className="bg-green-50 rounded-lg p-3">
                       <div className="text-sm text-green-600">Margen</div>
