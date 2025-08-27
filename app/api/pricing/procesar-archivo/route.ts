@@ -246,50 +246,11 @@ export async function POST(request: NextRequest) {
           console.log(`✅ Precio detectado: "${header}"`)
         }
         
-        // Capacidad - Buscar columnas que contengan números de amperaje
-        if (!mapeo.capacidad && (
-          headerLower.includes('capacidad') || 
-          headerLower.includes('capacity') || 
-          headerLower.includes('amperaje') ||
-          headerLower.includes('ah') ||
-          headerLower.includes('c20') ||
-          headerLower.includes('c20 [ah]') ||
-          headerLower.includes('amperes') ||
-          headerLower.includes('amperios')
-        )) {
-          mapeo.capacidad = header
-          console.log(`✅ Capacidad detectada: "${header}"`)
-        }
+        // 🎯 SISTEMA SIMPLIFICADO: No necesitamos capacidad
 
-        // Voltaje - Buscar columnas que contengan información de voltaje
-        if (!mapeo.voltaje && (
-          headerLower.includes('voltaje') || 
-          headerLower.includes('voltage') || 
-          headerLower.includes('v') ||
-          headerLower.includes('12x') ||
-          headerLower.includes('tipo') ||
-          headerLower.includes('volts')
-        )) {
-          mapeo.voltaje = header
-          console.log(`✅ Voltaje detectado: "${header}"`)
-        }
+        // 🎯 SISTEMA SIMPLIFICADO: No necesitamos voltaje
         
-        // Descripción - Buscar columnas que contengan texto largo
-        if (!mapeo.descripcion && (
-          headerLower.includes('descripcion') || 
-          headerLower.includes('description') || 
-          headerLower.includes('nombre') ||
-          headerLower.includes('name') ||
-          headerLower.includes('producto') ||
-          headerLower.includes('product') ||
-          headerLower.includes('denominacion') ||
-          headerLower.includes('comercial') ||
-          headerLower.includes('aplicaciones') ||
-          headerLower.includes('uso')
-        )) {
-          mapeo.descripcion = header
-          console.log(`✅ Descripción detectada: "${header}"`)
-        }
+        // 🎯 SISTEMA SIMPLIFICADO: No necesitamos descripción
       })
 
       // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó precio, usar ANÁLISIS DE CONTENIDO
@@ -320,25 +281,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó descripción, usar la columna con más texto
-      if (!mapeo.descripcion) {
-        console.log('⚠️ No se detectó descripción, usando columna con más texto...')
-        let maxLength = 0
-        let columnaMasTexto = ''
-        
-        for (const header of headers) {
-          const sampleData = datos?.[0]?.[header]
-          if (sampleData && typeof sampleData === 'string' && sampleData.length > maxLength) {
-            maxLength = sampleData.length
-            columnaMasTexto = header
-          }
-        }
-        
-        if (columnaMasTexto) {
-          mapeo.descripcion = columnaMasTexto
-          console.log(`✅ Descripción asignada por longitud: "${columnaMasTexto}"`)
-        }
-      }
+      // 🎯 SISTEMA SIMPLIFICADO: No necesitamos validación de descripción
 
       // 🚨 VALIDACIÓN UNIVERSAL: Solo necesitamos Tipo, Modelo y Precio
       if (!mapeo.tipo) {
@@ -450,25 +393,7 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      // 🔍 BÚSQUEDA UNIVERSAL: Buscar capacidad y voltaje en cualquier columna
-      console.log(`🔍 BÚSQUEDA UNIVERSAL DE CAPACIDAD Y VOLTAJE...`)
-      for (const [key, value] of Object.entries(producto)) {
-        const valueStr = String(value).toLowerCase()
-        
-        // Buscar capacidad (números + Ah, A, o solo números)
-        if (!capacidad && (valueStr.includes('ah') || valueStr.includes('a') || /^\d+$/.test(valueStr))) {
-          if (typeof value === 'number' || /^\d+/.test(valueStr)) {
-            capacidad = value
-            console.log(`✅ Capacidad encontrada en '${key}': ${capacidad}`)
-          }
-        }
-        
-        // Buscar voltaje (12V, 6V, etc.)
-        if (!voltaje && (valueStr.includes('v') || valueStr.includes('volt'))) {
-          voltaje = value
-          console.log(`✅ Voltaje encontrado en '${key}': ${voltaje}`)
-        }
-      }
+      // 🎯 SISTEMA SIMPLIFICADO: Solo buscamos precio, no capacidad ni voltaje
         
         // 🔍 BÚSQUEDA ESPECÍFICA: Solo si NO se encontró precio
         if (precioBase === 0) {
