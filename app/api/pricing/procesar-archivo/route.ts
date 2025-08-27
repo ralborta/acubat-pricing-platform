@@ -431,83 +431,114 @@ export async function POST(request: NextRequest) {
     console.log('📋 Mapeo final:', columnMapping)
 
     // Procesar productos con IA
+    console.log('🚀 INICIANDO PROCESAMIENTO DE PRODUCTOS...')
+    console.log('📊 Total de productos a procesar:', datos.length)
+    
     const productosProcesados = await Promise.all(datos.map(async (producto: any, index: number) => {
-      // 🔍 DEBUG: Ver qué datos llegan
-      console.log(`🔍 Producto ${index + 1}:`, {
-        raw: producto,
-        keys: Object.keys(producto),
-        values: Object.values(producto)
-      })
+      console.log(`\n🔍 === PRODUCTO ${index + 1} ===`)
+      
+      // 🔍 DEBUG: Ver qué datos llegan del Excel
+      console.log(`🔍 DATOS CRUDOS DEL PRODUCTO ${index + 1}:`)
+      console.log('📋 Producto completo:', producto)
+      console.log('🔑 Columnas disponibles:', Object.keys(producto))
+      console.log('📝 Valores:', Object.values(producto))
       
       // Extraer datos usando mapeo inteligente
+      console.log(`\n🔍 EXTRACCIÓN DE DATOS DEL PRODUCTO ${index + 1}:`)
+      console.log('📋 Mapeo de columnas:', columnMapping)
+      
       const marca = columnMapping.marca ? producto[columnMapping.marca] : 'N/A'
       const tipo = columnMapping.tipo ? producto[columnMapping.tipo] : 'N/A'
       const modelo = columnMapping.modelo ? producto[columnMapping.modelo] : 'N/A'
       const descripcion = columnMapping.descripcion ? producto[columnMapping.descripcion] : 'N/A'
       
-      // 🔍 DEBUG: Ver qué se extrajo
-      console.log(`🔍 Extracción ${index + 1}:`, {
-        marca,
-        tipo,
-        modelo,
-        descripcion,
-        columnMapping
-      })
+      console.log(`✅ Datos extraídos:`)
+      console.log(`   - Marca: "${marca}" (columna: ${columnMapping.marca})`)
+      console.log(`   - Tipo: "${tipo}" (columna: ${columnMapping.tipo})`)
+      console.log(`   - Modelo: "${modelo}" (columna: ${columnMapping.modelo})`)
+      console.log(`   - Descripción: "${descripcion}" (columna: ${columnMapping.descripcion})`)
       
       // Buscar precio (prioridad: precio > pdv > pvp)
+      console.log(`\n💰 BÚSQUEDA DE PRECIO DEL PRODUCTO ${index + 1}:`)
       let precioBase = 0
+      
       if (columnMapping.precio && producto[columnMapping.precio]) {
         precioBase = parseFloat(producto[columnMapping.precio]) || 0
-        console.log(`💰 Precio encontrado en columna '${columnMapping.precio}': ${precioBase}`)
+        console.log(`✅ Precio encontrado en columna '${columnMapping.precio}': ${precioBase}`)
       } else if (columnMapping.pdv && producto[columnMapping.pdv]) {
         precioBase = parseFloat(producto[columnMapping.pdv]) || 0
-        console.log(`💰 Precio encontrado en columna '${columnMapping.pdv}': ${precioBase}`)
+        console.log(`✅ Precio encontrado en columna '${columnMapping.pdv}': ${precioBase}`)
       } else if (columnMapping.pvp && producto[columnMapping.pvp]) {
         precioBase = parseFloat(producto[columnMapping.pvp]) || 0
-        console.log(`💰 Precio encontrado en columna '${columnMapping.pvp}': ${precioBase}`)
+        console.log(`✅ Precio encontrado en columna '${columnMapping.pvp}': ${precioBase}`)
       } else {
-        console.log(`❌ No se encontró precio en ninguna columna para producto ${index + 1}`)
-        console.log(`🔍 Columnas disponibles:`, Object.keys(producto))
-        console.log(`🔍 Mapeo de columnas:`, columnMapping)
+        console.log(`❌ NO SE ENCONTRÓ PRECIO para producto ${index + 1}`)
+        console.log(`🔍 Columnas de precio disponibles:`)
+        console.log(`   - Precio: ${columnMapping.precio} (valor: ${producto[columnMapping.precio]})`)
+        console.log(`   - PDV: ${columnMapping.pdv} (valor: ${producto[columnMapping.pdv]})`)
+        console.log(`   - PVP: ${columnMapping.pvp} (valor: ${producto[columnMapping.pvp]})`)
       }
-
+      
+      console.log(`💰 PRECIO BASE FINAL: ${precioBase}`)
+      
       // 🧠 VALIDACIÓN INTELIGENTE DE MONEDA CON IA
+      console.log(`\n🧠 VALIDACIÓN DE MONEDA DEL PRODUCTO ${index + 1}:`)
       const validacionMoneda = await validarMonedaConIA(precioBase, `Producto: ${descripcion}, Marca: ${marca}`)
+      console.log(`✅ Validación de moneda:`, validacionMoneda)
       if (!validacionMoneda.esPeso) {
         console.warn(`⚠️ Producto ${index + 1}: ${validacionMoneda.razon}`)
       }
 
       const costoEstimado = precioBase * 0.6 // 60% del precio como costo
+      console.log(`💰 COSTO ESTIMADO: ${precioBase} * 0.6 = ${costoEstimado}`)
 
       // 🧠 BÚSQUEDA INTELIGENTE DE EQUIVALENCIA VARTA CON IA
+      console.log(`\n🧠 BÚSQUEDA DE EQUIVALENCIA VARTA DEL PRODUCTO ${index + 1}:`)
       const equivalenciaVarta = await buscarEquivalenciaConIA(marca, tipo, modelo)
+      console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
 
       // Cálculo Minorista (+70% desde costo)
+      console.log(`\n💰 CÁLCULO MINORISTA DEL PRODUCTO ${index + 1}:`)
       const minoristaNeto = costoEstimado * 1.70
       const minoristaFinal = Math.round((minoristaNeto * 1.21) / 10) * 10
       const minoristaRentabilidad = ((minoristaNeto - costoEstimado) / minoristaNeto) * 100
+      
+      console.log(`   - Costo: ${costoEstimado}`)
+      console.log(`   - +70%: ${costoEstimado} * 1.70 = ${minoristaNeto}`)
+      console.log(`   - +IVA: ${minoristaNeto} * 1.21 = ${minoristaNeto * 1.21}`)
+      console.log(`   - Redondeado: ${minoristaFinal}`)
+      console.log(`   - Rentabilidad: ${minoristaRentabilidad.toFixed(1)}%`)
 
       // Cálculo Mayorista (+40% desde precio base o Varta si existe)
+      console.log(`\n💰 CÁLCULO MAYORISTA DEL PRODUCTO ${index + 1}:`)
       let mayoristaBase = precioBase
       if (equivalenciaVarta.encontrada) {
         mayoristaBase = equivalenciaVarta.precio_varta
+        console.log(`   - Usando precio Varta: ${mayoristaBase}`)
+      } else {
+        console.log(`   - Usando precio base: ${mayoristaBase}`)
       }
       
       const mayoristaNeto = mayoristaBase * 1.40
       const mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
       const mayoristaRentabilidad = ((mayoristaNeto - mayoristaBase) / mayoristaNeto) * 100
+      
+      console.log(`   - Base: ${mayoristaBase}`)
+      console.log(`   - +40%: ${mayoristaBase} * 1.40 = ${mayoristaNeto}`)
+      console.log(`   - +IVA: ${mayoristaNeto} * 1.21 = ${mayoristaNeto * 1.21}`)
+      console.log(`   - Redondeado: ${mayoristaFinal}`)
+      console.log(`   - Rentabilidad: ${mayoristaRentabilidad.toFixed(1)}%`)
 
       // 🔍 DEBUG: Ver resultados del cálculo
-      console.log(`🔍 Cálculos ${index + 1}:`, {
-        precioBase,
-        costoEstimado,
-        minoristaNeto,
-        minoristaFinal,
-        mayoristaNeto,
-        mayoristaFinal
-      })
+      console.log(`\n🔍 RESUMEN DE CÁLCULOS DEL PRODUCTO ${index + 1}:`)
+      console.log(`   - Precio Base: ${precioBase}`)
+      console.log(`   - Costo Estimado: ${costoEstimado}`)
+      console.log(`   - Minorista Neto: ${minoristaNeto}`)
+      console.log(`   - Minorista Final: ${minoristaFinal}`)
+      console.log(`   - Mayorista Neto: ${mayoristaNeto}`)
+      console.log(`   - Mayorista Final: ${mayoristaFinal}`)
 
-      return {
+      const resultadoProducto = {
         id: index + 1,
         producto: descripcion || modelo || tipo || 'N/A',
         marca: marca,
@@ -528,6 +559,11 @@ export async function POST(request: NextRequest) {
           rentabilidad: mayoristaRentabilidad.toFixed(1) + '%'
         }
       }
+      
+      console.log(`\n✅ PRODUCTO ${index + 1} PROCESADO EXITOSAMENTE:`)
+      console.log('📋 Resultado:', resultadoProducto)
+      
+      return resultadoProducto
     }))
 
     // Estadísticas
