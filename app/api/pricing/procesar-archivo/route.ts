@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 🔍 DETECCIÓN INTELIGENTE DE COLUMNAS
-    const headers = Object.keys(datos[0])
+    const headers = Object.keys(datos[0] as Record<string, any>)
     console.log('🔍 Columnas detectadas:', headers)
     
     const columnMapping = detectColumnsIntelligently(headers)
