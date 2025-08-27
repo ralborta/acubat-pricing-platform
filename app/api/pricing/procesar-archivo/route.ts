@@ -30,10 +30,11 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<an
       - voltaje: columna que contiene información de voltaje (ej: 12V, 12X)
       
       REGLAS IMPORTANTES:
-      - Si una columna contiene números grandes (>1000), probablemente es precio
+      - PRECIO: Busca la columna que contenga números MÁS GRANDES (>10000), NO dimensiones como largo/ancho/alto
       - Si una columna contiene códigos como "UB 450 Ag", es modelo
       - Si una columna contiene "12X45 BORA", es tipo
       - Si una columna contiene números como 45, 55, 80, es capacidad
+      - IGNORA columnas como "Largo", "Ancho", "Alto" - esas son dimensiones, NO precios
       
       Responde SOLO con un JSON válido:
       {
