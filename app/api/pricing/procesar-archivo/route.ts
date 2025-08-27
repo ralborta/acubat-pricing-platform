@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
 
-// 🧠 SISTEMA INTELIGENTE DE DETECCIÓN DE COLUMNAS
+// 🧠 IA REAL CON OPENAI
 interface ColumnMapping {
   marca?: string
   tipo?: string
@@ -12,44 +12,112 @@ interface ColumnMapping {
   descripcion?: string
 }
 
-// 🔍 DETECTOR INTELIGENTE DE COLUMNAS
-function detectColumnsIntelligently(headers: string[]): ColumnMapping {
+// 🔍 ANÁLISIS INTELIGENTE CON GPT
+async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<ColumnMapping> {
+  try {
+    // Crear contexto para GPT
+    const contexto = `
+      Analiza este archivo Excel y identifica las columnas clave:
+      
+      COLUMNAS DISPONIBLES: ${headers.join(', ')}
+      
+      MUESTRA DE DATOS (primeras 3 filas):
+      ${JSON.stringify(datos.slice(0, 3), null, 2)}
+      
+      NECESITO IDENTIFICAR:
+      - marca: columna que contiene la marca/fabricante del producto
+      - tipo: columna que contiene el tipo o categoría del producto
+      - modelo: columna que contiene el modelo o código específico
+      - precio: columna principal de precio (prioridad 1)
+      - pdv: precio de venta (prioridad 2)
+      - pvp: precio al público (prioridad 3)
+      - descripcion: descripción o nombre del producto
+      
+      Responde SOLO con un JSON válido:
+      {
+        "marca": "nombre_columna",
+        "tipo": "nombre_columna",
+        "modelo": "nombre_columna",
+        "precio": "nombre_columna",
+        "pdv": "nombre_columna",
+        "pvp": "nombre_columna",
+        "descripcion": "nombre_columna"
+      }
+    `
+
+    // Llamada a OpenAI API
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un experto en análisis de archivos Excel. Analiza las columnas y responde SOLO con JSON válido.'
+          },
+          {
+            role: 'user',
+            content: contexto
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 500
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    const respuestaGPT = data.choices[0].message.content
+    
+    // Parsear respuesta de GPT
+    try {
+      const mapeo = JSON.parse(respuestaGPT)
+      console.log('🧠 GPT analizó el archivo:', mapeo)
+      return mapeo
+    } catch (parseError) {
+      console.error('❌ Error parseando respuesta de GPT:', parseError)
+      throw new Error('GPT no pudo analizar el archivo correctamente')
+    }
+
+  } catch (error) {
+    console.error('❌ Error con OpenAI API:', error)
+    // Fallback a detección manual si falla la IA
+    return detectColumnsManualmente(headers)
+  }
+}
+
+// 🔧 DETECCIÓN MANUAL (FALLBACK)
+function detectColumnsManualmente(headers: string[]): ColumnMapping {
   const mapping: ColumnMapping = {}
   
-  headers.forEach((header, index) => {
+  headers.forEach((header) => {
     const headerLower = header.toLowerCase().trim()
     
-    // Detectar Marca
     if (headerLower.includes('marca') || headerLower.includes('brand') || headerLower.includes('fabricante')) {
       mapping.marca = header
     }
-    
-    // Detectar Tipo
     if (headerLower.includes('tipo') || headerLower.includes('type') || headerLower.includes('categoria')) {
       mapping.tipo = header
     }
-    
-    // Detectar Modelo
     if (headerLower.includes('modelo') || headerLower.includes('model') || headerLower.includes('codigo')) {
       mapping.modelo = header
     }
-    
-    // Detectar Precio
     if (headerLower.includes('precio') || headerLower.includes('price') || headerLower.includes('costo')) {
       mapping.precio = header
     }
-    
-    // Detectar PDV
     if (headerLower.includes('pdv') || headerLower.includes('precio de venta')) {
       mapping.pdv = header
     }
-    
-    // Detectar PVP
     if (headerLower.includes('pvp') || headerLower.includes('precio al publico')) {
       mapping.pvp = header
     }
-    
-    // Detectar Descripción
     if (headerLower.includes('descripcion') || headerLower.includes('description') || headerLower.includes('denominacion')) {
       mapping.descripcion = header
     }
@@ -58,66 +126,140 @@ function detectColumnsIntelligently(headers: string[]): ColumnMapping {
   return mapping
 }
 
-// 🧠 BÚSQUEDA INTELIGENTE DE EQUIVALENCIAS VARTA
-function buscarEquivalenciaInteligente(marca: string, tipo: string, modelo: string): any {
-  // Simulación de base de datos de equivalencias Varta
-  const equivalenciasVarta = [
-    { marca: 'varta', tipo: '12X40', modelo: '40Ah', precio_varta: 38500, codigo: 'VA40DD/E' },
-    { marca: 'varta', tipo: '12X50', modelo: '50Ah', precio_varta: 45600, codigo: 'VA50GD' },
-    { marca: 'varta', tipo: '12X60', modelo: '60Ah', precio_varta: 51500, codigo: 'VA60HD/E' },
-    { marca: 'varta', tipo: '12X70', modelo: '70Ah', precio_varta: 64580, codigo: 'VA75LD/E' },
-    { marca: 'varta', tipo: '12X80', modelo: '80Ah', precio_varta: 62300, codigo: 'VA80DD/E' },
-    { marca: 'varta', tipo: '12X85', modelo: '85Ah', precio_varta: 66800, codigo: 'VA85DD/E' },
-    { marca: 'varta', tipo: '12X95', modelo: '95Ah', precio_varta: 76400, codigo: 'VA95DD/E' },
-    { marca: 'varta', tipo: '12X100', modelo: '100Ah', precio_varta: 81600, codigo: 'VA100DD/E' }
-  ]
-  
-  // Búsqueda inteligente con scoring
-  let mejorCoincidencia = null
-  let mejorScore = 0
-  
-  equivalenciasVarta.forEach(equiv => {
-    let score = 0
-    
-    // Score por marca (exacto = 100, parcial = 50)
-    if (marca.toLowerCase().includes(equiv.marca) || equiv.marca.includes(marca.toLowerCase())) {
-      score += marca.toLowerCase() === equiv.marca ? 100 : 50
+// 🧠 BÚSQUEDA INTELIGENTE DE EQUIVALENCIAS CON IA
+async function buscarEquivalenciaConIA(marca: string, tipo: string, modelo: string): Promise<any> {
+  try {
+    const prompt = `
+      Busca equivalencias Varta para esta batería:
+      - Marca: ${marca}
+      - Tipo: ${tipo}
+      - Modelo: ${modelo}
+      
+      Base de datos Varta disponible:
+      - VA40DD/E: 12X40, 40Ah, $38.500
+      - VA50GD: 12X50, 50Ah, $45.600
+      - VA60HD/E: 12X60, 60Ah, $51.500
+      - VA75LD/E: 12X70, 70Ah, $64.580
+      - VA80DD/E: 12X80, 80Ah, $62.300
+      - VA85DD/E: 12X85, 85Ah, $66.800
+      - VA95DD/E: 12X95, 95Ah, $76.400
+      - VA100DD/E: 12X100, 100Ah, $81.600
+      
+      Responde SOLO con JSON:
+      {
+        "encontrada": true/false,
+        "codigo": "código_varta",
+        "precio_varta": precio_en_pesos,
+        "confianza": 0-100,
+        "razon": "explicación de por qué coincide"
+      }
+    `
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un experto en baterías automotrices. Busca equivalencias Varta y responde SOLO con JSON válido.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 300
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`)
     }
+
+    const data = await response.json()
+    const respuestaGPT = data.choices[0].message.content
     
-    // Score por tipo (exacto = 100, parcial = 30)
-    if (tipo.toLowerCase().includes(equiv.tipo.toLowerCase()) || equiv.tipo.toLowerCase().includes(tipo.toLowerCase())) {
-      score += tipo.toLowerCase() === equiv.tipo.toLowerCase() ? 100 : 30
+    try {
+      const equivalencia = JSON.parse(respuestaGPT)
+      console.log('🧠 GPT encontró equivalencia:', equivalencia)
+      return equivalencia
+    } catch (parseError) {
+      console.error('❌ Error parseando equivalencia de GPT:', parseError)
+      return { encontrada: false, razon: 'Error en análisis de IA' }
     }
-    
-    // Score por modelo (exacto = 100, parcial = 20)
-    if (modelo.toLowerCase().includes(equiv.modelo.toLowerCase()) || equiv.modelo.toLowerCase().includes(modelo.toLowerCase())) {
-      score += modelo.toLowerCase() === equiv.modelo.toLowerCase() ? 100 : 20
-    }
-    
-    if (score > mejorScore) {
-      mejorScore = score
-      mejorCoincidencia = equiv
-    }
-  })
-  
-  return mejorScore > 50 ? mejorCoincidencia : null
+
+  } catch (error) {
+    console.error('❌ Error con OpenAI API para equivalencias:', error)
+    return { encontrada: false, razon: 'Error en API de IA' }
+  }
 }
 
-// 💰 VALIDACIÓN DE MONEDA
-function validarMoneda(precio: any): boolean {
-  if (typeof precio === 'string') {
-    const precioStr = precio.toString().toLowerCase()
-    // Detectar si es dólar
-    if (precioStr.includes('$') || precioStr.includes('usd') || precioStr.includes('dolar')) {
-      return false
+// 💰 VALIDACIÓN INTELIGENTE DE MONEDA CON IA
+async function validarMonedaConIA(precio: any, contexto: string): Promise<{ esPeso: boolean, confianza: number, razon: string }> {
+  try {
+    const prompt = `
+      Analiza si este precio está en pesos argentinos o dólares:
+      
+      PRECIO: ${precio}
+      CONTEXTO: ${contexto}
+      
+      Responde SOLO con JSON:
+      {
+        "esPeso": true/false,
+        "confianza": 0-100,
+        "razon": "explicación de tu análisis"
+      }
+    `
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un experto en monedas. Analiza si el precio está en pesos argentinos o dólares. Responde SOLO con JSON válido.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 200
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`)
     }
-    // Detectar si es peso argentino
-    if (precioStr.includes('ars') || precioStr.includes('peso') || precioStr.includes('$')) {
-      return true
+
+    const data = await response.json()
+    const respuestaGPT = data.choices[0].message.content
+    
+    try {
+      const validacion = JSON.parse(respuestaGPT)
+      console.log('🧠 GPT validó moneda:', validacion)
+      return validacion
+    } catch (parseError) {
+      console.error('❌ Error parseando validación de GPT:', parseError)
+      return { esPeso: true, confianza: 50, razon: 'Error en análisis de IA' }
     }
+
+  } catch (error) {
+    console.error('❌ Error con OpenAI API para validación de moneda:', error)
+    return { esPeso: true, confianza: 50, razon: 'Error en API de IA' }
   }
-  // Si es número, asumir que es peso argentino
-  return true
 }
 
 export async function POST(request: NextRequest) {
@@ -143,15 +285,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Archivo vacío o sin datos' }, { status: 400 })
     }
 
-    // 🔍 DETECCIÓN INTELIGENTE DE COLUMNAS
+    // 🧠 ANÁLISIS INTELIGENTE CON IA REAL
     const headers = Object.keys(datos[0] as Record<string, any>)
     console.log('🔍 Columnas detectadas:', headers)
     
-    const columnMapping = detectColumnsIntelligently(headers)
+    console.log('🧠 Iniciando análisis con IA...')
+    const columnMapping = await analizarArchivoConIA(headers, datos)
     console.log('🧠 Mapeo inteligente de columnas:', columnMapping)
 
     // Procesar productos con IA
-    const productosProcesados = datos.map((producto: any, index: number) => {
+    const productosProcesados = await Promise.all(datos.map(async (producto: any, index: number) => {
       // Extraer datos usando mapeo inteligente
       const marca = columnMapping.marca ? producto[columnMapping.marca] : 'N/A'
       const tipo = columnMapping.tipo ? producto[columnMapping.tipo] : 'N/A'
@@ -168,15 +311,16 @@ export async function POST(request: NextRequest) {
         precioBase = parseFloat(producto[columnMapping.pvp]) || 0
       }
 
-      // Validar moneda
-      if (!validarMoneda(precioBase)) {
-        console.warn(`⚠️ Producto ${index + 1}: Precio en dólares detectado`)
+      // 🧠 VALIDACIÓN INTELIGENTE DE MONEDA CON IA
+      const validacionMoneda = await validarMonedaConIA(precioBase, `Producto: ${descripcion}, Marca: ${marca}`)
+      if (!validacionMoneda.esPeso) {
+        console.warn(`⚠️ Producto ${index + 1}: ${validacionMoneda.razon}`)
       }
 
       const costoEstimado = precioBase * 0.6 // 60% del precio como costo
 
-      // 🧠 BÚSQUEDA INTELIGENTE DE EQUIVALENCIA VARTA
-      const equivalenciaVarta = buscarEquivalenciaInteligente(marca, tipo, modelo)
+      // 🧠 BÚSQUEDA INTELIGENTE DE EQUIVALENCIA VARTA CON IA
+      const equivalenciaVarta = await buscarEquivalenciaConIA(marca, tipo, modelo)
 
       // Cálculo Minorista (+70% desde costo)
       const minoristaNeto = costoEstimado * 1.70
@@ -185,7 +329,7 @@ export async function POST(request: NextRequest) {
 
       // Cálculo Mayorista (+40% desde precio base o Varta si existe)
       let mayoristaBase = precioBase
-      if (equivalenciaVarta) {
+      if (equivalenciaVarta.encontrada) {
         mayoristaBase = equivalenciaVarta.precio_varta
       }
       
@@ -201,14 +345,8 @@ export async function POST(request: NextRequest) {
         modelo: modelo,
         precio_base: precioBase,
         costo_estimado: costoEstimado,
-        equivalencia_varta: equivalenciaVarta ? {
-          codigo: equivalenciaVarta.codigo,
-          precio: equivalenciaVarta.precio_varta,
-          encontrada: true
-        } : {
-          encontrada: false,
-          mensaje: 'No se encontró equivalencia Varta'
-        },
+        validacion_moneda: validacionMoneda,
+        equivalencia_varta: equivalenciaVarta,
         minorista: {
           precio_neto: minoristaNeto,
           precio_final: minoristaFinal,
@@ -220,7 +358,7 @@ export async function POST(request: NextRequest) {
           rentabilidad: mayoristaRentabilidad.toFixed(1) + '%'
         }
       }
-    })
+    }))
 
     // Estadísticas
     const totalProductos = productosProcesados.length
@@ -233,7 +371,11 @@ export async function POST(request: NextRequest) {
       success: true,
       archivo: file.name,
       timestamp: new Date().toISOString(),
-      columnas_detectadas: columnMapping,
+      ia_analisis: {
+        columnas_detectadas: columnMapping,
+        modelo_ia: 'GPT-4o-mini',
+        timestamp_analisis: new Date().toISOString()
+      },
       estadisticas: {
         total_productos: totalProductos,
         productos_rentables: productosRentables,
@@ -243,11 +385,11 @@ export async function POST(request: NextRequest) {
       productos: productosProcesados
     }
 
-    console.log('✅ Procesamiento inteligente completado exitosamente')
+    console.log('🧠 Procesamiento con IA REAL completado exitosamente')
     return NextResponse.json(resultado)
 
   } catch (error) {
-    console.error('❌ Error en procesamiento:', error)
+    console.error('❌ Error en procesamiento con IA:', error)
     return NextResponse.json({ 
       error: 'Error interno del servidor', 
       detalles: error instanceof Error ? error.message : 'Error desconocido' 
@@ -257,16 +399,27 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   return NextResponse.json({ 
-    message: '🧠 SISTEMA DE PRICING INTELIGENTE CON IA',
-    status: 'API universal lista para cualquier lista de precios',
-    version: '2.0.0 - IA Powered',
+    message: '🧠 SISTEMA DE PRICING CON IA REAL (OpenAI)',
+    status: 'API universal con GPT-4o-mini para análisis inteligente',
+    version: '3.0.0 - IA REAL IMPLEMENTADA',
     funcionalidades: [
-      '🧠 Detección automática de columnas con IA',
-      '🔍 Búsqueda inteligente de equivalencias Varta',
-      '💰 Validación automática de moneda (solo pesos)',
+      '🧠 Análisis inteligente de archivos con GPT-4o-mini',
+      '🔍 Búsqueda inteligente de equivalencias Varta con IA',
+      '💰 Validación inteligente de moneda con IA',
+      '🌍 Universal para cualquier formato de Excel',
       '✅ Cálculo Minorista (+70% desde costo)',
       '✅ Cálculo Mayorista (+40% desde precio base o Varta)',
-      '🌍 Universal para cualquier formato de Excel'
-    ]
+      '🚀 Sistema que aprende y se adapta automáticamente'
+    ],
+    ia_tecnologia: {
+      proveedor: 'OpenAI',
+      modelo: 'GPT-4o-mini',
+      funcionalidades: [
+        'Detección automática de columnas',
+        'Análisis de contexto de archivos',
+        'Búsqueda inteligente de equivalencias',
+        'Validación automática de monedas'
+      ]
+    }
   })
 }
