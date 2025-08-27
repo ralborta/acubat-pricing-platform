@@ -213,6 +213,13 @@ export async function POST(request: NextRequest) {
           // 🚨 SOBRESCRIBIR cualquier detección anterior
         }
         
+        // 🎯 DETECCIÓN ESPECÍFICA PARA ARCHIVOS CON __EMPTY
+        if (header === '__EMPTY_1') {
+          mapeo.tipo = header
+          console.log(`✅ Tipo detectado específicamente: "${header}" (columna con tipos D/A/1/2/4)`)
+          // 🚨 SOBRESCRIBIR cualquier detección anterior
+        }
+        
         // Modelo - Buscar columnas que contengan identificadores únicos
         if (!mapeo.modelo && (
           headerLower.includes('modelo') || 
@@ -235,6 +242,13 @@ export async function POST(request: NextRequest) {
           console.log(`✅ Modelo detectado específicamente: "${header}"`)
         }
         
+        // 🎯 DETECCIÓN ESPECÍFICA PARA ARCHIVOS CON __EMPTY
+        if (!mapeo.modelo && header === '__EMPTY') {
+          mapeo.modelo = header
+          console.log(`✅ Modelo detectado específicamente: "${header}" (columna con modelos UB 450 Ag, etc.)`)
+          // 🚨 SOBRESCRIBIR cualquier detección anterior
+        }
+        
         // Precio - Buscar columnas que contengan números grandes (precios)
         if (!mapeo.precio && (
           headerLower.includes('precio') || 
@@ -254,7 +268,7 @@ export async function POST(request: NextRequest) {
         }
         
         // 🎯 DETECCIÓN ESPECÍFICA PARA ESTE ARCHIVO - BUSCAR COLUMNA CON PRECIOS REALES
-        if (header === '__EMPTY_2') {
+        if (header === '__EMPTY_14') {
           mapeo.precio = header
           console.log(`✅ Precio detectado específicamente: "${header}" (columna con precios reales)`)
           // 🚨 SOBRESCRIBIR cualquier detección anterior
