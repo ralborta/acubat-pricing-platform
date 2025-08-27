@@ -7,7 +7,8 @@ export interface ProductoExcel {
   canal: string
   precio_base_minorista: number  // ✅ Precio base para Minorista (del archivo)
   precio_base_mayorista: number  // ✅ Precio base para Mayorista (Varta o archivo)
-  costo_estimado: number
+  costo_estimado_minorista: number  // ✅ Costo estimado para Minorista
+  costo_estimado_mayorista: number  // ✅ Costo estimado para Mayorista
   precio_final_minorista: number
   precio_final_mayorista: number
   markup_minorista: string
@@ -55,7 +56,8 @@ export function exportarAExcel(
       'CANAL',
       'PRECIO BASE MINORISTA',
       'PRECIO BASE MAYORISTA',
-      'COSTO ESTIMADO',
+      'COSTO ESTIMADO MINORISTA',
+      'COSTO ESTIMADO MAYORISTA',
       'PRECIO FINAL MINORISTA',
       'PRECIO FINAL MAYORISTA',
       'MARKUP MINORISTA',
@@ -77,7 +79,8 @@ export function exportarAExcel(
       String(producto.canal),
       String(producto.precio_base_minorista),
       String(producto.precio_base_mayorista),
-      String(producto.costo_estimado),
+      String(producto.costo_estimado_minorista),
+      String(producto.costo_estimado_mayorista),
       String(producto.precio_final_minorista),
       String(producto.precio_final_mayorista),
       String(producto.markup_minorista),
