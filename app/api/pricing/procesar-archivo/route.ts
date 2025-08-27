@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 import * as XLSX from 'xlsx'
+import { 
+  precioMayoristaDesdeIdBateria, 
+  calcularPreciosCompletos,
+  ROUNDING_MODE,
+  validarRentabilidad 
+} from '@/lib/pricing_hardcoded'
 
 export async function POST(request: NextRequest) {
   try {
@@ -488,143 +494,113 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Generar productos con 3 canales cada uno
+    // 🚀 NUEVO SISTEMA DE PRICING CON EQUIVALENCIAS VARTA
     const productosConPricingReal: any[] = []
     
     datosRealesMoura.forEach((producto, index) => {
-      const precioBaseMoura = producto.precio_lista
-      const precioVarta = calcularPrecioVarta(precioBaseMoura, producto.c20_ah)
+      // Obtener el tipo de batería para buscar equivalencia Varta
+      const tipoBateria = producto.tipo || `12x${producto.c20_ah}`
+      const costoNeto = producto.precio_lista || 0
+      const precioListaProveedor = producto.precio_lista || null
       
-      // Generar 3 filas por producto (una por canal) con lógica diferenciada
-      Object.entries(markupsPorCanal).forEach(([canal, markup]) => {
-        let precioBaseCanal: number
-        let tieneEquivalenciaVarta: boolean
-        let precioVartaCanal: number
-        let codigoVartaCanal: string
-        
-        // ✅ LÓGICA COHERENTE POR CANAL:
-        if (canal === 'mayorista') {
-          // MAYORISTA: Precio base Moura + markup bajo + equivalencia Varta
-          precioBaseCanal = precioBaseMoura
-          tieneEquivalenciaVarta = true
-          precioVartaCanal = precioVarta
-          codigoVartaCanal = `Varta ${producto.c20_ah}Ah`
-        } else if (canal === 'directa') {
-          // DIRECTA: Precio base Moura + markup alto (SIN equivalencia Varta)
-          precioBaseCanal = precioBaseMoura
-          tieneEquivalenciaVarta = false
-          precioVartaCanal = 0
-          codigoVartaCanal = 'N/A'
-        } else {
-          // CASO POR DEFECTO: Precio base original
-          precioBaseCanal = precioBaseMoura
-          tieneEquivalenciaVarta = false
-          precioVartaCanal = 0
-          codigoVartaCanal = 'N/A'
-        }
-        
-        // CÁLCULO CORRECTO: Precio Base del Canal × (1 + Markup) + IVA DINÁMICO
-        const precioConMarkup = precioBaseCanal * (1 + markup)
-        const iva = precioConMarkup * (configuracionSistema.iva / 100 || 0.21)
-        const precioConIVA = precioConMarkup + iva
-        const precioFinal = aplicarRedondeo(precioConIVA, canal)
-        
-        // ✅ VALIDACIÓN CRÍTICA: Asegurar coherencia de precios entre canales
-        if (canal === 'mayorista' && precioFinal <= precioBaseCanal) {
-          console.error('❌ ERROR CRÍTICO: Precio mayorista debe ser mayor al precio base')
-          throw new Error('Precio mayorista incoherente')
-        }
-        
-        if (canal === 'directa' && precioFinal <= precioBaseCanal) {
-          console.error('❌ ERROR CRÍTICO: Precio directa debe ser mayor al precio base')
-          throw new Error('Precio directa incoherente')
-        }
-        
-        // ✅ CALCULAR MARGEN REAL sobre precio BASE de Moura (rentabilidad CORRECTA)
-        const margenBruto = ((precioFinal - producto.precio_lista) / producto.precio_lista * 100).toFixed(1)
-        
-        // ✅ USAR CONFIGURACIÓN DINÁMICA para rentabilidad
-        const margenMinimo = configuracionSistema.rentabilidad?.margenMinimo || 15
-        const rentabilidad = parseFloat(margenBruto) >= margenMinimo ? 'RENTABLE' : 'NO RENTABLE'
-        
-        // Mapear nombre del canal
-        const nombreCanal = canal === 'mayorista' ? 'MAYORISTA' : 
-                           canal === 'directa' ? 'DIRECTA' : 'NBO'
-        
-        productosConPricingReal.push({
-          // IDENTIFICACIÓN DEL PRODUCTO
-          id: productosConPricingReal.length + 1,
-          codigo_original: producto.codigo,
-          tipo: producto.tipo,
-          gtia_meses: producto.gtia_meses,
-          bome: producto.bome,
-          c20_ah: producto.c20_ah,
-          rc_min: producto.rc_min,
-          cca: producto.cca,
-          denominacion: producto.denominacion,
-          dimensiones: `${producto.largo}x${producto.ancho}x${producto.alto} mm`,
-          linea: producto.linea,
+      // Calcular precios para todos los canales usando el nuevo módulo
+      const preciosCompletos = calcularPreciosCompletos(
+        tipoBateria,
+        costoNeto,
+        precioListaProveedor,
+        "nearest_10", // Redondeo por defecto
+        configuracionSistema.iva / 100 || 0.21
+      )
+      
+      // Generar productos para cada canal disponible
+      const canalesDisponibles = [
+        { nombre: 'LISTA/PVP', datos: preciosCompletos.lista_pvp, tipo: 'lista' },
+        { nombre: 'MINORISTA', datos: preciosCompletos.minorista, tipo: 'minorista' },
+        { nombre: 'MAYORISTA', datos: preciosCompletos.mayorista, tipo: 'mayorista' }
+      ]
+      
+      canalesDisponibles.forEach(({ nombre, datos, tipo }) => {
+        if (datos) {
+          // Validar rentabilidad
+          const validacionRentabilidad = validarRentabilidad(datos.rentabilidad, 10)
           
-          // PRECIOS BASE DIFERENCIADOS POR CANAL
-          precio_lista_moura: producto.precio_lista, // Precio original Moura
-          precio_base_canal: precioBaseCanal,  // Precio base del canal específico
-          precio_varta_equivalente: precioVartaCanal,
-          precio_promedio_final: precioFinal,
-          
-          // EQUIVALENCIA VARTA SOLO PARA MAYORISTA
-          tiene_equivalencia_varta: tieneEquivalenciaVarta,
-          codigo_varta: codigoVartaCanal,
-          precio_varta: precioVartaCanal,
-          marca_referencia: tieneEquivalenciaVarta ? 'VARTA' : 'N/A',
-          
-          // CANAL ESPECÍFICO
-          canal: nombreCanal,
-          
-          // PRECIOS POR CANAL
-          precios_canales: {
-            [canal]: {
-              nombre: nombreCanal,
-              precio_final: precioFinal,
-              precio_sin_iva: precioConMarkup,
-              precio_base_canal: precioBaseCanal,
-              markup: `+${(markup * 100).toFixed(0)}%`,
-              margen_bruto: `${margenBruto}%`,
-              rentabilidad: rentabilidad,
-              iva_aplicado: iva,
-              iva_porcentaje: `${configuracionSistema.iva}%`,
-              precio_iva_desglosado: {
-                precio_base: precioBaseCanal,
-                markup_aplicado: precioConMarkup - precioBaseCanal,
-                subtotal: precioConMarkup,
-                iva: iva,
-                precio_final: precioFinal
+          productosConPricingReal.push({
+            // IDENTIFICACIÓN DEL PRODUCTO
+            id: productosConPricingReal.length + 1,
+            codigo_original: producto.codigo,
+            tipo: producto.tipo,
+            gtia_meses: producto.gtia_meses,
+            bome: producto.bome,
+            c20_ah: producto.c20_ah,
+            rc_min: producto.rc_min,
+            cca: producto.cca,
+            denominacion: producto.denominacion,
+            dimensiones: `${producto.largo}x${producto.ancho}x${producto.alto} mm`,
+            linea: producto.linea,
+            
+            // PRECIOS BASE DIFERENCIADOS POR CANAL
+            precio_lista_moura: producto.precio_lista,
+            precio_base_canal: datos.neto,
+            precio_varta_equivalente: tipo === 'mayorista' ? datos.varta_precio_neto : 0,
+            precio_promedio_final: datos.final,
+            
+            // EQUIVALENCIA VARTA SOLO PARA MAYORISTA
+            tiene_equivalencia_varta: tipo === 'mayorista',
+            codigo_varta: tipo === 'mayorista' ? datos.varta_codigo : 'N/A',
+            precio_varta: tipo === 'mayorista' ? datos.varta_precio_neto : 0,
+            marca_referencia: tipo === 'mayorista' ? 'VARTA' : 'N/A',
+            
+            // CANAL ESPECÍFICO
+            canal: nombre,
+            
+            // PRECIOS POR CANAL
+            precios_canales: {
+              [tipo]: {
+                nombre: nombre,
+                precio_final: datos.final,
+                precio_sin_iva: datos.neto,
+                precio_base_canal: datos.neto,
+                markup: tipo === 'lista' ? '0%' : tipo === 'minorista' ? '+100%' : '+50%',
+                margen_bruto: `${datos.rentabilidad.toFixed(1)}%`,
+                rentabilidad: validacionRentabilidad.es_rentable ? 'RENTABLE' : 'NO RENTABLE',
+                                iva_aplicado: datos.final - datos.neto,
+                iva_porcentaje: `${(configuracionSistema.iva || 21)}%`,
+                precio_iva_desglosado: {
+                  precio_base: datos.neto,
+                  markup_aplicado: tipo === 'lista' ? 0 : datos.neto - costoNeto,
+                  subtotal: datos.neto,
+                  iva: datos.final - datos.neto,
+                  precio_final: datos.final
+                }
               }
-            }
-          },
-          
-          // ESTADÍSTICAS GENERALES
-          utilidad_total_estimada: precioFinal - producto.precio_lista,
-          margen_promedio: `${margenBruto}%`,
-          rentabilidad_general: rentabilidad,
-          canales_rentables: rentabilidad === 'RENTABLE' ? 1 : 0,
-          total_canales: 1,
-          
-          // IVA DESGLOSADO Y VISIBLE
-          iva_total: iva,
-          iva_porcentaje: `${configuracionSistema.iva}%`,
-          precio_desglosado: {
-            precio_base: producto.precio_lista,
-            markup: precioConMarkup - producto.precio_lista,
-            subtotal: precioConMarkup,
-            iva: iva,
-            precio_final: precioFinal
-          },
-          
-          // METADATOS
-          estado: 'PROCESADO',
-          fecha_calculo: new Date().toISOString().split('T')[0],
-          observaciones: `Pricing ${nombreCanal} aplicado. Precio base: $${precioBaseCanal}, Markup: +${(markup * 100).toFixed(0)}%, Subtotal: $${precioConMarkup}, IVA ${configuracionSistema.iva}%: $${iva}, Precio Final: $${precioFinal}. Margen: ${margenBruto}%. ${rentabilidad === 'RENTABLE' ? 'RENTABLE' : 'NO RENTABLE'}. ${tieneEquivalenciaVarta ? 'Con equivalencia Varta' : 'Sin equivalencia Varta'}.`
-        })
+            },
+            
+            // ESTADÍSTICAS GENERALES
+            utilidad_total_estimada: datos.final - costoNeto,
+            margen_promedio: `${datos.rentabilidad.toFixed(1)}%`,
+            rentabilidad_general: validacionRentabilidad.es_rentable ? 'RENTABLE' : 'NO RENTABLE',
+            canales_rentables: validacionRentabilidad.es_rentable ? 1 : 0,
+            total_canales: 1,
+            
+            // IVA DESGLOSADO Y VISIBLE
+            iva_total: datos.final - datos.neto,
+            iva_porcentaje: `${configuracionSistema.iva || 21}%`,
+            precio_desglosado: {
+              precio_base: costoNeto,
+              markup: tipo === 'lista' ? 0 : datos.neto - costoNeto,
+              subtotal: datos.neto,
+              iva: datos.final - datos.neto,
+              precio_final: datos.final
+            },
+            
+            // METADATOS
+            estado: 'PROCESADO',
+            fecha_calculo: new Date().toISOString().split('T')[0],
+            observaciones: `Pricing ${nombre} aplicado. ${tipo === 'lista' ? 'Lista/PVP sin redondeo' : tipo === 'minorista' ? 'Minorista +70% + redondeo' : 'Mayorista Varta +40% + redondeo'}. Precio base: $${datos.neto}, IVA ${configuracionSistema.iva || 21}%: $${datos.final - datos.neto}, Precio Final: $${datos.final}. Margen: ${datos.rentabilidad.toFixed(1)}%. ${validacionRentabilidad.mensaje}. ${tipo === 'mayorista' ? 'Con equivalencia Varta' : 'Sin equivalencia Varta'}.`
+          })
+        }
+      })
+    })
       })
     })
     
@@ -657,15 +633,20 @@ export async function POST(request: NextRequest) {
     
     // ANÁLISIS POR CANAL
     const analisisPorCanal = {
+      lista_pvp: {
+        total: productosConPricingReal.filter(p => p.canal === 'LISTA/PVP').length,
+        rentables: productosConPricingReal.filter(p => p.canal === 'LISTA/PVP' && p.rentabilidad_general === 'RENTABLE').length,
+        margen_promedio: calcularMargenPromedioPorCanal(productosConPricingReal, 'LISTA/PVP')
+      },
+      minorista: {
+        total: productosConPricingReal.filter(p => p.canal === 'MINORISTA').length,
+        rentables: productosConPricingReal.filter(p => p.canal === 'MINORISTA' && p.rentabilidad_general === 'RENTABLE').length,
+        margen_promedio: calcularMargenPromedioPorCanal(productosConPricingReal, 'MINORISTA')
+      },
       mayorista: {
         total: productosConPricingReal.filter(p => p.canal === 'MAYORISTA').length,
         rentables: productosConPricingReal.filter(p => p.canal === 'MAYORISTA' && p.rentabilidad_general === 'RENTABLE').length,
         margen_promedio: calcularMargenPromedioPorCanal(productosConPricingReal, 'MAYORISTA')
-      },
-      directa: {
-        total: productosConPricingReal.filter(p => p.canal === 'DIRECTA').length,
-        rentables: productosConPricingReal.filter(p => p.canal === 'DIRECTA' && p.rentabilidad_general === 'RENTABLE').length,
-        margen_promedio: calcularMargenPromedioPorCanal(productosConPricingReal, 'DIRECTA')
       }
     }
     
@@ -677,8 +658,9 @@ export async function POST(request: NextRequest) {
       estadisticas: {
         total_productos: productosConPricingReal.length,
         productos_por_canal: {
-          mayorista: analisisPorCanal.mayorista.total,
-          directa: analisisPorCanal.directa.total
+          lista_pvp: analisisPorCanal.lista_pvp.total,
+          minorista: analisisPorCanal.minorista.total,
+          mayorista: analisisPorCanal.mayorista.total
         },
         productos_rentables: productosRentables.length,
         productos_no_rentables: productosNoRentables.length,
@@ -686,17 +668,46 @@ export async function POST(request: NextRequest) {
         
         // TABLA DE EQUIVALENCIAS COMPLETA POR CANAL
         tabla_equivalencias: {
-          mayorista: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'mayorista', 0.15)),
-          directa: datosRealesMoura.map(p => generarTablaEquivalencias(p, 'directa', 0.40))
+          lista_pvp: productosConPricingReal.filter(p => p.canal === 'LISTA/PVP').map(p => ({
+            codigo_moura: p.codigo_original,
+            codigo_varta: p.codigo_varta,
+            capacidad: p.c20_ah,
+            canal: 'LISTA/PVP',
+            precio_base: p.precio_lista_moura,
+            precio_final: p.precio_promedio_final,
+            markup: '0%',
+            margen_bruto: p.margen_promedio
+          })),
+          minorista: productosConPricingReal.filter(p => p.canal === 'MINORISTA').map(p => ({
+            codigo_moura: p.codigo_original,
+            codigo_varta: p.codigo_varta,
+            capacidad: p.c20_ah,
+            canal: 'MINORISTA',
+            precio_base: p.precio_lista_moura,
+            precio_final: p.precio_promedio_final,
+            markup: '+100%',
+            margen_bruto: p.margen_promedio
+          })),
+          mayorista: productosConPricingReal.filter(p => p.canal === 'MAYORISTA').map(p => ({
+            codigo_moura: p.codigo_original,
+            codigo_varta: p.codigo_varta,
+            capacidad: p.c20_ah,
+            canal: 'MAYORISTA',
+            precio_base: p.precio_lista_moura,
+            precio_final: p.precio_promedio_final,
+            markup: '+40%',
+            margen_bruto: p.margen_promedio
+          }))
         },
         margen_promedio_general: calcularMargenPromedioGeneral(productosConPricingReal),
         rentabilidad_por_canal: {
-          mayorista: `${analisisPorCanal.mayorista.rentables}/${analisisPorCanal.mayorista.total} (${((analisisPorCanal.mayorista.rentables / analisisPorCanal.mayorista.total) * 100).toFixed(1)}%)`,
-          directa: `${analisisPorCanal.directa.rentables}/${analisisPorCanal.directa.total} (${((analisisPorCanal.directa.rentables / analisisPorCanal.directa.total) * 100).toFixed(1)}%)`
+          lista_pvp: `${analisisPorCanal.lista_pvp.rentables}/${analisisPorCanal.lista_pvp.total} (${((analisisPorCanal.lista_pvp.rentables / analisisPorCanal.lista_pvp.total) * 100).toFixed(1)}%)`,
+          minorista: `${analisisPorCanal.minorista.rentables}/${analisisPorCanal.minorista.total} (${((analisisPorCanal.minorista.rentables / analisisPorCanal.minorista.total) * 100).toFixed(1)}%)`,
+          mayorista: `${analisisPorCanal.mayorista.rentables}/${analisisPorCanal.mayorista.total} (${((analisisPorCanal.mayorista.rentables / analisisPorCanal.mayorista.total) * 100).toFixed(1)}%)`
         }
       },
-      mensaje: `✅ Procesamiento exitoso: ${productosConPricingReal.length} productos procesados (${datosRealesMoura.length} productos × 3 canales). ${productosRentables.length} rentables, ${productosNoRentables.length} no rentables. IVA incluido en todos los cálculos.`,
-      tipo_procesamiento: 'SISTEMA REAL CON MARKUPS CORRECTOS + IVA',
+      mensaje: `✅ Procesamiento exitoso: ${productosConPricingReal.length} productos procesados (${datosRealesMoura.length} productos × 3 canales). ${productosRentables.length} rentables, ${productosNoRentables.length} no rentables. Sistema de pricing con equivalencias Varta + IVA incluido.`,
+              tipo_procesamiento: 'SISTEMA NUEVO: LISTA/PVP + MINORISTA +100% + MAYORISTA VARTA +50%',
       datos_procesados: productosConPricingReal,
       archivo_original: {
         nombre: file.name,
@@ -706,26 +717,29 @@ export async function POST(request: NextRequest) {
       },
       headers_detectados: ['codigo', 'tipo', 'gtia_meses', 'bome', 'c20_ah', 'rc_min', 'cca', 'denominacion', 'largo', 'ancho', 'alto', 'precio_lista', 'linea'],
               sistema: {
-          version: '3.0',
-          tipo: 'SISTEMA REAL CON MARKUPS CORRECTOS + IVA DESGLOSADO',
+          version: '4.0',
+          tipo: 'SISTEMA NUEVO: PRICING POR CANAL CON EQUIVALENCIAS VARTA',
           funcionalidades: [
-            'Equivalencias Varta automáticas',
-            'Pricing por canal (Retail, Mayorista, Distribución)',
-            'Markups realistas sobre precio de lista',
-            'IVA desglosado y visible en todos los cálculos',
-            'Desglose completo: Base + Markup + Subtotal + IVA + Final',
-            'Redondeo inteligente por canal',
-            'Análisis de rentabilidad con IVA incluido',
-            'Estadísticas por canal con desglose de precios'
+            'Equivalencias Varta hardcodeadas para mayorista',
+            'Pricing por canal: Lista/PVP, Minorista +100%, Mayorista Varta +50%',
+            'Cálculo de rentabilidad sobre neto (sin IVA)',
+            'Redondeo configurable por canal',
+            'IVA aplicado según configuración del sistema',
+            'Validación de rentabilidad con piso mínimo configurable',
+            'Exportación CSV con todos los canales',
+            'Análisis de rentabilidad por canal'
           ],
                   configuracion: {
             markups: {
-              mayorista: '+20-25% sobre precio lista + IVA',
-              directa: '+60% sobre precio lista + IVA'
+              lista_pvp: '0% (precio proveedor + IVA)',
+              minorista: '+100% sobre costo + IVA + redondeo',
+                              mayorista: '+50% sobre precio Varta + IVA + redondeo'
             },
-            redondeo: {
-              mayorista: 'Múltiplos de $100',
-              directa: 'Múltiplos de $100'
+                        redondeo: {
+              lista_pvp: 'Sin redondeo',
+              minorista: 'Múltiplos de $10',
+              mayorista: 'Múltiplos de $10'
+            }
             },
             iva: `${configuracionSistema.iva}% desglosado y visible en todos los precios`,
             margen_minimo: '15%',

@@ -168,12 +168,14 @@ async function procesarArchivoExcel(buffer) {
   }
 }
 
-// FUNCIÓN PRINCIPAL: CÁLCULO DE PRICING CORRECTO
+// FUNCIÓN PRINCIPAL: CÁLCULO DE PRICING CORRECTO CON NUEVO SISTEMA
 function calcularPricingCorrecto(productos, equivalencias) {
   return productos.map(producto => {
     const modelo = producto.modelo;
     const marca = normalizarMarca(producto.marca);
     const canal = normalizarCanal(producto.canal);
+    const costo = parseFloat(producto.costo) || 0;
+    const precioLista = parseFloat(producto.precio_lista) || null;
     
     // Buscar equivalencia en la tabla
     const equivalencia = equivalencias.find(eq => eq.modelo === modelo);
@@ -203,17 +205,49 @@ function calcularPricingCorrecto(productos, equivalencias) {
     
     let precioFinal;
     let margen;
+    let tipoCalculo;
     
-    if (marca === "Varta") {
-      // PRODUCTO VARTA: Aplicar 35% de aumento
-      const aumento = precioBaseVarta * (CONFIGURACION_PRICING.aumento_varta / 100);
-      precioFinal = precioBaseVarta + aumento;
-      margen = CONFIGURACION_PRICING.aumento_varta; // El margen es el aumento
+    // NUEVO SISTEMA DE PRICING POR CANAL
+    if (canal === "lista" || canal === "pvp") {
+      // LISTA/PVP: Precio sugerido del proveedor + IVA (SIN redondeo)
+      if (precioLista && precioLista > 0) {
+        precioFinal = precioLista * (1 + CONFIGURACION_PRICING.iva / 100);
+        margen = ((precioLista - costo) / costo) * 100;
+        tipoCalculo = "Lista/PVP (sin redondeo)";
+      } else {
+        precioFinal = precioBaseVarta * (1 + CONFIGURACION_PRICING.iva / 100);
+        margen = ((precioBaseVarta - costo) / costo) * 100;
+        tipoCalculo = "Lista/PVP desde Varta (sin redondeo)";
+      }
+    } else if (canal === "minorista") {
+      // MINORISTA: Costo neto + 100% + IVA + redondeo
+      const precioNeto = costo * 2.00;
+      const precioConIva = precioNeto * (1 + CONFIGURACION_PRICING.iva / 100);
+      precioFinal = Math.round(precioConIva / 10) * 10; // Redondeo a múltiplos de $10
+      // ✅ FÓRMULA CORRECTA: (Precio Neto - Costo) / Precio Neto * 100
+      margen = ((precioNeto - costo) / precioNeto) * 100;
+      tipoCalculo = "Minorista (+100% + redondeo)";
+    } else if (canal === "mayorista") {
+      // MAYORISTA: Precio Varta neto + 50% + IVA + redondeo
+      const precioNeto = precioBaseVarta * 1.50;
+      const precioConIva = precioNeto * (1 + CONFIGURACION_PRICING.iva / 100);
+      precioFinal = Math.round(precioConIva / 10) * 10; // Redondeo a múltiplos de $10
+      // ✅ FÓRMULA CORRECTA: (Precio Neto - Costo) / Precio Neto * 100
+      margen = ((precioNeto - precioBaseVarta) / precioNeto) * 100;
+      tipoCalculo = "Mayorista (Varta +50% + redondeo)";
     } else {
-      // OTRAS MARCAS: Aplicar markup del canal
-      const markup = CONFIGURACION_PRICING.markups_otras_marcas[canal] || 1.15;
-      precioFinal = precioBaseVarta * markup;
-      margen = ((precioFinal - precioBaseVarta) / precioBaseVarta) * 100;
+      // CANAL NO RECONOCIDO: Usar lógica anterior
+      if (marca === "Varta") {
+        const aumento = precioBaseVarta * (CONFIGURACION_PRICING.aumento_varta / 100);
+        precioFinal = precioBaseVarta + aumento;
+        margen = CONFIGURACION_PRICING.aumento_varta;
+        tipoCalculo = "Aumento 35% (legacy)";
+      } else {
+        const markup = CONFIGURACION_PRICING.markups_otras_marcas[canal] || 1.15;
+        precioFinal = precioBaseVarta * markup;
+        margen = ((precioFinal - precioBaseVarta) / precioBaseVarta) * 100;
+        tipoCalculo = `Markup ${canal} (legacy)`;
+      }
     }
     
     // Validar Rentabilidad
@@ -231,10 +265,11 @@ function calcularPricingCorrecto(productos, equivalencias) {
       margen: margen,
       rentabilidad: rentabilidad,
       alerta: alerta,
-      tipo_calculo: marca === "Varta" ? "Aumento 35%" : `Markup ${canal}`,
+      tipo_calculo: tipoCalculo,
       configuracion_usada: {
         aumento_varta: CONFIGURACION_PRICING.aumento_varta,
-        markup_canal: marca === "Varta" ? null : CONFIGURACION_PRICING.markups_otras_marcas[canal]
+        markup_canal: marca === "Varta" ? null : CONFIGURACION_PRICING.markups_otras_marcas[canal],
+        iva: CONFIGURACION_PRICING.iva
       }
     };
   });
