@@ -233,37 +233,59 @@ export default function CargaPage() {
     setProcesando(false)
   }
 
-  // Descargar resultados como CSV
+  // Descargar resultados como Excel (CSV) con el nuevo formato
   const downloadResults = () => {
     if (!resultado) return
 
     const headers = [
       'Producto',
-      'Tipo',
+      'Tipo', 
       'Modelo',
+      'Precio Base',
       'Canal',
-      'Precio Base Minorista',
-      'Precio Base Mayorista',
-      'Precio Final (Minorista/Mayorista)',
-      'Markup (Minorista/Mayorista)',
-      'Rentabilidad Minorista',
-      'Rentabilidad Mayorista'
+      'Precio Neto',
+      'IVA',
+      'Precio Final',
+      'Markup',
+      'Rentabilidad'
     ]
+
+    // Crear filas separadas para Minorista y Mayorista
+    const csvRows = []
+    
+    resultado.productos.forEach(producto => {
+      // Fila Minorista
+      csvRows.push([
+        producto.producto,
+        producto.tipo || 'Batería',
+        producto.modelo || 'N/A',
+        producto.precio_base_minorista,
+        'Minorista',
+        producto.minorista.precio_neto,
+        producto.minorista.precio_final - producto.minorista.precio_neto,
+        producto.minorista.precio_final,
+        '+70%',
+        producto.minorista.rentabilidad
+      ].join(','))
+      
+      // Fila Mayorista
+      csvRows.push([
+        '', // Producto vacío
+        '', // Tipo vacío
+        '', // Modelo vacío
+        producto.precio_base_mayorista,
+        'Mayorista',
+        producto.mayorista.precio_neto,
+        producto.mayorista.precio_final - producto.mayorista.precio_neto,
+        producto.mayorista.precio_final,
+        producto.equivalencia_varta?.encontrada ? '+30%' : '+40%',
+        producto.mayorista.rentabilidad
+      ].join(','))
+    })
 
     const csvContent = [
       headers.join(','),
-      ...resultado.productos.map(producto => [
-        producto.producto,
-        producto.tipo || 'N/A',
-        producto.modelo || 'N/A',
-        'Minorista/Mayorista',
-        producto.precio_base_minorista,
-        producto.precio_base_mayorista,
-        `${producto.minorista.precio_final} / ${producto.mayorista.precio_final}`,
-        '+70% / +30%',
-        producto.minorista.rentabilidad,
-        producto.mayorista.rentabilidad
-      ].join(','))
+      ...csvRows
     ].join('\n')
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -756,122 +778,115 @@ export default function CargaPage() {
                               Tipo
                             </th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Descripción
-                            </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Canal
+                              Modelo
                             </th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                               Precio Base
                             </th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Costo Estimado
-                              </th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Precios Finales
-                              </th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Markups
-                              </th>
-                              <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                IVA
-                              </th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Desglose Completo
-                              </th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Margen
-                              </th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Rentabilidades
-                              </th>
+                              Canal
+                            </th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              Precio Neto
+                            </th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              IVA
+                            </th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              Precio Final
+                            </th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              Markup
+                            </th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              Rentabilidad
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {productosParaMostrar.map((producto) => (
-                            <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
-                              <td className="px-3 py-2 text-sm font-medium text-gray-900 border-b">
-                                {producto.producto}
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  Batería
-                                </span>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-600 border-b max-w-xs truncate">
-                                <div className="space-y-1">
-                                  <div className="font-medium">{producto.tipo} - {producto.modelo}</div>
+                            <React.Fragment key={producto.id}>
+                              {/* Fila Minorista */}
+                              <tr className="hover:bg-blue-50 transition-colors border-b border-blue-200">
+                                <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-blue-200">
+                                  {producto.producto}
+                                </td>
+                                <td className="px-3 py-2 text-sm border-r border-blue-200">
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    {producto.tipo || 'Batería'}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-600 border-r border-blue-200">
+                                  <div className="font-medium">{producto.modelo}</div>
                                   {producto.equivalencia_varta?.encontrada && (
                                     <div className="text-xs text-green-600">
-                                      ✅ Varta: {producto.equivalencia_varta.codigo} - ${producto.equivalencia_varta.precio_varta?.toLocaleString()}
+                                      ✅ Varta: {producto.equivalencia_varta.codigo}
                                     </div>
                                   )}
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  Minorista/Mayorista
-                                </span>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-900 border-b font-medium">
-                                <div className="space-y-1">
-                                  <div className="text-xs text-blue-600">Minorista: {formatCurrency(producto.precio_base_minorista)}</div>
-                                  <div className="text-xs text-green-600">Mayorista: {formatCurrency(producto.precio_base_mayorista)}</div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-700 border-b">
-                                <div className="space-y-1">
-                                  <div className="text-xs text-blue-600">Minorista: {formatCurrency(producto.costo_estimado_minorista)}</div>
-                                  <div className="text-xs text-green-600">Mayorista: {formatCurrency(producto.costo_estimado_mayorista)}</div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm text-gray-900 border-b font-medium">
-                                <div className="space-y-1">
-                                  <div className="text-xs text-blue-600">Minorista: {formatCurrency(producto.minorista.precio_final)}</div>
-                                  <div className="text-xs text-green-600">Mayorista: {formatCurrency(producto.mayorista.precio_final)}</div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <div className="space-y-1">
-                                  <span className="text-xs text-blue-600">+70%</span>
-                                  <br />
-                                  <span className="text-xs text-green-600">+40%</span>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <div className="space-y-1">
-                                  <div className="text-xs text-blue-600">{formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}</div>
-                                  <div className="text-xs text-green-600">{formatCurrency(producto.mayorista.precio_final - producto.mayorista.precio_neto)}</div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <div className="text-xs text-gray-600 space-y-1">
-                                  <div className="text-blue-600">
-                                    <div className="font-medium">Minorista:</div>
-                                    <div>Base: {formatCurrency(producto.minorista.precio_neto)}</div>
-                                    <div>+IVA: {formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}</div>
-                                    <div>Final: {formatCurrency(producto.minorista.precio_final)}</div>
-                                  </div>
-                                  <div className="text-green-600">
-                                    <div className="font-medium">Mayorista:</div>
-                                    <div>Base: {formatCurrency(producto.mayorista.precio_neto)}</div>
-                                    <div>+IVA: {formatCurrency(producto.mayorista.precio_final - producto.mayorista.precio_neto)}</div>
-                                    <div>Final: {formatCurrency(producto.mayorista.precio_final)}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <div className="space-y-1">
-                                  <div className="text-xs text-blue-600">{producto.minorista.rentabilidad}</div>
-                                  <div className="text-xs text-green-600">{producto.mayorista.rentabilidad}</div>
-                                </div>
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  ✅ RENTABLE
-                                </div>
-                              </td>
-                            </tr>
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-blue-200 font-medium">
+                                  {formatCurrency(producto.precio_base_minorista)}
+                                </td>
+                                <td className="px-3 py-2 text-sm border-r border-blue-200">
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    Minorista
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-blue-200 font-medium">
+                                  {formatCurrency(producto.minorista.precio_neto)}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-700 border-r border-blue-200">
+                                  {formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-blue-200 font-medium">
+                                  {formatCurrency(producto.minorista.precio_final)}
+                                </td>
+                                <td className="px-3 py-2 text-sm border-r border-blue-200">
+                                  <span className="text-sm font-medium text-blue-600">+70%</span>
+                                </td>
+                                <td className="px-3 py-2 text-sm border-r border-blue-200">
+                                  <span className="text-sm font-medium text-blue-600">{producto.minorista.rentabilidad}</span>
+                                </td>
+                              </tr>
+                              
+                              {/* Fila Mayorista */}
+                              <tr className="hover:bg-green-50 transition-colors border-b border-green-200">
+                                <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-green-200">
+                                  {/* Celda vacía para mantener alineación */}
+                                </td>
+                                <td className="px-3 py-2 text-sm border-r border-green-200">
+                                  {/* Celda vacía para mantener alineación */}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-600 border-r border-green-200">
+                                  {/* Celda vacía para mantener alineación */}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-green-200 font-medium">
+                                  {formatCurrency(producto.precio_base_mayorista)}
+                                </td>
+                                <td className="px-3 py-2 text-sm border-r border-green-200">
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Mayorista
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-green-200 font-medium">
+                                  {formatCurrency(producto.mayorista.precio_neto)}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-700 border-r border-green-200">
+                                  {formatCurrency(producto.mayorista.precio_final - producto.mayorista.precio_neto)}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-green-200 font-medium">
+                                  {formatCurrency(producto.mayorista.precio_final)}
+                                </td>
+                                <td className="px-3 py-2 text-sm border-r border-green-200">
+                                  <span className="text-sm font-medium text-green-600">
+                                    {producto.equivalencia_varta?.encontrada ? '+30%' : '+40%'}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-2 text-sm border-r border-green-200">
+                                  <span className="text-sm font-medium text-green-600">{producto.mayorista.rentabilidad}</span>
+                                </td>
+                              </tr>
+                            </React.Fragment>
                           ))}
                         </tbody>
                       </table>
