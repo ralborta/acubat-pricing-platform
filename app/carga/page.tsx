@@ -484,57 +484,45 @@ export default function CargaPage() {
                     <p className="text-gray-600 text-sm mb-4">
                       {/* Descripción removida */}
                     </p>
-                    {/* Botón Cargar Excel */}
+                    {/* Botón Cargar PDF */}
                     <input
                       type="file"
-                      accept=".xlsx,.xls,.csv"
+                      accept=".pdf"
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (file) {
                           setArchivoSeleccionado(file)
                           setArchivoNombre(file.name)
+                          console.log('PDF cargado:', file.name)
                         }
                       }}
                       className="hidden"
-                      id="equivalencias-input"
+                      id="cargar-pdf-input"
                     />
                     <label
-                      htmlFor="equivalencias-input"
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200 cursor-pointer mb-3"
+                      htmlFor="cargar-pdf-input"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200 cursor-pointer mb-3 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
                     >
                       <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
-                      Cargar Excel
+                      Cargar PDF
                     </label>
                     
                     {/* Botón Convertir PDF a Excel */}
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => {
-                        console.log('PDF seleccionado:', e.target.files?.[0])
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          console.log('Iniciando conversión de:', file.name)
-                          convertirPDFaExcel(file)
-                        }
-                      }}
-                      className="hidden"
-                      id="pdf-input"
-                      disabled={convirtiendoPDF}
-                    />
-                    <label
-                      htmlFor="pdf-input"
-                      className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 cursor-pointer ${
-                        convirtiendoPDF 
-                          ? 'bg-gray-400 cursor-not-allowed' 
-                          : 'bg-green-600 hover:bg-green-700 text-white'
-                      }`}
+                    <button
                       onClick={() => {
-                        if (!convirtiendoPDF) {
-                          console.log('Haciendo click en label PDF')
-                          document.getElementById('pdf-input')?.click()
+                        if (archivoSeleccionado && archivoSeleccionado.type === 'application/pdf') {
+                          console.log('Iniciando conversión de:', archivoSeleccionado.name)
+                          convertirPDFaExcel(archivoSeleccionado)
+                        } else {
+                          alert('Por favor, carga un archivo PDF primero')
                         }
                       }}
+                      disabled={!archivoSeleccionado || archivoSeleccionado.type !== 'application/pdf' || convirtiendoPDF}
+                      className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 cursor-pointer shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                        !archivoSeleccionado || archivoSeleccionado.type !== 'application/pdf' || convirtiendoPDF
+                          ? 'bg-gray-400 cursor-not-allowed transform-none' 
+                          : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
+                      }`}
                     >
                       {convirtiendoPDF ? (
                         <>
@@ -547,18 +535,22 @@ export default function CargaPage() {
                           Convertir PDF a Excel
                         </>
                       )}
-                    </label>
+                    </button>
                     
                     {/* Barra de progreso de conversión */}
                     {convirtiendoPDF && (
-                      <div className="mt-4">
-                        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                      <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-blue-800">Progreso de Conversión</span>
+                          <span className="text-sm font-bold text-blue-600">{progresoConversion}%</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3 mb-3 shadow-inner">
                           <div 
-                            className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-blue-500 to-green-500 h-3 rounded-full transition-all duration-500 ease-out shadow-lg"
                             style={{ width: `${progresoConversion}%` }}
                           ></div>
                         </div>
-                        <p className="text-sm text-gray-600">{mensajeConversion}</p>
+                        <p className="text-sm text-blue-700 font-medium text-center">{mensajeConversion}</p>
                       </div>
                     )}
                   </div>
