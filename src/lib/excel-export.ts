@@ -5,7 +5,8 @@ export interface ProductoExcel {
   tipo: string
   descripcion: string
   canal: string
-  precio_base: number
+  precio_base_minorista: number  // ✅ Precio base para Minorista (del archivo)
+  precio_base_mayorista: number  // ✅ Precio base para Mayorista (Varta o archivo)
   costo_estimado: number
   precio_final_minorista: number
   precio_final_mayorista: number
@@ -52,7 +53,8 @@ export function exportarAExcel(
       'TIPO', 
       'DESCRIPCIÓN',
       'CANAL',
-      'PRECIO BASE',
+      'PRECIO BASE MINORISTA',
+      'PRECIO BASE MAYORISTA',
       'COSTO ESTIMADO',
       'PRECIO FINAL MINORISTA',
       'PRECIO FINAL MAYORISTA',
@@ -73,7 +75,8 @@ export function exportarAExcel(
       String(producto.tipo),
       String(producto.descripcion),
       String(producto.canal),
-      String(producto.precio_base),
+      String(producto.precio_base_minorista),
+      String(producto.precio_base_mayorista),
       String(producto.costo_estimado),
       String(producto.precio_final_minorista),
       String(producto.precio_final_mayorista),
@@ -92,13 +95,19 @@ export function exportarAExcel(
     ['ESTADÍSTICAS DETALLADAS'],
     [''],
     ['ANÁLISIS DE PRECIOS'],
-    ['Precio más alto', Math.max(...productos.map(p => p.precio_base))],
-    ['Precio más bajo', Math.min(...productos.map(p => p.precio_base))],
-    ['Precio promedio', Math.round(productos.reduce((sum, p) => sum + p.precio_base, 0) / productos.length)],
+    ['Precio más alto Minorista', Math.max(...productos.map(p => p.precio_base_minorista))],
+    ['Precio más bajo Minorista', Math.min(...productos.map(p => p.precio_base_minorista))],
+    ['Precio promedio Minorista', Math.round(productos.reduce((sum, p) => sum + p.precio_base_minorista, 0) / productos.length)],
+    [''],
+    ['Precio más alto Mayorista', Math.max(...productos.map(p => p.precio_base_mayorista))],
+    ['Precio más bajo Mayorista', Math.min(...productos.map(p => p.precio_base_mayorista))],
+    ['Precio promedio Mayorista', Math.round(productos.reduce((sum, p) => sum + p.precio_base_mayorista, 0) / productos.length)],
     [''],
     ['ANÁLISIS DE RENTABILIDAD'],
-    ['Productos con precio > 0', productos.filter(p => p.precio_base > 0).length],
-    ['Productos con precio = 0', productos.filter(p => p.precio_base === 0).length],
+    ['Productos con precio > 0 Minorista', productos.filter(p => p.precio_base_minorista > 0).length],
+    ['Productos con precio > 0 Mayorista', productos.filter(p => p.precio_base_mayorista > 0).length],
+    ['Productos con precio = 0 Minorista', productos.filter(p => p.precio_base_minorista === 0).length],
+    ['Productos con precio = 0 Mayorista', productos.filter(p => p.precio_base_mayorista === 0).length],
     [''],
     ['EQUIVALENCIAS VARTA'],
     ['Total encontradas', productos.filter(p => p.equivalencia_varta?.encontrada).length],

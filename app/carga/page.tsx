@@ -12,7 +12,8 @@ interface Producto {
   producto: string
   tipo: string
   modelo: string
-  precio_base: number
+  precio_base_minorista: number  // ✅ Precio base para Minorista (del archivo)
+  precio_base_mayorista: number  // ✅ Precio base para Mayorista (Varta o archivo)
   costo_estimado: number
   equivalencia_varta?: {
     encontrada: boolean
@@ -99,7 +100,8 @@ export default function CargaPage() {
       tipo: producto.tipo,
       descripcion: producto.producto,
       canal: 'Minorista/Mayorista',
-      precio_base: producto.precio_base || 0,
+      precio_base_minorista: producto.precio_base_minorista || 0,
+      precio_base_mayorista: producto.precio_base_mayorista || 0,
       costo_estimado: producto.costo_estimado || 0,
       precio_final_minorista: producto.minorista.precio_final || 0,
       precio_final_mayorista: producto.mayorista.precio_final || 0,
@@ -812,7 +814,10 @@ export default function CargaPage() {
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-900 border-b font-medium">
-                                {formatCurrency(producto.precio_base)}
+                                <div className="space-y-1">
+                                  <div className="text-xs text-blue-600">Minorista: {formatCurrency(producto.precio_base_minorista)}</div>
+                                  <div className="text-xs text-green-600">Mayorista: {formatCurrency(producto.precio_base_mayorista)}</div>
+                                </div>
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-700 border-b">
                                 {formatCurrency(producto.costo_estimado)}

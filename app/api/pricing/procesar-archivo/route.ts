@@ -476,7 +476,8 @@ export async function POST(request: NextRequest) {
         producto: descripcion || modelo || tipo || 'N/A',
         tipo: tipo,
         modelo: modelo,
-        precio_base: precioBase,
+        precio_base_minorista: precioBase,  // ✅ Precio base para Minorista (del archivo)
+        precio_base_mayorista: mayoristaBase,  // ✅ Precio base para Mayorista (Varta o archivo)
         costo_estimado: costoEstimado,
         validacion_moneda: validacionMoneda,
         equivalencia_varta: equivalenciaVarta ? {
