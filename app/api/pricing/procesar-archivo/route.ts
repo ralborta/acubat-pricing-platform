@@ -89,7 +89,16 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<Co
   } catch (error) {
     console.error('❌ Error con OpenAI API:', error)
     // Fallback a detección manual si falla la IA
-    return detectColumnsManualmente(headers)
+    console.log('⚠️ La IA falló, retornando mapeo vacío para usar detección manual en el handler principal')
+    return {
+      marca: '',
+      tipo: '',
+      modelo: '',
+      precio: '',
+      pdv: '',
+      pvp: '',
+      descripcion: ''
+    }
   }
 }
 
@@ -266,8 +275,8 @@ export async function POST(request: NextRequest) {
     console.log('🔑 Columnas disponibles:', Object.keys(datos[0] || {}))
     console.log('📝 Muestra de datos (primeras 3 filas):', datos.slice(0, 3))
 
-    // 🔧 FUNCIÓN DE DETECCIÓN MANUAL (DEFINIDA AQUÍ PARA ACCESO A DATOS)
-    function detectColumnsManualmente(headers: string[]): ColumnMapping {
+    // 🔧 DETECCIÓN MANUAL (LLAMADA DESDE FUNCIÓN EXTERNA)
+    const detectColumnsManualmente = (headers: string[], datos: any[]) => {
       console.log('🔧 Iniciando detección manual de columnas...')
       console.log('📋 Headers disponibles:', headers)
       
@@ -409,7 +418,7 @@ export async function POST(request: NextRequest) {
     // 🚨 VALIDACIÓN: Si la IA falló, usar detección manual
     if (!columnMapping || Object.values(columnMapping).some(v => !v)) {
       console.log('⚠️ La IA falló, usando detección manual...')
-      const columnMappingManual = detectColumnsManualmente(headers)
+      const columnMappingManual = detectColumnsManualmente(headers, datos)
       console.log('🔧 DETECCIÓN MANUAL:')
       console.log('📋 Mapeo manual:', columnMappingManual)
       
