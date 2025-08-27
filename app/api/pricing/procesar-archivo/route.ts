@@ -37,13 +37,10 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<an
       
       Responde SOLO con un JSON válido:
       {
-        "marca": "nombre_columna",
         "tipo": "nombre_columna", 
         "modelo": "nombre_columna",
         "precio": "nombre_columna",
-        "descripcion": "nombre_columna",
-        "capacidad": "nombre_columna",
-        "voltaje": "nombre_columna"
+        "descripcion": "nombre_columna"
       }
     `
 
@@ -91,15 +88,10 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<an
     // Fallback a detección manual si falla la IA
     console.log('⚠️ La IA falló, retornando mapeo vacío para usar detección manual en el handler principal')
     return {
-      marca: '',
       tipo: '',
       modelo: '',
       precio: '',
-      pdv: '',
-      pvp: '',
-      descripcion: '',
-      capacidad: '',
-      voltaje: ''
+      descripcion: ''
     }
   }
 }
@@ -160,15 +152,10 @@ export async function POST(request: NextRequest) {
       console.log('📋 Headers disponibles:', headers)
       
       const mapeo: any = {
-        marca: '',
         tipo: '',
         modelo: '',
         precio: '',
-        pdv: '',
-        pvp: '',
-        descripcion: '',
-        capacidad: '',
-        voltaje: ''
+        descripcion: ''
       }
 
       // 🔍 ANÁLISIS UNIVERSAL: Analizar TODAS las columnas para entender qué contienen
@@ -186,20 +173,7 @@ export async function POST(request: NextRequest) {
         
         // 🎯 DETECCIÓN INTELIGENTE POR CONTENIDO Y NOMBRE
         
-        // Marca - Buscar columnas que contengan códigos de producto
-        if (!mapeo.marca && (
-          headerLower.includes('marca') || 
-          headerLower.includes('brand') || 
-          headerLower.includes('fabricante') ||
-          headerLower.includes('ub') ||
-          headerLower.includes('moura') ||
-          headerLower.includes('codigo') ||
-          headerLower.includes('code') ||
-          headerLower.includes('baterias')
-        )) {
-          mapeo.marca = header
-          console.log(`✅ Marca detectada: "${header}"`)
-        }
+        // 🎯 SISTEMA SIMPLIFICADO: No necesitamos marca
         
         // Tipo - Buscar columnas que contengan categorías
         if (!mapeo.tipo && (
@@ -500,7 +474,6 @@ export async function POST(request: NextRequest) {
       const resultadoProducto = {
         id: index + 1,
         producto: descripcion || modelo || tipo || 'N/A',
-        marca: marca,
         tipo: tipo,
         modelo: modelo,
         precio_base: precioBase,
