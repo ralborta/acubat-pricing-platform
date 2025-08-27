@@ -86,12 +86,11 @@ export const PRECIOS_VARTA_NETOS = {
   
   // Nuevos códigos para tipos reales de Acubat
   "VA40DD/E": 38.50,    // 12X40 (H FIT)
-  "VA50GD": 45.60,      // 12X50 (H CIVIC)
   "VA80DD/E": 62.30,    // 12X80 BORA
   "VA85DD/E": 66.80,    // 12X85 HILUX
   "VA95DD/E": 76.40,    // 12X95
   "VA100DD/E": 81.60,   // 12X100
-  "VA160DD/E": 138.20,  // 12X160
+  "VA160DD/E": 138.20,  // 12X100
   "VA6V25DD/E": 22.40,  // TRACT. CESPED
   "VA72DD/E": 58.90,    // L3
   
