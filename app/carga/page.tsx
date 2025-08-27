@@ -833,10 +833,17 @@ export default function CargaPage() {
                         Sistema de Pricing Acubat v1.0.0
                       </h4>
                       <p className="text-gray-600 text-xs">
-                        {resultado.sistema.tipo} - Optimizado para máximo rendimiento
+                        Sistema de Pricing Profesional - Optimizado para máximo rendimiento
                       </p>
                       <div className="mt-3 flex flex-wrap justify-center gap-2">
-                        {resultado.sistema.funcionalidades.map((func: string, index: number) => (
+                        {[
+                          'Procesamiento Excel',
+                          'Cálculo Minorista +70%',
+                          'Cálculo Mayorista +40%',
+                          'Rentabilidad Automática',
+                          'Redondeo Inteligente',
+                          'Exportación CSV'
+                        ].map((func: string, index: number) => (
                           <span key={index} className="bg-white px-2 py-1 rounded text-xs text-gray-700 border border-gray-200">
                             {func}
                           </span>
