@@ -5,6 +5,7 @@ import { ArrowUpTrayIcon, DocumentTextIcon, PlayIcon, CheckCircleIcon, ChevronDo
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import ProcessVisualizer from '@/components/ProcessVisualizer'
+import { exportarAExcel } from '@/lib/excel-export'
 
 interface Producto {
   id: number
@@ -86,6 +87,39 @@ export default function CargaPage() {
     const sizes = ['Bytes', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  // Función para exportar a Excel
+  const handleExportarExcel = () => {
+    if (!resultado) return
+
+    // Preparar datos para Excel
+    const productosExcel = resultado.productos.map(producto => ({
+      producto: producto.producto,
+      tipo: producto.tipo,
+      descripcion: producto.producto,
+      canal: 'Minorista/Mayorista',
+      precio_base: producto.precio_base || 0,
+      costo_estimado: producto.costo_estimado || 0,
+      precio_final_minorista: producto.minorista.precio_final || 0,
+      precio_final_mayorista: producto.mayorista.precio_final || 0,
+      markup_minorista: '+70%',
+      markup_mayorista: '+40%',
+      iva_minorista: Math.round((producto.minorista.precio_final || 0) * 0.21),
+      iva_mayorista: Math.round((producto.mayorista.precio_final || 0) * 0.21),
+      equivalencia_varta: producto.equivalencia_varta
+    }))
+
+    const estadisticasExcel = {
+      total_productos: resultado.estadisticas.total_productos,
+      productos_rentables: resultado.estadisticas.productos_rentables,
+      con_equivalencia: resultado.productos.filter(p => p.equivalencia_varta?.encontrada).length,
+      margen_promedio: resultado.estadisticas.margen_promedio
+    }
+
+    // Exportar a Excel
+    const nombreArchivo = `reporte_${archivoNombre.replace(/\.[^/.]+$/, '')}`
+    exportarAExcel(productosExcel, estadisticasExcel, nombreArchivo)
   }
 
   // Manejar selección de archivo
@@ -691,7 +725,7 @@ export default function CargaPage() {
                   {/* Botón de descarga */}
                   <div className="text-center mb-6">
                     <button
-                      onClick={downloadResults}
+                      onClick={handleExportarExcel}
                       className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
                     >
                       📊 Descargar Excel con Resultados
