@@ -494,17 +494,73 @@ export async function POST(request: NextRequest) {
       console.log(`🔍 BÚSQUEDA SIMPLIFICADA:`)
       console.log(`   - Tipo: "${tipo}"`)
       console.log(`   - Modelo: "${modelo}"`)
+      console.log(`   - Tipo de dato modelo: ${typeof modelo}`)
+      console.log(`   - Longitud modelo: ${modelo ? modelo.length : 'N/A'}`)
+      console.log(`   - Modelo limpio: "${modelo ? modelo.trim() : 'N/A'}"`)
       
-      // Búsqueda simplificada: solo por tipo y modelo
+      // 🗄️ BÚSQUEDA INTELIGENTE EN BASE DE DATOS VARTA
       let equivalenciaVarta = null
       
       if (modelo && modelo !== 'N/A' && modelo !== '') {
+        console.log(`🔍 BUSCANDO EQUIVALENCIA VARTA:`)
+        console.log(`   - Marca: Varta`)
+        console.log(`   - Tipo: ${tipo}`)
+        console.log(`   - Modelo: ${modelo}`)
+        
+        // Intentar búsqueda con diferentes estrategias
+        console.log(`🔍 ESTRATEGIA 1: Búsqueda directa`)
         equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo, undefined)
+        
+        // Si no se encuentra, intentar con modelo limpio
+        if (!equivalenciaVarta && modelo) {
+          console.log(`🔍 ESTRATEGIA 2: Búsqueda con modelo limpio`)
+          const modeloLimpio = modelo.trim().replace(/\s+/g, ' ')
+          if (modeloLimpio !== modelo) {
+            console.log(`   - Modelo original: "${modelo}"`)
+            console.log(`   - Modelo limpio: "${modeloLimpio}"`)
+            equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modeloLimpio, undefined)
+          }
+        }
+        
+        // Si aún no se encuentra, intentar extraer capacidad del modelo
+        if (!equivalenciaVarta && modelo) {
+          console.log(`🔍 ESTRATEGIA 3: Extraer capacidad del modelo`)
+          const capacidadMatch = modelo.match(/(\d+)\s*[Aa][Hh]/)
+          if (capacidadMatch) {
+            const capacidad = capacidadMatch[1] + 'Ah'
+            console.log(`   - Capacidad extraída: "${capacidad}"`)
+            equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo, capacidad)
+          }
+        }
+        
+        if (equivalenciaVarta) {
+          console.log(`✅ EQUIVALENCIA VARTA ENCONTRADA:`)
+          console.log(`   - Código: ${equivalenciaVarta.codigo}`)
+          console.log(`   - Precio: ${equivalenciaVarta.precio_neto}`)
+          console.log(`   - Descripción: ${equivalenciaVarta.descripcion}`)
+        } else {
+          console.log(`❌ NO SE ENCONTRÓ EQUIVALENCIA VARTA para: ${modelo}`)
+        }
       } else {
         console.log(`⚠️ Modelo no válido para búsqueda Varta: "${modelo}"`)
       }
       
       console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
+      
+      // 🔍 DEBUG DETALLADO DE LA BÚSQUEDA
+      if (equivalenciaVarta) {
+        console.log(`🎯 EQUIVALENCIA VARTA CONFIRMADA:`)
+        console.log(`   - Código: ${equivalenciaVarta.codigo}`)
+        console.log(`   - Precio Neto: ${equivalenciaVarta.precio_neto}`)
+        console.log(`   - Tipo: ${equivalenciaVarta.tipo}`)
+        console.log(`   - Modelo: ${equivalenciaVarta.modelo}`)
+        console.log(`   - Capacidad: ${equivalenciaVarta.capacidad}`)
+        console.log(`   - Voltaje: ${equivalenciaVarta.voltaje}`)
+      } else {
+        console.log(`❌ EQUIVALENCIA VARTA NO ENCONTRADA`)
+        console.log(`   - Revisar si el modelo "${modelo}" existe en la base de datos`)
+        console.log(`   - Verificar que la función buscarEquivalenciaVarta esté funcionando`)
+      }
 
       // 🎯 DEFINICIÓN CLARA DE PRECIOS BASE:
       // Minorista: SIEMPRE usa precioBase (del archivo subido)
