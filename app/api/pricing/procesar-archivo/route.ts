@@ -214,7 +214,9 @@ export async function POST(request: NextRequest) {
           headerLower.includes('precio de lista') ||
           headerLower.includes('precio lista') ||
           headerLower.includes('venta') ||
-          headerLower.includes('publico')
+          headerLower.includes('publico') ||
+          headerLower === 'precio' ||  // ✅ Agregar búsqueda exacta de "PRECIO"
+          headerLower === 'precios'    // ✅ Agregar búsqueda exacta de "PRECIOS"
         )) {
           mapeo.precio = header
           console.log(`✅ Precio detectado: "${header}"`)
@@ -444,9 +446,8 @@ export async function POST(request: NextRequest) {
 
       // Cálculo Mayorista (precio más bajo para venta al por mayor)
       console.log(`\n💰 CÁLCULO MAYORISTA DEL PRODUCTO ${index + 1}:`)
-      let mayoristaBase = precioBase
+      let mayoristaBase = equivalenciaVarta ? equivalenciaVarta.precio_neto : precioBase
       if (equivalenciaVarta) {
-        mayoristaBase = equivalenciaVarta.precio_neto
         console.log(`   - Usando precio Varta: ${mayoristaBase}`)
       } else {
         console.log(`   - Usando precio base: ${mayoristaBase}`)
