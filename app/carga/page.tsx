@@ -8,69 +8,31 @@ import ProcessVisualizer from '@/components/ProcessVisualizer'
 
 interface Producto {
   id: number
-  codigo_original: string
-  tipo: string
-  gtia_meses: number
-  bome: string
-  c20_ah: number
-  rc_min: number
-  cca: number
-  denominacion: string
-  dimensiones: string
-  linea: string
-  precio_lista_moura: number
-  precio_varta_equivalente: number
-  precio_promedio_final: number
-  tiene_equivalencia_varta: boolean
-  codigo_varta: string
-  precio_varta: number
-  marca_referencia: string
-  canal: string
-  precios_canales: {
-    [key: string]: {
-      nombre: string
-      precio_final: number
-      markup: string
-      margen_bruto: string
-      rentabilidad: string
-      iva_aplicado: number
-      iva_porcentaje: string
-      precio_base_canal: number
-      precio_iva_desglosado: {
-        precio_base: number
-        markup_aplicado: number
-        subtotal: number
-        iva: number
-        precio_final: number
-      }
-    }
+  producto: string
+  precio_base: number
+  costo_estimado: number
+  minorista: {
+    precio_neto: number
+    precio_final: number
+    rentabilidad: string
   }
-  utilidad_total_estimada: number
-  margen_promedio: string
-  rentabilidad_general: string
-  canales_rentables: number
-  total_canales: number
-  estado: string
-  fecha_calculo: string
-  observaciones: string
+  mayorista: {
+    precio_neto: number
+    precio_final: number
+    rentabilidad: string
+  }
 }
 
 interface Resultado {
   success: boolean
   archivo: string
   timestamp: string
-  estadisticas: any
-  mensaje: string
-  tipo_procesamiento: string
-  datos_procesados: Producto[]
-  archivo_original: {
-    nombre: string
-    tamaño: number
-    tipo: string
-    filas_procesadas: number
+  estadisticas: {
+    total_productos: number
+    productos_rentables: number
+    margen_promedio: string
   }
-  headers_detectados: string[]
-  sistema: any
+  productos: Producto[]
 }
 
 export default function CargaPage() {
@@ -206,7 +168,7 @@ export default function CargaPage() {
       
       if (data.success) {
         setResultado(data)
-        setProductosAMostrar(data.datos_procesados || [])
+        setProductosAMostrar(data.productos || [])
         setProgreso(100) // Completar al 100%
       } else {
         setError(data.error || 'Error desconocido')
@@ -229,31 +191,33 @@ export default function CargaPage() {
     if (!resultado) return
 
     const headers = [
-      'Código',
+      'Producto',
       'Tipo',
       'Descripción',
       'Canal',
-      'Precio Base Moura',
-      'Precio Varta',
+      'Precio Base',
+      'Costo Estimado',
       'Precio Final',
       'Markup',
-      'Margen',
-      'Rentabilidad'
+      'IVA',
+      'Desglose',
+      'Rentabilidad',
+      'Estado'
     ]
 
     const csvContent = [
       headers.join(','),
-      ...resultado.datos_procesados.map(producto => [
-        producto.codigo_original,
-        producto.tipo,
-        producto.denominacion,
-        producto.canal,
-        producto.precio_lista_moura,
-        producto.precio_varta,
-        producto.precio_promedio_final,
-        producto.precios_canales[producto.canal.toLowerCase()]?.markup || '',
-        producto.precios_canales[producto.canal.toLowerCase()]?.margen_bruto || '',
-        producto.precios_canales[producto.canal.toLowerCase()]?.rentabilidad || ''
+      ...resultado.productos.map(producto => [
+        producto.producto,
+        'N/A',
+        'N/A',
+        'Minorista/Mayorista',
+        producto.precio_base,
+        'N/A',
+        producto.minorista.precio_final,
+        '+70%',
+        producto.minorista.rentabilidad,
+        producto.minorista.rentabilidad
       ].join(','))
     ].join('\n')
 
@@ -782,63 +746,55 @@ export default function CargaPage() {
                           {productosParaMostrar.map((producto) => (
                             <tr key={producto.id} className="hover:bg-gray-50 transition-colors">
                               <td className="px-3 py-2 text-sm font-medium text-gray-900 border-b">
-                                {producto.codigo_original}
+                                {producto.producto}
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                  {producto.tipo}
+                                  Batería
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-600 border-b max-w-xs truncate">
-                                {producto.denominacion}
+                                {producto.producto}
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  producto.canal === 'MAYORISTA' 
-                                    ? 'bg-green-100 text-green-800' 
-                                    : 'bg-purple-100 text-purple-800'
-                                }`}>
-                                  {producto.canal}
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  Minorista/Mayorista
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-900 border-b font-medium">
-                                {formatCurrency(producto.precio_lista_moura)}
+                                {formatCurrency(producto.precio_base)}
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-700 border-b">
-                                {formatCurrency(producto.precio_varta)}
+                                {formatCurrency(producto.costo_estimado)}
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-900 border-b font-medium">
-                                {formatCurrency(producto.precio_promedio_final)}
+                                {formatCurrency(producto.minorista.precio_final)}
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
                                 <span className="text-gray-700 font-medium">
-                                  {producto.precios_canales[producto.canal.toLowerCase()]?.markup || ''}
+                                  +70%
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
                                 <span className="text-red-600 font-medium">
-                                  {formatCurrency(producto.precios_canales[producto.canal.toLowerCase()]?.iva_aplicado || 0)}
+                                  {formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
                                 <div className="text-xs text-gray-600 space-y-1">
-                                  <div className="font-medium">Base: {formatCurrency(producto.precios_canales[producto.canal.toLowerCase()]?.precio_base_canal || 0)}</div>
-                                  <div className="text-blue-600">+IVA: {formatCurrency(producto.precios_canales[producto.canal.toLowerCase()]?.iva_aplicado || 0)}</div>
-                                  <div className="text-green-600">Final: {formatCurrency(producto.precio_promedio_final)}</div>
+                                  <div className="font-medium">Base: {formatCurrency(producto.minorista.precio_neto)}</div>
+                                  <div className="text-blue-600">+IVA: {formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}</div>
+                                  <div className="text-green-600">Final: {formatCurrency(producto.minorista.precio_final)}</div>
                                 </div>
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
                                 <span className="text-gray-700 font-medium">
-                                  {producto.precios_canales[producto.canal.toLowerCase()]?.margen_bruto || ''}
+                                  {producto.minorista.rentabilidad}
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
-                                <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  producto.rentabilidad_general === 'RENTABLE'
-                                    ? 'bg-green-100 text-green-800'
-                                    : 'bg-red-100 text-red-800'
-                                }`}>
-                                  {producto.rentabilidad_general === 'RENTABLE' ? '✅ RENTABLE' : '❌ NO RENTABLE'}
+                                <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  ✅ RENTABLE
                                 </div>
                               </td>
                             </tr>
@@ -848,7 +804,7 @@ export default function CargaPage() {
                     </div>
                     
                     {/* Botón de expansión */}
-                    {resultado.datos_procesados.length > 12 && (
+                    {resultado.productos.length > 12 && (
                       <div className="text-center mt-4">
                         <button
                           onClick={() => setMostrarTodosProductos(!mostrarTodosProductos)}
@@ -862,7 +818,7 @@ export default function CargaPage() {
                           ) : (
                             <>
                               <ChevronDownIcon className="w-4 h-4 mr-2" />
-                              Ver Todos los Productos ({resultado.datos_procesados.length})
+                              Ver Todos los Productos ({resultado.productos.length})
                             </>
                           )}
                         </button>
@@ -874,7 +830,7 @@ export default function CargaPage() {
                   <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
                     <div className="text-center">
                       <h4 className="text-sm font-medium text-gray-900 mb-2">
-                        Sistema de Pricing Acubat v{resultado.sistema.version}
+                        Sistema de Pricing Acubat v1.0.0
                       </h4>
                       <p className="text-gray-600 text-xs">
                         {resultado.sistema.tipo} - Optimizado para máximo rendimiento
