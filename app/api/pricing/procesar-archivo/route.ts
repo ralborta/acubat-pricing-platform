@@ -606,18 +606,25 @@ export async function POST(request: NextRequest) {
 
       // Cálculo Mayorista (precio más bajo para venta al por mayor)
       console.log(`\n💰 CÁLCULO MAYORISTA DEL PRODUCTO ${index + 1}:`)
+      let mayoristaNeto, mayoristaFinal, mayoristaRentabilidad;
+      
       if (equivalenciaVarta) {
         console.log(`   - Usando precio Varta: ${mayoristaBase}`)
+        console.log(`   - Markup: 30% sobre precio Varta`)
+        mayoristaNeto = mayoristaBase * 1.30 // 30% sobre precio Varta
+        mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
+        mayoristaRentabilidad = ((mayoristaNeto - mayoristaBase) / mayoristaNeto) * 100
       } else {
-        console.log(`   - Usando precio base: ${mayoristaBase}`)
+        console.log(`   - Usando precio base del archivo: ${mayoristaBase}`)
+        console.log(`   - Markup: 40% sobre precio base del archivo`)
+        mayoristaNeto = precioBase * 1.40 // 40% sobre precio base del archivo
+        mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
+        mayoristaRentabilidad = ((mayoristaNeto - precioBase) / mayoristaNeto) * 100
       }
       
-      let mayoristaNeto = mayoristaBase * 1.30 // 30% sobre precio base (MENOS que minorista)
-      let mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
-      let mayoristaRentabilidad = ((mayoristaNeto - mayoristaBase) / mayoristaNeto) * 100
-      
       console.log(`   - Base: ${mayoristaBase}`)
-      console.log(`   - +30%: ${mayoristaBase} * 1.30 = ${mayoristaNeto}`)
+      console.log(`   - Markup aplicado: ${equivalenciaVarta ? '30% sobre Varta' : '40% sobre archivo'}`)
+      console.log(`   - Neto: ${mayoristaNeto}`)
       console.log(`   - +IVA: ${mayoristaNeto} * 1.21 = ${mayoristaNeto * 1.21}`)
       console.log(`   - Redondeado: ${mayoristaFinal}`)
       console.log(`   - Rentabilidad: ${mayoristaRentabilidad.toFixed(1)}%`)
