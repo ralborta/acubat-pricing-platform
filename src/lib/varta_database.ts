@@ -102,6 +102,30 @@ export const BASE_DATOS_VARTA: ProductoVarta[] = [
     equivalencias: ['100Ah', '100 Ah', '100A', 'VA100', 'S5 100Ah', 'S5 100 Ah']
   },
   
+  // Baterías adicionales para cubrir capacidades del archivo real
+  {
+    codigo: 'VA45GD',
+    marca: 'Varta',
+    tipo: 'Bateria',
+    modelo: 'VA45GD',
+    capacidad: '45Ah',
+    voltaje: '12V',
+    precio_neto: 42000,
+    descripcion: 'Batería Varta 45Ah 12V',
+    equivalencias: ['45Ah', '45 Ah', '45A', 'VA45', 'UB 450 Ag']
+  },
+  {
+    codigo: 'VA55GD',
+    marca: 'Varta',
+    tipo: 'Bateria',
+    modelo: 'VA55GD',
+    capacidad: '55Ah',
+    voltaje: '12V',
+    precio_neto: 48000,
+    descripcion: 'Batería Varta 55Ah 12V',
+    equivalencias: ['55Ah', '55 Ah', '55A', 'VA55', 'UB 550 Ag']
+  },
+  
   // Baterías Bosch (equivalentes)
   {
     codigo: 'BOSCH_S4_60Ah',
