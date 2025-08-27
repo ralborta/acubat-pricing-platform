@@ -295,20 +295,43 @@ export async function POST(request: NextRequest) {
 
     // Procesar productos con IA
     const productosProcesados = await Promise.all(datos.map(async (producto: any, index: number) => {
+      // 🔍 DEBUG: Ver qué datos llegan
+      console.log(`🔍 Producto ${index + 1}:`, {
+        raw: producto,
+        keys: Object.keys(producto),
+        values: Object.values(producto)
+      })
+      
       // Extraer datos usando mapeo inteligente
       const marca = columnMapping.marca ? producto[columnMapping.marca] : 'N/A'
       const tipo = columnMapping.tipo ? producto[columnMapping.tipo] : 'N/A'
       const modelo = columnMapping.modelo ? producto[columnMapping.modelo] : 'N/A'
       const descripcion = columnMapping.descripcion ? producto[columnMapping.descripcion] : 'N/A'
       
+      // 🔍 DEBUG: Ver qué se extrajo
+      console.log(`🔍 Extracción ${index + 1}:`, {
+        marca,
+        tipo,
+        modelo,
+        descripcion,
+        columnMapping
+      })
+      
       // Buscar precio (prioridad: precio > pdv > pvp)
       let precioBase = 0
       if (columnMapping.precio && producto[columnMapping.precio]) {
         precioBase = parseFloat(producto[columnMapping.precio]) || 0
+        console.log(`💰 Precio encontrado en columna '${columnMapping.precio}': ${precioBase}`)
       } else if (columnMapping.pdv && producto[columnMapping.pdv]) {
         precioBase = parseFloat(producto[columnMapping.pdv]) || 0
+        console.log(`💰 Precio encontrado en columna '${columnMapping.pdv}': ${precioBase}`)
       } else if (columnMapping.pvp && producto[columnMapping.pvp]) {
         precioBase = parseFloat(producto[columnMapping.pvp]) || 0
+        console.log(`💰 Precio encontrado en columna '${columnMapping.pvp}': ${precioBase}`)
+      } else {
+        console.log(`❌ No se encontró precio en ninguna columna para producto ${index + 1}`)
+        console.log(`🔍 Columnas disponibles:`, Object.keys(producto))
+        console.log(`🔍 Mapeo de columnas:`, columnMapping)
       }
 
       // 🧠 VALIDACIÓN INTELIGENTE DE MONEDA CON IA
@@ -336,6 +359,16 @@ export async function POST(request: NextRequest) {
       const mayoristaNeto = mayoristaBase * 1.40
       const mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
       const mayoristaRentabilidad = ((mayoristaNeto - mayoristaBase) / mayoristaNeto) * 100
+
+      // 🔍 DEBUG: Ver resultados del cálculo
+      console.log(`🔍 Cálculos ${index + 1}:`, {
+        precioBase,
+        costoEstimado,
+        minoristaNeto,
+        minoristaFinal,
+        mayoristaNeto,
+        mayoristaFinal
+      })
 
       return {
         id: index + 1,
