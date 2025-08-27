@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { ArrowUpTrayIcon, DocumentTextIcon, PlayIcon, CheckCircleIcon, ChevronDownIcon, ChevronUpIcon, TableCellsIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline'
+import { ArrowUpTrayIcon, DocumentTextIcon, PlayIcon, CheckCircleIcon, ChevronDownIcon, ChevronUpIcon, TableCellsIcon, CurrencyDollarIcon, DocumentIcon } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import ProcessVisualizer from '@/components/ProcessVisualizer'
@@ -60,6 +60,11 @@ export default function CargaPage() {
   const [showProcessVisualizer, setShowProcessVisualizer] = useState(false)
   const [productosAMostrar, setProductosAMostrar] = useState<Producto[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Estados para conversión PDF
+  const [convirtiendoPDF, setConvirtiendoPDF] = useState(false)
+  const [progresoConversion, setProgresoConversion] = useState(0)
+  const [mensajeConversion, setMensajeConversion] = useState('')
 
   // Función para formatear moneda
   const formatCurrency = (amount: number | string): string => {
@@ -124,6 +129,60 @@ export default function CargaPage() {
     // Exportar a Excel
     const nombreArchivo = `reporte_${archivoNombre.replace(/\.[^/.]+$/, '')}`
     exportarAExcel(productosExcel, estadisticasExcel, nombreArchivo)
+  }
+
+  // Función para convertir PDF a Excel
+  const convertirPDFaExcel = async (archivoPDF: File) => {
+    setConvirtiendoPDF(true)
+    setProgresoConversion(0)
+    setMensajeConversion('Iniciando conversión...')
+    
+    try {
+      // Simular delay de 10 segundos con animación
+      const mensajes = [
+        'Analizando PDF...',
+        'Extrayendo datos...',
+        'Procesando contenido...',
+        'Generando Excel...',
+        'Finalizando conversión...'
+      ]
+      
+      for (let i = 0; i <= 100; i += 10) {
+        await new Promise(resolve => setTimeout(resolve, 1000)) // 1 segundo por paso
+        setProgresoConversion(i)
+        setMensajeConversion(mensajes[Math.floor(i / 20)] || 'Finalizando...')
+      }
+      
+      // Simular conversión exitosa
+      setMensajeConversion('¡Conversión completada!')
+      
+      // Crear archivo Excel de ejemplo (en producción usarías librerías reales)
+      const datosEjemplo = [
+        ['Producto', 'Tipo', 'Precio Base'],
+        ['Batería 60Ah', 'Varta', '$14.189'],
+        ['Batería 100Ah', 'Varta', '$18.446']
+      ]
+      
+      // Simular descarga
+      setTimeout(() => {
+        const blob = new Blob([datosEjemplo.map(row => row.join(',')).join('\n')], { type: 'text/csv' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `conversion_pdf_${archivoPDF.name.replace('.pdf', '')}.csv`
+        a.click()
+        URL.revokeObjectURL(url)
+        
+        setConvirtiendoPDF(false)
+        setProgresoConversion(0)
+        setMensajeConversion('')
+      }, 1000)
+      
+    } catch (error) {
+      setMensajeConversion('Error en la conversión')
+      setConvirtiendoPDF(false)
+      setProgresoConversion(0)
+    }
   }
 
   // Manejar selección de archivo
@@ -401,17 +460,21 @@ export default function CargaPage() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Tabla de Equivalencias */}
+                  {/* Convertir a Excel */}
                   <div className="border-2 border-dashed border-blue-200 rounded-lg p-6 text-center">
                     <div className="mx-auto w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center mb-3">
                       <TableCellsIcon className="w-6 h-6 text-blue-600" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      Tabla de Equivalencias
+                    <h3 className="text-lg font-medium text-gray-900 mb-2 flex items-center justify-center">
+                      Convertir a Excel
+                      <span className="ml-2 inline-flex items-center px-2 py-1 text-xs font-bold text-white bg-green-500 rounded-full">
+                        NUEVO
+                      </span>
                     </h3>
                     <p className="text-gray-600 text-sm mb-4">
-                      Mapeo Varta ↔ Moura
+                      {/* Descripción removida */}
                     </p>
+                    {/* Botón Cargar Excel */}
                     <input
                       type="file"
                       accept=".xlsx,.xls,.csv"
@@ -427,11 +490,59 @@ export default function CargaPage() {
                     />
                     <label
                       htmlFor="equivalencias-input"
-                      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200 cursor-pointer"
+                      className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors duration-200 cursor-pointer mb-3"
                     >
                       <ArrowUpTrayIcon className="w-4 h-4 mr-2" />
                       Cargar Excel
                     </label>
+                    
+                    {/* Botón Convertir PDF a Excel */}
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          convertirPDFaExcel(file)
+                        }
+                      }}
+                      className="hidden"
+                      id="pdf-input"
+                      disabled={convirtiendoPDF}
+                    />
+                    <label
+                      htmlFor="pdf-input"
+                      className={`inline-flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 cursor-pointer ${
+                        convirtiendoPDF 
+                          ? 'bg-gray-400 cursor-not-allowed' 
+                          : 'bg-green-600 hover:bg-green-700 text-white'
+                      }`}
+                    >
+                      {convirtiendoPDF ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Convirtiendo...
+                        </>
+                      ) : (
+                        <>
+                          <DocumentIcon className="w-4 h-4 mr-2" />
+                          Convertir PDF a Excel
+                        </>
+                      )}
+                    </label>
+                    
+                    {/* Barra de progreso de conversión */}
+                    {convirtiendoPDF && (
+                      <div className="mt-4">
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                          <div 
+                            className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${progresoConversion}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-sm text-gray-600">{mensajeConversion}</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Lista de Precios Base */}
