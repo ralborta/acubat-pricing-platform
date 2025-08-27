@@ -30,11 +30,10 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<an
       - voltaje: columna que contiene información de voltaje (ej: 12V, 12X)
       
       REGLAS IMPORTANTES:
-      - PRECIO: Busca la columna que contenga números MÁS GRANDES (>10000), NO dimensiones como largo/ancho/alto
-      - Si una columna contiene códigos como "UB 450 Ag", es modelo
-      - Si una columna contiene "12X45 BORA", es tipo
-      - Si una columna contiene números como 45, 55, 80, es capacidad
-      - IGNORA columnas como "Largo", "Ancho", "Alto" - esas son dimensiones, NO precios
+      - PRECIO: Busca la columna que contenga números MÁS GRANDES (>10000), NO dimensiones
+      - MODELO: Busca códigos como "UB 450 Ag", "VA40DD/E", etc.
+      - TIPO: Busca descripciones como "12X45 BORA", "Bateria", etc.
+      - SOLO NECESITAMOS: Tipo, Modelo y Precio - el resto es opcional
       
       Responde SOLO con un JSON válido:
       {
@@ -341,19 +340,12 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó marca, usar "Moura" por defecto
-      if (!mapeo.marca) {
-        console.log('⚠️ No se detectó marca, usando "Moura" por defecto...')
-        mapeo.marca = 'MOURA'
-      }
-
-      // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó tipo, usar "Batería" por defecto
+      // 🚨 VALIDACIÓN UNIVERSAL: Solo necesitamos Tipo, Modelo y Precio
       if (!mapeo.tipo) {
         console.log('⚠️ No se detectó tipo, usando "Batería" por defecto...')
         mapeo.tipo = 'BATERIA'
       }
 
-      // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó modelo, usar la primera columna con texto
       if (!mapeo.modelo) {
         console.log('⚠️ No se detectó modelo, usando primera columna con texto...')
         for (const header of headers) {
@@ -365,6 +357,9 @@ export async function POST(request: NextRequest) {
           }
         }
       }
+      
+      // 🎯 SISTEMA SIMPLIFICADO: Solo Tipo, Modelo y Precio
+      console.log('🎯 SISTEMA SIMPLIFICADO: Solo necesitamos Tipo, Modelo y Precio')
 
       console.log('🔧 DETECCIÓN MANUAL UNIVERSAL COMPLETADA:')
       console.log('📋 Mapeo final:', mapeo)
@@ -414,20 +409,15 @@ export async function POST(request: NextRequest) {
       console.log(`\n🔍 EXTRACCIÓN DE DATOS DEL PRODUCTO ${index + 1}:`)
       console.log('📋 Mapeo de columnas:', columnMapping)
       
-      const marca = columnMapping.marca ? producto[columnMapping.marca] : 'N/A'
-      const tipo = columnMapping.tipo ? producto[columnMapping.tipo] : 'Batería'
+      // 🎯 SISTEMA SIMPLIFICADO: Solo Tipo, Modelo y Precio
+      const tipo = columnMapping.tipo ? producto[columnMapping.tipo] : 'BATERIA'
       const modelo = columnMapping.modelo ? producto[columnMapping.modelo] : 'N/A'
-      const descripcion = columnMapping.descripcion ? producto[columnMapping.descripcion] : 'N/A'
-      const capacidad = columnMapping.capacidad ? producto[columnMapping.capacidad] : undefined
-      const voltaje = columnMapping.voltaje ? producto[columnMapping.voltaje] : undefined
+      const descripcion = columnMapping.descripcion ? producto[columnMapping.descripcion] : modelo
       
-      console.log(`✅ Datos extraídos:`)
-      console.log(`   - Marca: "${marca}" (columna: ${columnMapping.marca})`)
+      console.log(`✅ Datos extraídos (SISTEMA SIMPLIFICADO):`)
       console.log(`   - Tipo: "${tipo}" (columna: ${columnMapping.tipo})`)
       console.log(`   - Modelo: "${modelo}" (columna: ${columnMapping.modelo})`)
       console.log(`   - Descripción: "${descripcion}" (columna: ${columnMapping.descripcion})`)
-      console.log(`   - Capacidad: "${capacidad}" (columna: ${columnMapping.capacidad})`)
-      console.log(`   - Voltaje: "${voltaje}" (columna: ${columnMapping.voltaje})`)
       
       // Buscar precio (prioridad: precio > pdv > pvp)
       console.log(`\n💰 BÚSQUEDA DE PRECIO DEL PRODUCTO ${index + 1}:`)
@@ -530,30 +520,14 @@ export async function POST(request: NextRequest) {
       const costoEstimado = precioBase * 0.6 // 60% del precio como costo
       console.log(`💰 COSTO ESTIMADO: ${precioBase} * 0.6 = ${costoEstimado}`)
 
-      // 🗄️ BÚSQUEDA EN BASE DE DATOS VARTA LOCAL (confiable)
+      // 🗄️ BÚSQUEDA EN BASE DE DATOS VARTA LOCAL (SISTEMA SIMPLIFICADO)
       console.log(`\n🗄️ BÚSQUEDA DE EQUIVALENCIA VARTA DEL PRODUCTO ${index + 1}:`)
-      console.log(`🔍 BÚSQUEDA DE EQUIVALENCIA VARTA:`)
-      console.log(`   - Marca: "${marca}"`)
+      console.log(`🔍 BÚSQUEDA SIMPLIFICADA:`)
       console.log(`   - Tipo: "${tipo}"`)
       console.log(`   - Modelo: "${modelo}"`)
-      console.log(`   - Capacidad: "${capacidad}"`)
       
-      // Buscar equivalencia con diferentes combinaciones
-      let equivalenciaVarta = buscarEquivalenciaVarta(marca, tipo, modelo, capacidad)
-      
-      // Si no se encontró, intentar con solo capacidad
-      if (!equivalenciaVarta && capacidad) {
-        const capacidadStr = String(capacidad)
-        console.log(`🔍 Intentando búsqueda solo por capacidad: "${capacidadStr}"`)
-        equivalenciaVarta = buscarEquivalenciaVarta('Varta', 'Bateria', capacidadStr, capacidadStr)
-      }
-      
-      // Si no se encontró, intentar con solo modelo
-      if (!equivalenciaVarta && modelo) {
-        const modeloStr = String(modelo)
-        console.log(`🔍 Intentando búsqueda solo por modelo: "${modeloStr}"`)
-        equivalenciaVarta = buscarEquivalenciaVarta('Varta', 'Bateria', modeloStr, capacidad)
-      }
+      // Búsqueda simplificada: solo por tipo y modelo
+      let equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo)
       
       console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
 
