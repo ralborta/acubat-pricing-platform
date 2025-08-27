@@ -769,124 +769,147 @@ export default function CargaPage() {
                     
                     <div className="overflow-x-auto">
                       <table className="min-w-full bg-white border border-gray-200 rounded-md overflow-hidden">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
                           <tr>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Producto
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              PRODUCTO
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Tipo
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              TIPO
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Modelo
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              MODELO
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Precio Base
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              PRECIO BASE
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Canal
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              CANAL
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Precio Neto
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              PRECIO CANAL
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              IVA
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              MARGEN ADICIONAL
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Precio Final
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              PRECIO NETO
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Markup
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              MARKUP %
                             </th>
-                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Rentabilidad
+                            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider">
+                              MARGEN %
                             </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {productosParaMostrar.map((producto) => (
-                            <div key={producto.id}>
+                            <>
                               {/* Fila Minorista */}
-                              <tr className="hover:bg-blue-50 transition-colors border-b border-blue-200">
-                                <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-blue-200">
-                                  {producto.producto}
+                              <tr key={`${producto.id}-minorista`} className="hover:bg-blue-50 transition-colors">
+                                <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
+                                  <div className="text-sm font-semibold text-gray-900">{producto.producto}</div>
                                 </td>
-                                <td className="px-3 py-2 text-sm border-r border-blue-200">
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    {producto.tipo || 'Batería'}
+                                <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    ⚡ {producto.tipo || 'Batería'}
                                   </span>
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-600 border-r border-blue-200">
-                                  <div className="font-medium">{producto.modelo}</div>
+                                <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
+                                  <div className="text-sm font-medium text-gray-900">{producto.modelo}</div>
                                   {producto.equivalencia_varta?.encontrada && (
                                     <div className="text-xs text-green-600">
                                       ✅ Varta: {producto.equivalencia_varta.codigo}
                                     </div>
                                   )}
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-blue-200 font-medium">
-                                  {formatCurrency(producto.precio_base_minorista)}
+                                <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
+                                  <div className="text-sm font-semibold text-gray-900">
+                                    {formatCurrency(producto.precio_base_minorista)}
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2 text-sm border-r border-blue-200">
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                                     Minorista
                                   </span>
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-blue-200 font-medium">
-                                  {formatCurrency(producto.minorista.precio_neto)}
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {formatCurrency(producto.minorista.precio_neto)}
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-700 border-r border-blue-200">
-                                  {formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">
+                                    {formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-blue-200 font-medium">
-                                  {formatCurrency(producto.minorista.precio_final)}
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm font-semibold text-gray-900">
+                                    {formatCurrency(producto.minorista.precio_final)}
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2 text-sm border-r border-blue-200">
-                                  <span className="text-sm font-medium text-blue-600">+70%</span>
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm font-semibold text-blue-600">+70%</div>
                                 </td>
-                                <td className="px-3 py-2 text-sm border-r border-blue-200">
-                                  <span className="text-sm font-medium text-blue-600">{producto.minorista.rentabilidad}</span>
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm font-semibold text-blue-600">{producto.minorista.rentabilidad}</div>
                                 </td>
                               </tr>
                               
                               {/* Fila Mayorista */}
-                              <tr className="hover:bg-green-50 transition-colors border-b border-green-200">
-                                <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-green-200">
-                                  {/* Celda vacía para mantener alineación */}
+                              <tr key={`${producto.id}-mayorista`} className="hover:bg-green-50 transition-colors">
+                                <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
+                                  <div className="text-sm font-semibold text-gray-900">{producto.producto}</div>
                                 </td>
-                                <td className="px-3 py-2 text-sm border-r border-green-200">
-                                  {/* Celda vacía para mantener alineación */}
+                                <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    ⚡ {producto.tipo || 'Batería'}
+                                  </span>
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-600 border-r border-green-200">
-                                  {/* Celda vacía para mantener alineación */}
+                                <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
+                                  <div className="text-sm font-medium text-gray-900">{producto.modelo}</div>
+                                  {producto.equivalencia_varta?.encontrada && (
+                                    <div className="text-xs text-green-600">
+                                      ✅ Varta: {producto.equivalencia_varta.codigo}
+                                    </div>
+                                  )}
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-green-200 font-medium">
-                                  {formatCurrency(producto.precio_base_mayorista)}
+                                <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
+                                  <div className="text-sm font-semibold text-gray-900">
+                                    {formatCurrency(producto.precio_base_mayorista)}
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2 text-sm border-r border-green-200">
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                     Mayorista
                                   </span>
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-green-200 font-medium">
-                                  {formatCurrency(producto.mayorista.precio_neto)}
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {formatCurrency(producto.mayorista.precio_neto)}
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-700 border-r border-green-200">
-                                  {formatCurrency(producto.mayorista.precio_final - producto.mayorista.precio_neto)}
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm text-gray-900">
+                                    {formatCurrency(producto.mayorista.precio_final - producto.mayorista.precio_neto)}
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2 text-sm text-gray-900 border-r border-green-200 font-medium">
-                                  {formatCurrency(producto.mayorista.precio_final)}
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm font-semibold text-gray-900">
+                                    {formatCurrency(producto.mayorista.precio_final)}
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2 text-sm border-r border-green-200">
-                                  <span className="text-sm font-medium text-green-600">
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm font-semibold text-green-600">
                                     {producto.equivalencia_varta?.encontrada ? '+30%' : '+40%'}
-                                  </span>
+                                  </div>
                                 </td>
-                                <td className="px-3 py-2 text-sm border-r border-green-200">
-                                  <span className="text-sm font-medium text-green-600">{producto.mayorista.rentabilidad}</span>
+                                <td className="px-4 py-3 whitespace-nowrap">
+                                  <div className="text-sm font-semibold text-green-600">{producto.mayorista.rentabilidad}</div>
                                 </td>
                               </tr>
-                            </div>
+                            </>
                           ))}
                         </tbody>
                       </table>
