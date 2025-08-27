@@ -193,6 +193,25 @@ export function buscarEquivalenciaVarta(
     )
   )
   
+  // 5️⃣ BÚSQUEDA POR PATRONES COMUNES (más flexible)
+  if (!busquedaFuzzy && modelo) {
+    const modeloStr = String(modelo).toLowerCase()
+    
+    // Buscar por patrones como "UB 450" -> "45Ah"
+    const patronCapacidad = modeloStr.match(/(\d+)/)
+    if (patronCapacidad) {
+      const capacidadNum = patronCapacidad[1]
+      const busquedaPatron = BASE_DATOS_VARTA.find(p => 
+        p.capacidad.toLowerCase().includes(capacidadNum) ||
+        p.equivalencias.some(eq => eq.toLowerCase().includes(capacidadNum))
+      )
+      if (busquedaPatron) {
+        console.log(`✅ EQUIVALENCIA POR PATRÓN ENCONTRADA: ${busquedaPatron.codigo}`)
+        return busquedaPatron
+      }
+    }
+  }
+  
   if (busquedaFuzzy) {
     console.log(`✅ EQUIVALENCIA FUZZY ENCONTRADA: ${busquedaFuzzy.codigo}`)
     return busquedaFuzzy

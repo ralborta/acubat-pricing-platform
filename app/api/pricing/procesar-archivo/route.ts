@@ -450,15 +450,35 @@ export async function POST(request: NextRequest) {
         console.log(`   - PDV: ${columnMapping.pdv} (valor: ${columnMapping.pdv ? producto[columnMapping.pdv] : 'N/A'})`)
         console.log(`   - PVP: ${columnMapping.pvp} (valor: ${columnMapping.pvp ? producto[columnMapping.pvp] : 'N/A'})`)
         
-        // 🔍 BÚSQUEDA ALTERNATIVA: Solo si NO se encontró precio
-        console.log(`🔍 BÚSQUEDA ALTERNATIVA DE PRECIO...`)
-        for (const [key, value] of Object.entries(producto)) {
-          if (typeof value === 'number' && value > 1000 && value < 1000000) {
-            precioBase = value
-            console.log(`✅ Precio encontrado por búsqueda alternativa en '${key}': ${precioBase}`)
-            break
+              // 🔍 BÚSQUEDA ALTERNATIVA: Solo si NO se encontró precio
+      console.log(`🔍 BÚSQUEDA ALTERNATIVA DE PRECIO...`)
+      for (const [key, value] of Object.entries(producto)) {
+        if (typeof value === 'number' && value > 1000 && value < 1000000) {
+          precioBase = value
+          console.log(`✅ Precio encontrado por búsqueda alternativa en '${key}': ${precioBase}`)
+          break
+        }
+      }
+      
+      // 🔍 BÚSQUEDA UNIVERSAL: Buscar capacidad y voltaje en cualquier columna
+      console.log(`🔍 BÚSQUEDA UNIVERSAL DE CAPACIDAD Y VOLTAJE...`)
+      for (const [key, value] of Object.entries(producto)) {
+        const valueStr = String(value).toLowerCase()
+        
+        // Buscar capacidad (números + Ah, A, o solo números)
+        if (!capacidad && (valueStr.includes('ah') || valueStr.includes('a') || /^\d+$/.test(valueStr))) {
+          if (typeof value === 'number' || /^\d+/.test(valueStr)) {
+            capacidad = value
+            console.log(`✅ Capacidad encontrada en '${key}': ${capacidad}`)
           }
         }
+        
+        // Buscar voltaje (12V, 6V, etc.)
+        if (!voltaje && (valueStr.includes('v') || valueStr.includes('volt'))) {
+          voltaje = value
+          console.log(`✅ Voltaje encontrado en '${key}': ${voltaje}`)
+        }
+      }
         
         // 🔍 BÚSQUEDA ESPECÍFICA: Solo si NO se encontró precio
         if (precioBase === 0) {
