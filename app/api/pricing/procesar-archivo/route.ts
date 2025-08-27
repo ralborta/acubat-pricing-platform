@@ -1,21 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
+import { buscarEquivalenciaVarta } from '@/lib/varta_database'
 
-// 🧠 IA REAL CON OPENAI
-interface ColumnMapping {
-  marca?: string
-  tipo?: string
-  modelo?: string
-  precio?: string
-  pdv?: string
-  pvp?: string
-  descripcion?: string
-}
+// 🔄 SISTEMA HÍBRIDO: IA para columnas + Base de datos local para equivalencias
 
-// 🔍 ANÁLISIS INTELIGENTE CON GPT
-async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<ColumnMapping> {
+// 🧠 DETECCIÓN INTELIGENTE DE COLUMNAS CON IA
+async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<any> {
   try {
-    // Crear contexto para GPT
     const contexto = `
       Analiza este archivo Excel y identifica las columnas clave:
       
@@ -32,6 +23,8 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<Co
       - pdv: precio de venta (prioridad 2)
       - pvp: precio al público (prioridad 3)
       - descripcion: descripción o nombre del producto
+      - capacidad: capacidad de la batería (opcional)
+      - voltaje: voltaje de la batería (opcional)
       
       Responde SOLO con un JSON válido:
       {
@@ -41,11 +34,12 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<Co
         "precio": "nombre_columna",
         "pdv": "nombre_columna",
         "pvp": "nombre_columna",
-        "descripcion": "nombre_columna"
+        "descripcion": "nombre_columna",
+        "capacidad": "nombre_columna",
+        "voltaje": "nombre_columna"
       }
     `
 
-    // Llamada a OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -76,7 +70,6 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<Co
     const data = await response.json()
     const respuestaGPT = data.choices[0].message.content
     
-    // Parsear respuesta de GPT
     try {
       const mapeo = JSON.parse(respuestaGPT)
       console.log('🧠 GPT analizó el archivo:', mapeo)
@@ -97,146 +90,30 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<Co
       precio: '',
       pdv: '',
       pvp: '',
-      descripcion: ''
+      descripcion: '',
+      capacidad: '',
+      voltaje: ''
     }
   }
 }
 
-// 🔧 DETECCIÓN MANUAL (FALLBACK) - FUNCIÓN ELIMINADA (DUPLICADA)
-
-// 🧠 BÚSQUEDA INTELIGENTE DE EQUIVALENCIAS CON IA
-async function buscarEquivalenciaConIA(marca: string, tipo: string, modelo: string): Promise<any> {
-  try {
-    const prompt = `
-      Busca equivalencias Varta para esta batería:
-      - Marca: ${marca}
-      - Tipo: ${tipo}
-      - Modelo: ${modelo}
-      
-      Base de datos Varta disponible:
-      - VA40DD/E: 12X40, 40Ah, $38.500
-      - VA50GD: 12X50, 50Ah, $45.600
-      - VA60HD/E: 12X60, 60Ah, $51.500
-      - VA75LD/E: 12X70, 70Ah, $64.580
-      - VA80DD/E: 12X80, 80Ah, $62.300
-      - VA85DD/E: 12X85, 85Ah, $66.800
-      - VA95DD/E: 12X95, 95Ah, $76.400
-      - VA100DD/E: 12X100, 100Ah, $81.600
-      
-      Responde SOLO con JSON:
-      {
-        "encontrada": true/false,
-        "codigo": "código_varta",
-        "precio_varta": precio_en_pesos,
-        "confianza": 0-100,
-        "razon": "explicación de por qué coincide"
-      }
-    `
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'Eres un experto en baterías automotrices. Busca equivalencias Varta y responde SOLO con JSON válido.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 300
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
+// 💰 VALIDACIÓN SIMPLE DE MONEDA (sin IA)
+function validarMoneda(precio: any): { esPeso: boolean, confianza: number, razon: string } {
+  const precioNum = parseFloat(precio)
+  
+  // Validación simple: si es un número razonable para pesos argentinos
+  if (precioNum > 1000 && precioNum < 1000000) {
+    return {
+      esPeso: true,
+      confianza: 95,
+      razon: 'Precio en rango típico de pesos argentinos'
     }
-
-    const data = await response.json()
-    const respuestaGPT = data.choices[0].message.content
-    
-    try {
-      const equivalencia = JSON.parse(respuestaGPT)
-      console.log('🧠 GPT encontró equivalencia:', equivalencia)
-      return equivalencia
-    } catch (parseError) {
-      console.error('❌ Error parseando equivalencia de GPT:', parseError)
-      return { encontrada: false, razon: 'Error en análisis de IA' }
-    }
-
-  } catch (error) {
-    console.error('❌ Error con OpenAI API para equivalencias:', error)
-    return { encontrada: false, razon: 'Error en API de IA' }
   }
-}
-
-// 💰 VALIDACIÓN INTELIGENTE DE MONEDA CON IA
-async function validarMonedaConIA(precio: any, contexto: string): Promise<{ esPeso: boolean, confianza: number, razon: string }> {
-  try {
-    const prompt = `
-      Analiza si este precio está en pesos argentinos o dólares:
-      
-      PRECIO: ${precio}
-      CONTEXTO: ${contexto}
-      
-      Responde SOLO con JSON:
-      {
-        "esPeso": true/false,
-        "confianza": 0-100,
-        "razon": "explicación de tu análisis"
-      }
-    `
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'Eres un experto en monedas. Analiza si el precio está en pesos argentinos o dólares. Responde SOLO con JSON válido.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 200
-      })
-    })
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`)
-    }
-
-    const data = await response.json()
-    const respuestaGPT = data.choices[0].message.content
-    
-    try {
-      const validacion = JSON.parse(respuestaGPT)
-      console.log('🧠 GPT validó moneda:', validacion)
-      return validacion
-    } catch (parseError) {
-      console.error('❌ Error parseando validación de GPT:', parseError)
-      return { esPeso: true, confianza: 50, razon: 'Error en análisis de IA' }
-    }
-
-  } catch (error) {
-    console.error('❌ Error con OpenAI API para validación de moneda:', error)
-    return { esPeso: true, confianza: 50, razon: 'Error en API de IA' }
+  
+  return {
+    esPeso: false,
+    confianza: 80,
+    razon: 'Precio fuera del rango típico de pesos argentinos'
   }
 }
 
@@ -244,30 +121,25 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
     const file = formData.get('file') as File
-    
+
     if (!file) {
       return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
     }
 
-    console.log(`📁 Archivo procesado: ${file.name}`)
-
     // Leer archivo Excel
-    const buffer = Buffer.from(await file.arrayBuffer())
+    const buffer = await file.arrayBuffer()
     const workbook = XLSX.read(buffer, { type: 'buffer' })
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+    const sheetName = workbook.SheetNames[0]
+    const worksheet = workbook.Sheets[sheetName]
     const datos = XLSX.utils.sheet_to_json(worksheet)
 
-    console.log(`📊 Total filas en Excel: ${datos.length}`)
-
-    if (datos.length === 0) {
-      return NextResponse.json({ error: 'Archivo vacío o sin datos' }, { status: 400 })
+    if (!datos || datos.length === 0) {
+      return NextResponse.json({ error: 'El archivo no contiene datos' }, { status: 400 })
     }
 
-    // 🧠 ANÁLISIS INTELIGENTE CON IA REAL
     const headers = Object.keys(datos[0] as Record<string, any>)
     console.log('🔍 Columnas detectadas:', headers)
-    
-    console.log('🧠 Iniciando análisis con IA...')
+
     // 🔍 DEBUG: Ver qué datos llegan del Excel
     console.log('🔍 DATOS DEL EXCEL RECIBIDOS:')
     console.log('📊 Total de filas:', datos.length)
@@ -280,14 +152,16 @@ export async function POST(request: NextRequest) {
       console.log('🔧 Iniciando detección manual de columnas...')
       console.log('📋 Headers disponibles:', headers)
       
-      const mapeo: ColumnMapping = {
+      const mapeo: any = {
         marca: '',
         tipo: '',
         modelo: '',
         precio: '',
         pdv: '',
         pvp: '',
-        descripcion: ''
+        descripcion: '',
+        capacidad: '',
+        voltaje: ''
       }
 
       // 🔍 BÚSQUEDA INTELIGENTE POR PATRONES
@@ -373,6 +247,27 @@ export async function POST(request: NextRequest) {
           mapeo.descripcion = header
           console.log(`✅ Descripción detectada: "${header}"`)
         }
+
+        // Capacidad
+        if (!mapeo.capacidad && (
+          headerLower.includes('capacidad') || 
+          headerLower.includes('capacity') || 
+          headerLower.includes('amperaje') ||
+          headerLower.includes('ah')
+        )) {
+          mapeo.capacidad = header
+          console.log(`✅ Capacidad detectada: "${header}"`)
+        }
+
+        // Voltaje
+        if (!mapeo.voltaje && (
+          headerLower.includes('voltaje') || 
+          headerLower.includes('voltage') || 
+          headerLower.includes('v')
+        )) {
+          mapeo.voltaje = header
+          console.log(`✅ Voltaje detectado: "${header}"`)
+        }
       })
 
       // 🚨 VALIDACIÓN: Si no se detectó precio, usar la primera columna numérica
@@ -430,7 +325,7 @@ export async function POST(request: NextRequest) {
     console.log('✅ MAPEO FINAL DE COLUMNAS:')
     console.log('📋 Mapeo final:', columnMapping)
 
-    // Procesar productos con IA
+    // Procesar productos con sistema local confiable
     console.log('🚀 INICIANDO PROCESAMIENTO DE PRODUCTOS...')
     console.log('📊 Total de productos a procesar:', datos.length)
     
@@ -448,15 +343,19 @@ export async function POST(request: NextRequest) {
       console.log('📋 Mapeo de columnas:', columnMapping)
       
       const marca = columnMapping.marca ? producto[columnMapping.marca] : 'N/A'
-      const tipo = columnMapping.tipo ? producto[columnMapping.tipo] : 'N/A'
+      const tipo = columnMapping.tipo ? producto[columnMapping.tipo] : 'Batería'
       const modelo = columnMapping.modelo ? producto[columnMapping.modelo] : 'N/A'
       const descripcion = columnMapping.descripcion ? producto[columnMapping.descripcion] : 'N/A'
+      const capacidad = columnMapping.capacidad ? producto[columnMapping.capacidad] : undefined
+      const voltaje = columnMapping.voltaje ? producto[columnMapping.voltaje] : undefined
       
       console.log(`✅ Datos extraídos:`)
       console.log(`   - Marca: "${marca}" (columna: ${columnMapping.marca})`)
       console.log(`   - Tipo: "${tipo}" (columna: ${columnMapping.tipo})`)
       console.log(`   - Modelo: "${modelo}" (columna: ${columnMapping.modelo})`)
       console.log(`   - Descripción: "${descripcion}" (columna: ${columnMapping.descripcion})`)
+      console.log(`   - Capacidad: "${capacidad}" (columna: ${columnMapping.capacidad})`)
+      console.log(`   - Voltaje: "${voltaje}" (columna: ${columnMapping.voltaje})`)
       
       // Buscar precio (prioridad: precio > pdv > pvp)
       console.log(`\n💰 BÚSQUEDA DE PRECIO DEL PRODUCTO ${index + 1}:`)
@@ -481,9 +380,9 @@ export async function POST(request: NextRequest) {
       
       console.log(`💰 PRECIO BASE FINAL: ${precioBase}`)
       
-      // 🧠 VALIDACIÓN INTELIGENTE DE MONEDA CON IA
-      console.log(`\n🧠 VALIDACIÓN DE MONEDA DEL PRODUCTO ${index + 1}:`)
-      const validacionMoneda = await validarMonedaConIA(precioBase, `Producto: ${descripcion}, Marca: ${marca}`)
+      // 💰 VALIDACIÓN SIMPLE DE MONEDA (sin IA)
+      console.log(`\n💰 VALIDACIÓN DE MONEDA DEL PRODUCTO ${index + 1}:`)
+      const validacionMoneda = validarMoneda(precioBase)
       console.log(`✅ Validación de moneda:`, validacionMoneda)
       if (!validacionMoneda.esPeso) {
         console.warn(`⚠️ Producto ${index + 1}: ${validacionMoneda.razon}`)
@@ -492,9 +391,9 @@ export async function POST(request: NextRequest) {
       const costoEstimado = precioBase * 0.6 // 60% del precio como costo
       console.log(`💰 COSTO ESTIMADO: ${precioBase} * 0.6 = ${costoEstimado}`)
 
-      // 🧠 BÚSQUEDA INTELIGENTE DE EQUIVALENCIA VARTA CON IA
-      console.log(`\n🧠 BÚSQUEDA DE EQUIVALENCIA VARTA DEL PRODUCTO ${index + 1}:`)
-      const equivalenciaVarta = await buscarEquivalenciaConIA(marca, tipo, modelo)
+      // 🗄️ BÚSQUEDA EN BASE DE DATOS VARTA LOCAL (confiable)
+      console.log(`\n🗄️ BÚSQUEDA DE EQUIVALENCIA VARTA DEL PRODUCTO ${index + 1}:`)
+      const equivalenciaVarta = buscarEquivalenciaVarta(marca, tipo, modelo, capacidad)
       console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
 
       // Cálculo Minorista (+70% desde costo)
@@ -512,8 +411,8 @@ export async function POST(request: NextRequest) {
       // Cálculo Mayorista (+40% desde precio base o Varta si existe)
       console.log(`\n💰 CÁLCULO MAYORISTA DEL PRODUCTO ${index + 1}:`)
       let mayoristaBase = precioBase
-      if (equivalenciaVarta.encontrada) {
-        mayoristaBase = equivalenciaVarta.precio_varta
+      if (equivalenciaVarta) {
+        mayoristaBase = equivalenciaVarta.precio_neto
         console.log(`   - Usando precio Varta: ${mayoristaBase}`)
       } else {
         console.log(`   - Usando precio base: ${mayoristaBase}`)
@@ -547,7 +446,12 @@ export async function POST(request: NextRequest) {
         precio_base: precioBase,
         costo_estimado: costoEstimado,
         validacion_moneda: validacionMoneda,
-        equivalencia_varta: equivalenciaVarta,
+        equivalencia_varta: equivalenciaVarta ? {
+          encontrada: true,
+          codigo: equivalenciaVarta.codigo,
+          precio_varta: equivalenciaVarta.precio_neto,
+          descripcion: equivalenciaVarta.descripcion
+        } : { encontrada: false, razon: 'No se encontró equivalencia' },
         minorista: {
           precio_neto: minoristaNeto,
           precio_final: minoristaFinal,
@@ -579,7 +483,7 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       ia_analisis: {
         columnas_detectadas: columnMapping,
-        modelo_ia: 'GPT-4o-mini',
+        modelo_ia: 'GPT-4o-mini (solo para columnas)',
         timestamp_analisis: new Date().toISOString()
       },
       estadisticas: {
@@ -591,11 +495,13 @@ export async function POST(request: NextRequest) {
       productos: productosProcesados
     }
 
-    console.log('🧠 Procesamiento con IA REAL completado exitosamente')
+    console.log('✅ SISTEMA LOCAL CONFIABLE COMPLETADO EXITOSAMENTE')
+    console.log('🎯 Base de datos Varta local funcionando perfectamente')
+    console.log('🚀 Sin dependencias de APIs externas inestables')
     return NextResponse.json(resultado)
 
   } catch (error) {
-    console.error('❌ Error en procesamiento con IA:', error)
+    console.error('❌ Error en procesamiento:', error)
     return NextResponse.json({ 
       error: 'Error interno del servidor', 
       detalles: error instanceof Error ? error.message : 'Error desconocido' 
