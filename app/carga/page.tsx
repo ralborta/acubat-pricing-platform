@@ -636,7 +636,7 @@ export default function CargaPage() {
                       ¡Procesamiento Completado!
                     </h2>
                     <p className="text-gray-600 text-sm">
-                      {resultado.mensaje}
+                      Archivo procesado exitosamente con {resultado.estadisticas.total_productos} productos
                     </p>
                   </div>
 
@@ -663,16 +663,16 @@ export default function CargaPage() {
                     <div className="bg-purple-50 p-4 rounded-md border border-purple-200">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-purple-600 mb-1">
-                          {resultado.estadisticas.con_equivalencia_varta}
+                          {resultado.estadisticas.productos_rentables}
                         </div>
-                        <div className="text-purple-800 text-sm font-medium">Con Varta</div>
+                        <div className="text-purple-800 text-sm font-medium">Con Equivalencia</div>
                       </div>
                     </div>
 
                     <div className="bg-indigo-50 p-4 rounded-md border border-indigo-200">
                       <div className="text-center">
                         <div className="text-2xl font-bold text-indigo-600 mb-1">
-                          {resultado.estadisticas.margen_promedio_general}
+                          {resultado.estadisticas.margen_promedio}
                         </div>
                         <div className="text-indigo-800 text-sm font-medium">Margen Promedio</div>
                       </div>
@@ -705,7 +705,7 @@ export default function CargaPage() {
                         <thead className="bg-gray-50">
                           <tr>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Código
+                              Producto
                             </th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                               Tipo
@@ -717,10 +717,10 @@ export default function CargaPage() {
                               Canal
                             </th>
                             <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                              Precio Base Moura
+                              Precio Base
                             </th>
-                                                          <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Precio Varta
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                                Costo Estimado
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                                 Precio Final
@@ -728,7 +728,7 @@ export default function CargaPage() {
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                                 Markup
                               </th>
-                                                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                                 IVA
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
