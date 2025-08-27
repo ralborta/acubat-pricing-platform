@@ -156,9 +156,10 @@ export function buscarEquivalenciaVarta(
   
   // 2️⃣ BÚSQUEDA POR CAPACIDAD
   if (capacidad) {
+    const capacidadStr = String(capacidad)
     const busquedaCapacidad = BASE_DATOS_VARTA.find(p => 
-      p.capacidad.toLowerCase() === capacidad.toLowerCase() ||
-      p.equivalencias.some(eq => eq.toLowerCase() === capacidad.toLowerCase())
+      p.capacidad.toLowerCase() === capacidadStr.toLowerCase() ||
+      p.equivalencias.some(eq => eq.toLowerCase() === capacidadStr.toLowerCase())
     )
     
     if (busquedaCapacidad) {
@@ -169,10 +170,11 @@ export function buscarEquivalenciaVarta(
   
   // 3️⃣ BÚSQUEDA POR MARCA Y CAPACIDAD
   if (marca && capacidad) {
+    const capacidadStr = String(capacidad)
     const busquedaMarcaCapacidad = BASE_DATOS_VARTA.find(p => 
       p.marca.toLowerCase() === marca.toLowerCase() &&
-      (p.capacidad.toLowerCase() === capacidad.toLowerCase() ||
-       p.equivalencias.some(eq => eq.toLowerCase() === capacidad.toLowerCase()))
+      (p.capacidad.toLowerCase() === capacidadStr.toLowerCase() ||
+       p.equivalencias.some(eq => eq.toLowerCase() === capacidadStr.toLowerCase()))
     )
     
     if (busquedaMarcaCapacidad) {
