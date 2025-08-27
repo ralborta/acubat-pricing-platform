@@ -204,8 +204,8 @@ export function buscarEquivalenciaVarta(
 export function obtenerEstadisticasVarta() {
   return {
     total_productos: BASE_DATOS_VARTA.length,
-    marcas: [...new Set(BASE_DATOS_VARTA.map(p => p.marca))],
-    capacidades: [...new Set(BASE_DATOS_VARTA.map(p => p.capacidad))],
+    marcas: Array.from(new Set(BASE_DATOS_VARTA.map(p => p.marca))),
+    capacidades: Array.from(new Set(BASE_DATOS_VARTA.map(p => p.capacidad))),
     rango_precios: {
       min: Math.min(...BASE_DATOS_VARTA.map(p => p.precio_neto)),
       max: Math.max(...BASE_DATOS_VARTA.map(p => p.precio_neto)),

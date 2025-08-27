@@ -474,9 +474,9 @@ export async function POST(request: NextRequest) {
       } else {
         console.log(`❌ NO SE ENCONTRÓ PRECIO para producto ${index + 1}`)
         console.log(`🔍 Columnas de precio disponibles:`)
-        console.log(`   - Precio: ${columnMapping.precio} (valor: ${producto[columnMapping.precio]})`)
-        console.log(`   - PDV: ${columnMapping.pdv} (valor: ${producto[columnMapping.pdv]})`)
-        console.log(`   - PVP: ${columnMapping.pvp} (valor: ${producto[columnMapping.pvp]})`)
+        console.log(`   - Precio: ${columnMapping.precio} (valor: ${columnMapping.precio ? producto[columnMapping.precio] : 'N/A'})`)
+        console.log(`   - PDV: ${columnMapping.pdv} (valor: ${columnMapping.pdv ? producto[columnMapping.pdv] : 'N/A'})`)
+        console.log(`   - PVP: ${columnMapping.pvp} (valor: ${columnMapping.pvp ? producto[columnMapping.pvp] : 'N/A'})`)
       }
       
       console.log(`💰 PRECIO BASE FINAL: ${precioBase}`)
