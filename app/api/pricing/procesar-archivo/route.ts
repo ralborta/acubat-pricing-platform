@@ -172,7 +172,9 @@ export async function POST(request: NextRequest) {
         if (!mapeo.marca && (
           headerLower.includes('marca') || 
           headerLower.includes('brand') || 
-          headerLower.includes('fabricante')
+          headerLower.includes('fabricante') ||
+          headerLower.includes('ub') ||
+          headerLower.includes('moura')
         )) {
           mapeo.marca = header
           console.log(`✅ Marca detectada: "${header}"`)
@@ -196,7 +198,8 @@ export async function POST(request: NextRequest) {
           headerLower.includes('codigo') ||
           headerLower.includes('code') ||
           headerLower.includes('sku') ||
-          headerLower.includes('baterias')
+          headerLower.includes('baterias') ||
+          headerLower.includes('ub')
         )) {
           mapeo.modelo = header
           console.log(`✅ Modelo detectado: "${header}"`)
@@ -210,7 +213,8 @@ export async function POST(request: NextRequest) {
           headerLower.includes('cost') ||
           headerLower.includes('valor') ||
           headerLower.includes('lista') ||
-          headerLower.includes('precio de lista')
+          headerLower.includes('precio de lista') ||
+          headerLower.includes('precio lista')
         )) {
           mapeo.precio = header
           console.log(`✅ Precio detectado: "${header}"`)
@@ -317,6 +321,19 @@ export async function POST(request: NextRequest) {
         mapeo.tipo = 'BATERIA'
       }
 
+      // 🚨 VALIDACIÓN: Si no se detectó modelo, usar la primera columna que contenga texto
+      if (!mapeo.modelo) {
+        console.log('⚠️ No se detectó modelo, usando primera columna de texto...')
+        for (const header of headers) {
+          const sampleData = datos?.[0]?.[header]
+          if (sampleData && typeof sampleData === 'string' && sampleData.length > 0) {
+            mapeo.modelo = header
+            console.log(`✅ Modelo asignado: "${header}"`)
+            break
+          }
+        }
+      }
+
       console.log('🔧 DETECCIÓN MANUAL COMPLETADA:')
       console.log('📋 Mapeo final:', mapeo)
       
@@ -406,10 +423,40 @@ export async function POST(request: NextRequest) {
           }
         }
         
-        // 🔍 BÚSQUEDA ESPECÍFICA: Buscar "Precio de Lista" directamente
-        if (precioBase === 0 && producto['Precio de Lista']) {
-          precioBase = parseFloat(producto['Precio de Lista']) || 0
-          console.log(`✅ Precio encontrado directamente en 'Precio de Lista': ${precioBase}`)
+        // 🔍 BÚSQUEDA ESPECÍFICA: Buscar columnas de precio comunes
+        if (precioBase === 0) {
+          const columnasPrecio = [
+            'Precio de Lista', 'Precio Lista', 'Precio', 'Price', 'Costo', 'Cost',
+            'Valor', 'Precio Base', 'Precio Final', 'Precio Venta', 'Precio Público'
+          ]
+          
+          for (const columna of columnasPrecio) {
+            if (producto[columna]) {
+              const valor = parseFloat(producto[columna])
+              if (valor > 0) {
+                precioBase = valor
+                console.log(`✅ Precio encontrado en '${columna}': ${precioBase}`)
+                break
+              }
+            }
+          }
+        }
+        
+        // 🔍 BÚSQUEDA POR CONTENIDO: Buscar cualquier columna que contenga números grandes
+        if (precioBase === 0) {
+          console.log(`🔍 BÚSQUEDA POR CONTENIDO DE COLUMNAS...`)
+          for (const [key, value] of Object.entries(producto)) {
+            if (typeof value === 'string' && value.includes(',')) {
+              // Intentar parsear números con comas (formato argentino)
+              const valorLimpio = value.replace(/\./g, '').replace(',', '.')
+              const valor = parseFloat(valorLimpio)
+              if (valor > 1000 && valor < 1000000) {
+                precioBase = valor
+                console.log(`✅ Precio encontrado en '${key}' (formato argentino): ${precioBase}`)
+                break
+              }
+            }
+          }
         }
       }
       
@@ -428,7 +475,27 @@ export async function POST(request: NextRequest) {
 
       // 🗄️ BÚSQUEDA EN BASE DE DATOS VARTA LOCAL (confiable)
       console.log(`\n🗄️ BÚSQUEDA DE EQUIVALENCIA VARTA DEL PRODUCTO ${index + 1}:`)
-      const equivalenciaVarta = buscarEquivalenciaVarta(marca, tipo, modelo, capacidad)
+      console.log(`🔍 BÚSQUEDA DE EQUIVALENCIA VARTA:`)
+      console.log(`   - Marca: "${marca}"`)
+      console.log(`   - Tipo: "${tipo}"`)
+      console.log(`   - Modelo: "${modelo}"`)
+      console.log(`   - Capacidad: "${capacidad}"`)
+      
+      // Buscar equivalencia con diferentes combinaciones
+      let equivalenciaVarta = buscarEquivalenciaVarta(marca, tipo, modelo, capacidad)
+      
+      // Si no se encontró, intentar con solo capacidad
+      if (!equivalenciaVarta && capacidad) {
+        console.log(`🔍 Intentando búsqueda solo por capacidad: "${capacidad}"`)
+        equivalenciaVarta = buscarEquivalenciaVarta('Varta', 'Bateria', capacidad, capacidad)
+      }
+      
+      // Si no se encontró, intentar con solo modelo
+      if (!equivalenciaVarta && modelo) {
+        console.log(`🔍 Intentando búsqueda solo por modelo: "${modelo}"`)
+        equivalenciaVarta = buscarEquivalenciaVarta('Varta', 'Bateria', modelo, capacidad)
+      }
+      
       console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
 
       // Cálculo Minorista (+70% desde costo)
