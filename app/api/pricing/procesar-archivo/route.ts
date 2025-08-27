@@ -4,43 +4,105 @@ import { buscarEquivalenciaVarta } from '../../../../src/lib/varta_database'
 
 // 🔄 SISTEMA HÍBRIDO: IA para columnas + Base de datos local para equivalencias
 
-// 🧠 DETECCIÓN INTELIGENTE DE COLUMNAS CON IA
+// 🧠 DETECCIÓN INTELIGENTE DE COLUMNAS CON IA (PROMPT MEJORADO)
 async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<any> {
   try {
     const contexto = `
-      Eres un experto en análisis de archivos Excel de baterías automotrices. Analiza este archivo y identifica las columnas clave.
+      Eres un especialista senior en pricing de baterías automotrices en Argentina. Tu objetivo es mapear exactamente qué columna del archivo corresponde a:
+      tipo (familia/categoría, p.ej. "Ca Ag Blindada", "J.I.S.", "Batería")
+      modelo (código identificador, p.ej. "UB 550 Ag", "VA40DD/E")
+      precio_ars (precio en pesos argentinos)
+      descripcion (si existe)
       
-      COLUMNAS DISPONIBLES: ${headers.join(', ')}
+      REGLAS OBLIGATORIAS:
+      - Moneda: Solo ARS. En Argentina el símbolo $ es ARS. Rechaza columnas con USD, U$S, US$, "dólar" o que mezclen monedas.
+      - No conviertas USD→ARS. Si solo hay USD, precio_ars = null y explica en notas.
       
-      MUESTRA DE DATOS (primeras 3 filas):
-      ${JSON.stringify(datos.slice(0, 3), null, 2)}
+      PRECIO (prioridad):
+      - Encabezados/pistas: precio, precio lista, pvp, sugerido proveedor, lista, AR$, ARS, $ (sin USD).
+      - Contenido: valores altos y consistentes para Argentina (≈ 150.000–3.000.000), formato local (. miles, , decimales) o enteros.
+      - Si hay duplicados (con/sin IVA), prefiere "precio lista / sugerido proveedor" y, si hay dos variantes, elige "sin IVA" (más neutral).
+      - EXCLUIR dimensiones/medidas (Largo/Ancho/Alto/Ah/CCA/Kg) o columnas con texto no monetario intercalado.
       
-      INSTRUCCIONES ESPECÍFICAS:
-      1. ANALIZA el contenido de cada columna, no solo el nombre
-      2. Busca patrones en los datos (números, texto, códigos)
-      3. Identifica qué representa cada columna realmente
+      IDENTIFICADOR:
+      - modelo debe ser el código más específico y único.
+      - Si faltara, usa nombre como fallback para identificador y anótalo en notas.
+      - Nombres exactos: devuelve los nombres de columna exactamente como aparecen; no renombres.
       
-      NECESITO IDENTIFICAR:
-      - marca: columna que contiene la marca/fabricante (ej: Moura, Varta, Bosch)
-      - tipo: columna que contiene el tipo o categoría (ej: Batería, 12X45 BORA)
-      - modelo: columna que contiene el modelo o código específico (ej: UB 450 Ag, VA40DD/E)
-      - precio: columna que contiene números grandes (precios en pesos argentinos)
-      - descripcion: columna que contiene texto largo (descripción del producto)
-      - capacidad: columna que contiene números de amperaje (ej: 45, 55, 80)
-      - voltaje: columna que contiene información de voltaje (ej: 12V, 12X)
+      SALIDA ESTRICTA: responde solo con JSON válido que cumpla el schema provisto.
+      EVIDENCIA Y CONFIANZA: incluye ejemplos de celdas y el motivo por el que cada columna fue elegida.
       
-      REGLAS IMPORTANTES:
-      - PRECIO: Busca la columna que contenga números MÁS GRANDES (>10000), NO dimensiones
-      - MODELO: Busca códigos como "UB 450 Ag", "VA40DD/E", etc.
-      - TIPO: Busca descripciones como "12X45 BORA", "Bateria", etc.
-      - SOLO NECESITAMOS: Tipo, Modelo y Precio - el resto es opcional
+      CRITERIOS DE DESEMPATE (en orden):
+      A) Encabezado compatible con ARS → gana.
+      B) Mayor cobertura de filas numéricas válidas, rango plausible.
+      C) "precio lista / precio sugerido del proveedor" > cualquier otro.
+      D) Consistencia de formato.
+      E) Si la confianza < 0.6, deja el campo en null y explica en notas.
       
-      Responde SOLO con un JSON válido:
+      IGNORA cualquier conocimiento previo; usa únicamente COLUMNAS y MUESTRA de este turno.
+      
+      COLUMNAS: ${headers.join(', ')}
+      MUESTRA (hasta 10 filas reales):
+      ${JSON.stringify(datos.slice(0, 10), null, 2)}
+      
+      Contexto de negocio:
+      IVA_por_defecto: 0.21 (solo contexto; esta etapa no calcula)
+      Preferir: "precio lista" / "sugerido proveedor"
+      Moneda esperada: ARS
+      
+      Indica el mapeo y por qué (evidencias). Responde solo JSON.
+      
+      JSON Schema (estricto) — "mapeo_columnas_baterias_ars"
       {
-        "tipo": "nombre_columna", 
-        "modelo": "nombre_columna",
-        "precio": "nombre_columna",
-        "descripcion": "nombre_columna"
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tipo": { "type": ["string","null"] },
+          "modelo": { "type": ["string","null"] },
+          "precio_ars": { "type": ["string","null"] },
+          "descripcion": { "type": ["string","null"] },
+          "identificador": { "type": ["string","null"] },
+          "confianza": { "type": "number", "minimum": 0, "maximum": 1 },
+          "evidencia": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "precio_ars": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "columna_elegida": { "type": ["string","null"] },
+                  "muestras": { "type": "array", "items": { "type": "string" }, "maxItems": 5 },
+                  "motivo": { "type": "string" }
+                },
+                "required": ["columna_elegida","muestras","motivo"]
+              },
+              "modelo": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "columna_elegida": { "type": ["string","null"] },
+                  "muestras": { "type": "array", "items": { "type": "string" }, "maxItems": 5 },
+                  "motivo": { "type": "string" }
+                },
+                "required": ["columna_elegida","muestras","motivo"]
+              },
+              "tipo": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "columna_elegida": { "type": ["string","null"] },
+                  "muestras": { "type": "array", "items": { "type": "string" }, "maxItems": 5 },
+                  "motivo": { "type": "string" }
+                },
+                "required": ["columna_elegida","muestras","motivo"]
+              }
+            },
+            "required": ["precio_ars","modelo","tipo"]
+          },
+          "notas": { "type": "array", "items": { "type": "string", "maxLength": 240 } }
+        },
+        "required": ["tipo","modelo","precio_ars","identificador","confianza","evidencia","notas"]
       }
     `
 
@@ -63,7 +125,7 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<an
           }
         ],
         temperature: 0.1,
-        max_tokens: 500
+        max_tokens: 1000
       })
     })
 
@@ -77,7 +139,22 @@ async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<an
     try {
       const mapeo = JSON.parse(respuestaGPT)
       console.log('🧠 GPT analizó el archivo:', mapeo)
-      return mapeo
+      
+      // 🎯 ADAPTAR LA NUEVA ESTRUCTURA A LA EXISTENTE
+      const resultadoAdaptado = {
+        tipo: mapeo.tipo || '',
+        modelo: mapeo.modelo || mapeo.identificador || '',
+        precio: mapeo.precio_ars || '',
+        descripcion: mapeo.descripcion || '',
+        confianza: mapeo.confianza || 0,
+        evidencia: mapeo.evidencia || {},
+        notas: mapeo.notas || []
+      }
+      
+      console.log('🧠 RESPUESTA ORIGINAL DE GPT:', mapeo)
+      console.log('🔧 RESULTADO ADAPTADO:', resultadoAdaptado)
+      
+      return resultadoAdaptado
     } catch (parseError) {
       console.error('❌ Error parseando respuesta de GPT:', parseError)
       throw new Error('GPT no pudo analizar el archivo correctamente')
