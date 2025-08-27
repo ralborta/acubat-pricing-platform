@@ -240,31 +240,29 @@ export default function CargaPage() {
     const headers = [
       'Producto',
       'Tipo',
-      'Descripción',
+      'Modelo',
       'Canal',
-      'Precio Base',
-      'Costo Estimado',
-      'Precio Final',
-      'Markup',
-      'IVA',
-      'Desglose',
-      'Rentabilidad',
-      'Estado'
+      'Precio Base Minorista',
+      'Precio Base Mayorista',
+      'Precio Final (Minorista/Mayorista)',
+      'Markup (Minorista/Mayorista)',
+      'Rentabilidad Minorista',
+      'Rentabilidad Mayorista'
     ]
 
     const csvContent = [
       headers.join(','),
       ...resultado.productos.map(producto => [
         producto.producto,
-        'N/A',
-        'N/A',
+        producto.tipo || 'N/A',
+        producto.modelo || 'N/A',
         'Minorista/Mayorista',
         producto.precio_base_minorista,
-        'N/A',
-        producto.minorista.precio_final,
-        '+70%',
+        producto.precio_base_mayorista,
+        `${producto.minorista.precio_final} / ${producto.mayorista.precio_final}`,
+        '+70% / +30%',
         producto.minorista.rentabilidad,
-        producto.minorista.rentabilidad
+        producto.mayorista.rentabilidad
       ].join(','))
     ].join('\n')
 

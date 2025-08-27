@@ -506,15 +506,21 @@ export async function POST(request: NextRequest) {
       
       console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
 
-      // 🎯 DECLARAR mayoristaBase ANTES de usarla en costos
+      // 🎯 DEFINICIÓN CLARA DE PRECIOS BASE:
+      // Minorista: SIEMPRE usa precioBase (del archivo subido)
+      // Mayorista: Usa precioVarta si existe, sino precioBase
       let mayoristaBase = equivalenciaVarta ? equivalenciaVarta.precio_neto : precioBase
-      console.log(`💰 PRECIO BASE MAYORISTA: ${mayoristaBase} (${equivalenciaVarta ? 'Varta' : 'Archivo'})`)
+      
+      console.log(`\n💰 DEFINICIÓN DE PRECIOS BASE DEL PRODUCTO ${index + 1}:`)
+      console.log(`   - Precio Base Minorista: ${precioBase} (del archivo subido)`)
+      console.log(`   - Precio Base Mayorista: ${mayoristaBase} (${equivalenciaVarta ? 'de tabla Varta' : 'del archivo subido'})`)
 
       // Costos estimados separados por canal
-      const costoEstimadoMinorista = precioBase * 0.6 // 60% del precio minorista
-      const costoEstimadoMayorista = mayoristaBase * 0.6 // 60% del precio mayorista
-      console.log(`💰 COSTO ESTIMADO MINORISTA: ${precioBase} * 0.6 = ${costoEstimadoMinorista}`)
-      console.log(`💰 COSTO ESTIMADO MAYORISTA: ${mayoristaBase} * 0.6 = ${costoEstimadoMayorista}`)
+      const costoEstimadoMinorista = precioBase * 0.6 // 60% del precio base minorista
+      const costoEstimadoMayorista = mayoristaBase * 0.6 // 60% del precio base mayorista
+      console.log(`\n💰 COSTOS ESTIMADOS (60% del precio base):`)
+      console.log(`   - Costo Minorista: ${precioBase} * 0.6 = ${costoEstimadoMinorista}`)
+      console.log(`   - Costo Mayorista: ${mayoristaBase} * 0.6 = ${costoEstimadoMayorista}`)
 
       // Cálculo Minorista (precio más alto para venta al público)
       console.log(`\n💰 CÁLCULO MINORISTA DEL PRODUCTO ${index + 1}:`)
@@ -545,6 +551,25 @@ export async function POST(request: NextRequest) {
       console.log(`   - +IVA: ${mayoristaNeto} * 1.21 = ${mayoristaNeto * 1.21}`)
       console.log(`   - Redondeado: ${mayoristaFinal}`)
       console.log(`   - Rentabilidad: ${mayoristaRentabilidad.toFixed(1)}%`)
+
+      // 🔍 VALIDACIÓN CRÍTICA: Asegurar que mayorista sea MENOR que minorista
+      if (mayoristaFinal >= minoristaFinal) {
+        console.warn(`⚠️ ADVERTENCIA: Mayorista (${mayoristaFinal}) >= Minorista (${minoristaFinal})`)
+        console.warn(`🔄 Ajustando mayorista para que sea menor...`)
+        
+        // Ajustar mayorista para que sea 20% menor que minorista
+        const mayoristaAjustado = Math.round((minoristaFinal * 0.80) / 10) * 10
+        console.log(`✅ Mayorista ajustado: ${mayoristaAjustado} (20% menor que minorista)`)
+        
+        // Recalcular rentabilidad del mayorista ajustado
+        const mayoristaNetoAjustado = mayoristaAjustado / 1.21
+        const mayoristaRentabilidadAjustada = ((mayoristaNetoAjustado - mayoristaBase) / mayoristaNetoAjustado) * 100
+        
+        // Actualizar variables
+        mayoristaFinal = mayoristaAjustado
+        mayoristaNeto = mayoristaNetoAjustado
+        mayoristaRentabilidad = mayoristaRentabilidadAjustada
+      }
 
       // 🔍 DEBUG: Ver resultados del cálculo
       console.log(`\n🔍 RESUMEN DE CÁLCULOS DEL PRODUCTO ${index + 1}:`)
