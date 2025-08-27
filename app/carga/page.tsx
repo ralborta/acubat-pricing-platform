@@ -805,7 +805,7 @@ export default function CargaPage() {
                         </thead>
                         <tbody className="divide-y divide-gray-200">
                           {productosParaMostrar.map((producto) => (
-                            <React.Fragment key={producto.id}>
+                            <Fragment key={producto.id}>
                               {/* Fila Minorista */}
                               <tr className="hover:bg-blue-50 transition-colors border-b border-blue-200">
                                 <td className="px-3 py-2 text-sm font-medium text-gray-900 border-r border-blue-200">
@@ -886,7 +886,7 @@ export default function CargaPage() {
                                   <span className="text-sm font-medium text-green-600">{producto.mayorista.rentabilidad}</span>
                                 </td>
                               </tr>
-                            </React.Fragment>
+                            </Fragment>
                           ))}
                         </tbody>
                       </table>
