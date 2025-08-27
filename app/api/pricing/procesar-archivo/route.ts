@@ -418,9 +418,6 @@ export async function POST(request: NextRequest) {
         console.warn(`⚠️ Producto ${index + 1}: ${validacionMoneda.razon}`)
       }
 
-      const costoEstimado = precioBase * 0.6 // 60% del precio como costo
-      console.log(`💰 COSTO ESTIMADO: ${precioBase} * 0.6 = ${costoEstimado}`)
-
       // 🗄️ BÚSQUEDA EN BASE DE DATOS VARTA LOCAL (SISTEMA SIMPLIFICADO)
       console.log(`\n🗄️ BÚSQUEDA DE EQUIVALENCIA VARTA DEL PRODUCTO ${index + 1}:`)
       console.log(`🔍 BÚSQUEDA SIMPLIFICADA:`)
@@ -431,6 +428,16 @@ export async function POST(request: NextRequest) {
       let equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo)
       
       console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
+
+      // 🎯 DECLARAR mayoristaBase ANTES de usarla en costos
+      let mayoristaBase = equivalenciaVarta ? equivalenciaVarta.precio_neto : precioBase
+      console.log(`💰 PRECIO BASE MAYORISTA: ${mayoristaBase} (${equivalenciaVarta ? 'Varta' : 'Archivo'})`)
+
+      // Costos estimados separados por canal
+      const costoEstimadoMinorista = precioBase * 0.6 // 60% del precio minorista
+      const costoEstimadoMayorista = mayoristaBase * 0.6 // 60% del precio mayorista
+      console.log(`💰 COSTO ESTIMADO MINORISTA: ${precioBase} * 0.6 = ${costoEstimadoMinorista}`)
+      console.log(`💰 COSTO ESTIMADO MAYORISTA: ${mayoristaBase} * 0.6 = ${costoEstimadoMayorista}`)
 
       // Cálculo Minorista (precio más alto para venta al público)
       console.log(`\n💰 CÁLCULO MINORISTA DEL PRODUCTO ${index + 1}:`)
@@ -446,7 +453,6 @@ export async function POST(request: NextRequest) {
 
       // Cálculo Mayorista (precio más bajo para venta al por mayor)
       console.log(`\n💰 CÁLCULO MAYORISTA DEL PRODUCTO ${index + 1}:`)
-      let mayoristaBase = equivalenciaVarta ? equivalenciaVarta.precio_neto : precioBase
       if (equivalenciaVarta) {
         console.log(`   - Usando precio Varta: ${mayoristaBase}`)
       } else {
@@ -466,7 +472,8 @@ export async function POST(request: NextRequest) {
       // 🔍 DEBUG: Ver resultados del cálculo
       console.log(`\n🔍 RESUMEN DE CÁLCULOS DEL PRODUCTO ${index + 1}:`)
       console.log(`   - Precio Base: ${precioBase}`)
-      console.log(`   - Costo Estimado: ${costoEstimado}`)
+      console.log(`   - Costo Estimado Minorista: ${costoEstimadoMinorista}`)
+      console.log(`   - Costo Estimado Mayorista: ${costoEstimadoMayorista}`)
       console.log(`   - Minorista Neto: ${minoristaNeto}`)
       console.log(`   - Minorista Final: ${minoristaFinal}`)
       console.log(`   - Mayorista Neto: ${mayoristaNeto}`)
@@ -479,7 +486,8 @@ export async function POST(request: NextRequest) {
         modelo: modelo,
         precio_base_minorista: precioBase,  // ✅ Precio base para Minorista (del archivo)
         precio_base_mayorista: mayoristaBase,  // ✅ Precio base para Mayorista (Varta o archivo)
-        costo_estimado: costoEstimado,
+        costo_estimado_minorista: costoEstimadoMinorista,  // ✅ Costo estimado para Minorista
+        costo_estimado_mayorista: costoEstimadoMayorista,  // ✅ Costo estimado para Mayorista
         validacion_moneda: validacionMoneda,
         equivalencia_varta: equivalenciaVarta ? {
           encontrada: true,

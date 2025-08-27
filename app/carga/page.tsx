@@ -14,7 +14,8 @@ interface Producto {
   modelo: string
   precio_base_minorista: number  // ✅ Precio base para Minorista (del archivo)
   precio_base_mayorista: number  // ✅ Precio base para Mayorista (Varta o archivo)
-  costo_estimado: number
+  costo_estimado_minorista: number  // ✅ Costo estimado para Minorista
+  costo_estimado_mayorista: number  // ✅ Costo estimado para Mayorista
   equivalencia_varta?: {
     encontrada: boolean
     codigo?: string
@@ -102,7 +103,8 @@ export default function CargaPage() {
       canal: 'Minorista/Mayorista',
       precio_base_minorista: producto.precio_base_minorista || 0,
       precio_base_mayorista: producto.precio_base_mayorista || 0,
-      costo_estimado: producto.costo_estimado || 0,
+      costo_estimado_minorista: producto.costo_estimado_minorista || 0,
+      costo_estimado_mayorista: producto.costo_estimado_mayorista || 0,
       precio_final_minorista: producto.minorista.precio_final || 0,
       precio_final_mayorista: producto.mayorista.precio_final || 0,
       markup_minorista: '+70%',
@@ -820,7 +822,10 @@ export default function CargaPage() {
                                 </div>
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-700 border-b">
-                                {formatCurrency(producto.costo_estimado)}
+                                <div className="space-y-1">
+                                  <div className="text-xs text-blue-600">Minorista: {formatCurrency(producto.costo_estimado_minorista)}</div>
+                                  <div className="text-xs text-green-600">Mayorista: {formatCurrency(producto.costo_estimado_mayorista)}</div>
+                                </div>
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-900 border-b font-medium">
                                 <div className="space-y-1">
