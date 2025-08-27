@@ -13,7 +13,7 @@ import {
   Eye,
   Filter,
   Search,
-  Battery
+  Zap
 } from 'lucide-react'
 
 interface ProductPricing {
@@ -349,7 +349,7 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            <Battery className="h-3 w-3 mr-1" />
+                            <Zap className="h-3 w-3 mr-1" />
                             Batería
                           </span>
                         </td>
@@ -406,7 +406,7 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap bg-gray-50">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            <Battery className="h-3 w-3 mr-1" />
+                            <Zap className="h-3 w-3 mr-1" />
                             Batería
                           </span>
                         </td>
@@ -463,7 +463,7 @@ export default function PricingAnalysis({ isVisible, onClose, fileName, producto
                 {/* Información del Producto */}
                 <div className="mb-6 bg-white rounded-lg p-4 shadow-sm">
                   <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                    <Battery className="h-5 w-5 mr-2 text-blue-600" />
+                    <Zap className="h-5 w-5 mr-2 text-blue-600" />
                     {selectedProduct.name}
                   </h3>
                   <div className="space-y-2 text-sm text-gray-600">
