@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
-import { buscarEquivalenciaVarta } from '@/lib/varta_database'
+import { buscarEquivalenciaVarta } from '../../../../src/lib/varta_database'
 
 // 🔄 SISTEMA HÍBRIDO: IA para columnas + Base de datos local para equivalencias
 
