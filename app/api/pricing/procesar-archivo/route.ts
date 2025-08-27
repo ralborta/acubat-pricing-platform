@@ -332,7 +332,7 @@ export async function POST(request: NextRequest) {
     try {
       const { result: mapeoIA, attempts } = await mapColumnsStrict({
         columnas: headers,
-        muestra: datos.slice(0, 10), // Solo las primeras 10 filas para el análisis
+        muestra: datos.slice(0, 10) as any[], // Solo las primeras 10 filas para el análisis
         minConfidence: 0.7,
         minCoverage: 0.8,
         minPriceMax: 100000,
