@@ -257,7 +257,7 @@ export default function CargaPage() {
         'N/A',
         'N/A',
         'Minorista/Mayorista',
-        producto.precio_base,
+        producto.precio_base_minorista,
         'N/A',
         producto.minorista.precio_final,
         '+70%',
