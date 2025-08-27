@@ -195,7 +195,8 @@ export async function POST(request: NextRequest) {
           headerLower.includes('model') || 
           headerLower.includes('codigo') ||
           headerLower.includes('code') ||
-          headerLower.includes('sku')
+          headerLower.includes('sku') ||
+          headerLower.includes('baterias')
         )) {
           mapeo.modelo = header
           console.log(`✅ Modelo detectado: "${header}"`)
@@ -207,7 +208,9 @@ export async function POST(request: NextRequest) {
           headerLower.includes('price') || 
           headerLower.includes('costo') ||
           headerLower.includes('cost') ||
-          headerLower.includes('valor')
+          headerLower.includes('valor') ||
+          headerLower.includes('lista') ||
+          headerLower.includes('precio de lista')
         )) {
           mapeo.precio = header
           console.log(`✅ Precio detectado: "${header}"`)
@@ -242,7 +245,9 @@ export async function POST(request: NextRequest) {
           headerLower.includes('nombre') ||
           headerLower.includes('name') ||
           headerLower.includes('producto') ||
-          headerLower.includes('product')
+          headerLower.includes('product') ||
+          headerLower.includes('denominacion') ||
+          headerLower.includes('comercial')
         )) {
           mapeo.descripcion = header
           console.log(`✅ Descripción detectada: "${header}"`)
@@ -253,7 +258,9 @@ export async function POST(request: NextRequest) {
           headerLower.includes('capacidad') || 
           headerLower.includes('capacity') || 
           headerLower.includes('amperaje') ||
-          headerLower.includes('ah')
+          headerLower.includes('ah') ||
+          headerLower.includes('c20') ||
+          headerLower.includes('c20 [ah]')
         )) {
           mapeo.capacidad = header
           console.log(`✅ Capacidad detectada: "${header}"`)
@@ -263,7 +270,9 @@ export async function POST(request: NextRequest) {
         if (!mapeo.voltaje && (
           headerLower.includes('voltaje') || 
           headerLower.includes('voltage') || 
-          headerLower.includes('v')
+          headerLower.includes('v') ||
+          headerLower.includes('12x') ||
+          headerLower.includes('tipo')
         )) {
           mapeo.voltaje = header
           console.log(`✅ Voltaje detectado: "${header}"`)
@@ -296,6 +305,18 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // 🚨 VALIDACIÓN: Si no se detectó marca, usar "Moura" por defecto
+      if (!mapeo.marca) {
+        console.log('⚠️ No se detectó marca, usando "Moura" por defecto...')
+        mapeo.marca = 'MOURA'
+      }
+
+      // 🚨 VALIDACIÓN: Si no se detectó tipo, usar "Batería" por defecto
+      if (!mapeo.tipo) {
+        console.log('⚠️ No se detectó tipo, usando "Batería" por defecto...')
+        mapeo.tipo = 'BATERIA'
+      }
+
       console.log('🔧 DETECCIÓN MANUAL COMPLETADA:')
       console.log('📋 Mapeo final:', mapeo)
       
@@ -310,16 +331,14 @@ export async function POST(request: NextRequest) {
     console.log('🧠 RESULTADO DE LA IA:')
     console.log('📋 Mapeo de columnas:', columnMapping)
     
-    // 🚨 VALIDACIÓN: Si la IA falló, usar detección manual
-    if (!columnMapping || Object.values(columnMapping).some(v => !v)) {
-      console.log('⚠️ La IA falló, usando detección manual...')
-      const columnMappingManual = detectColumnsManualmente(headers, datos)
-      console.log('🔧 DETECCIÓN MANUAL:')
-      console.log('📋 Mapeo manual:', columnMappingManual)
-      
-      // Forzar mapeo manual
-      Object.assign(columnMapping, columnMappingManual)
-    }
+    // 🚨 VALIDACIÓN: SIEMPRE usar detección manual (la IA no funciona bien)
+    console.log('⚠️ Forzando detección manual (la IA no detecta bien las columnas)...')
+    const columnMappingManual = detectColumnsManualmente(headers, datos)
+    console.log('🔧 DETECCIÓN MANUAL FORZADA:')
+    console.log('📋 Mapeo manual:', columnMappingManual)
+    
+    // Forzar mapeo manual
+    Object.assign(columnMapping, columnMappingManual)
     
     // 🔍 DEBUG: Mapeo final
     console.log('✅ MAPEO FINAL DE COLUMNAS:')
@@ -376,6 +395,22 @@ export async function POST(request: NextRequest) {
         console.log(`   - Precio: ${columnMapping.precio} (valor: ${columnMapping.precio ? producto[columnMapping.precio] : 'N/A'})`)
         console.log(`   - PDV: ${columnMapping.pdv} (valor: ${columnMapping.pdv ? producto[columnMapping.pdv] : 'N/A'})`)
         console.log(`   - PVP: ${columnMapping.pvp} (valor: ${columnMapping.pvp ? producto[columnMapping.pvp] : 'N/A'})`)
+        
+        // 🔍 BÚSQUEDA ALTERNATIVA: Buscar cualquier columna que contenga números
+        console.log(`🔍 BÚSQUEDA ALTERNATIVA DE PRECIO...`)
+        for (const [key, value] of Object.entries(producto)) {
+          if (typeof value === 'number' && value > 1000 && value < 1000000) {
+            precioBase = value
+            console.log(`✅ Precio encontrado por búsqueda alternativa en '${key}': ${precioBase}`)
+            break
+          }
+        }
+        
+        // 🔍 BÚSQUEDA ESPECÍFICA: Buscar "Precio de Lista" directamente
+        if (precioBase === 0 && producto['Precio de Lista']) {
+          precioBase = parseFloat(producto['Precio de Lista']) || 0
+          console.log(`✅ Precio encontrado directamente en 'Precio de Lista': ${precioBase}`)
+        }
       }
       
       console.log(`💰 PRECIO BASE FINAL: ${precioBase}`)
