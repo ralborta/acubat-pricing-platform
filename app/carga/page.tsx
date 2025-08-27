@@ -251,7 +251,7 @@ export default function CargaPage() {
     ]
 
     // Crear filas separadas para Minorista y Mayorista
-    const csvRows = []
+    const csvRows: string[] = []
     
     resultado.productos.forEach(producto => {
       // Fila Minorista
