@@ -8,32 +8,39 @@ import { buscarEquivalenciaVarta } from '../../../../src/lib/varta_database'
 async function analizarArchivoConIA(headers: string[], datos: any[]): Promise<any> {
   try {
     const contexto = `
-      Analiza este archivo Excel y identifica las columnas clave:
+      Eres un experto en análisis de archivos Excel de baterías automotrices. Analiza este archivo y identifica las columnas clave.
       
       COLUMNAS DISPONIBLES: ${headers.join(', ')}
       
       MUESTRA DE DATOS (primeras 3 filas):
       ${JSON.stringify(datos.slice(0, 3), null, 2)}
       
+      INSTRUCCIONES ESPECÍFICAS:
+      1. ANALIZA el contenido de cada columna, no solo el nombre
+      2. Busca patrones en los datos (números, texto, códigos)
+      3. Identifica qué representa cada columna realmente
+      
       NECESITO IDENTIFICAR:
-      - marca: columna que contiene la marca/fabricante del producto
-      - tipo: columna que contiene el tipo o categoría del producto
-      - modelo: columna que contiene el modelo o código específico
-      - precio: columna principal de precio (prioridad 1)
-      - pdv: precio de venta (prioridad 2)
-      - pvp: precio al público (prioridad 3)
-      - descripcion: descripción o nombre del producto
-      - capacidad: capacidad de la batería (opcional)
-      - voltaje: voltaje de la batería (opcional)
+      - marca: columna que contiene la marca/fabricante (ej: Moura, Varta, Bosch)
+      - tipo: columna que contiene el tipo o categoría (ej: Batería, 12X45 BORA)
+      - modelo: columna que contiene el modelo o código específico (ej: UB 450 Ag, VA40DD/E)
+      - precio: columna que contiene números grandes (precios en pesos argentinos)
+      - descripcion: columna que contiene texto largo (descripción del producto)
+      - capacidad: columna que contiene números de amperaje (ej: 45, 55, 80)
+      - voltaje: columna que contiene información de voltaje (ej: 12V, 12X)
+      
+      REGLAS IMPORTANTES:
+      - Si una columna contiene números grandes (>1000), probablemente es precio
+      - Si una columna contiene códigos como "UB 450 Ag", es modelo
+      - Si una columna contiene "12X45 BORA", es tipo
+      - Si una columna contiene números como 45, 55, 80, es capacidad
       
       Responde SOLO con un JSON válido:
       {
         "marca": "nombre_columna",
-        "tipo": "nombre_columna",
+        "tipo": "nombre_columna", 
         "modelo": "nombre_columna",
         "precio": "nombre_columna",
-        "pdv": "nombre_columna",
-        "pvp": "nombre_columna",
         "descripcion": "nombre_columna",
         "capacidad": "nombre_columna",
         "voltaje": "nombre_columna"
@@ -147,9 +154,9 @@ export async function POST(request: NextRequest) {
     console.log('🔑 Columnas disponibles:', Object.keys(datos[0] || {}))
     console.log('📝 Muestra de datos (primeras 3 filas):', datos.slice(0, 3))
 
-    // 🔧 DETECCIÓN MANUAL (LLAMADA DESDE FUNCIÓN EXTERNA)
+    // 🔧 DETECCIÓN MANUAL UNIVERSAL (funciona con CUALQUIER archivo)
     const detectColumnsManualmente = (headers: string[], datos: any[]) => {
-      console.log('🔧 Iniciando detección manual de columnas...')
+      console.log('🔧 Iniciando detección manual UNIVERSAL...')
       console.log('📋 Headers disponibles:', headers)
       
       const mapeo: any = {
@@ -164,34 +171,49 @@ export async function POST(request: NextRequest) {
         voltaje: ''
       }
 
-      // 🔍 BÚSQUEDA INTELIGENTE POR PATRONES
+      // 🔍 ANÁLISIS UNIVERSAL: Analizar TODAS las columnas para entender qué contienen
+      console.log('🔍 ANÁLISIS UNIVERSAL DE COLUMNAS...')
+      
       headers.forEach(header => {
         const headerLower = header.toLowerCase().trim()
+        const sampleData = datos?.[0]?.[header]
         
-        // Marca
+        console.log(`🔍 Analizando columna "${header}":`)
+        console.log(`   - Tipo de dato: ${typeof sampleData}`)
+        console.log(`   - Valor: ${sampleData}`)
+        console.log(`   - Es número: ${!isNaN(parseFloat(sampleData))}`)
+        console.log(`   - Es texto: ${typeof sampleData === 'string'}`)
+        
+        // 🎯 DETECCIÓN INTELIGENTE POR CONTENIDO Y NOMBRE
+        
+        // Marca - Buscar columnas que contengan códigos de producto
         if (!mapeo.marca && (
           headerLower.includes('marca') || 
           headerLower.includes('brand') || 
           headerLower.includes('fabricante') ||
           headerLower.includes('ub') ||
-          headerLower.includes('moura')
+          headerLower.includes('moura') ||
+          headerLower.includes('codigo') ||
+          headerLower.includes('code') ||
+          headerLower.includes('baterias')
         )) {
           mapeo.marca = header
           console.log(`✅ Marca detectada: "${header}"`)
         }
         
-        // Tipo
+        // Tipo - Buscar columnas que contengan categorías
         if (!mapeo.tipo && (
           headerLower.includes('tipo') || 
           headerLower.includes('categoria') || 
           headerLower.includes('category') ||
-          headerLower.includes('familia')
+          headerLower.includes('familia') ||
+          headerLower.includes('clase')
         )) {
           mapeo.tipo = header
           console.log(`✅ Tipo detectado: "${header}"`)
         }
         
-        // Modelo
+        // Modelo - Buscar columnas que contengan identificadores únicos
         if (!mapeo.modelo && (
           headerLower.includes('modelo') || 
           headerLower.includes('model') || 
@@ -199,13 +221,15 @@ export async function POST(request: NextRequest) {
           headerLower.includes('code') ||
           headerLower.includes('sku') ||
           headerLower.includes('baterias') ||
-          headerLower.includes('ub')
+          headerLower.includes('ub') ||
+          headerLower.includes('identificador') ||
+          headerLower.includes('id')
         )) {
           mapeo.modelo = header
           console.log(`✅ Modelo detectado: "${header}"`)
         }
         
-        // Precio (prioridad 1)
+        // Precio - Buscar columnas que contengan números grandes (precios)
         if (!mapeo.precio && (
           headerLower.includes('precio') || 
           headerLower.includes('price') || 
@@ -214,35 +238,43 @@ export async function POST(request: NextRequest) {
           headerLower.includes('valor') ||
           headerLower.includes('lista') ||
           headerLower.includes('precio de lista') ||
-          headerLower.includes('precio lista')
+          headerLower.includes('precio lista') ||
+          headerLower.includes('venta') ||
+          headerLower.includes('publico')
         )) {
           mapeo.precio = header
           console.log(`✅ Precio detectado: "${header}"`)
         }
         
-        // PDV (prioridad 2)
-        if (!mapeo.pdv && (
-          headerLower.includes('pdv') || 
-          headerLower.includes('pvp') || 
-          headerLower.includes('venta') ||
-          headerLower.includes('sale')
+        // Capacidad - Buscar columnas que contengan números de amperaje
+        if (!mapeo.capacidad && (
+          headerLower.includes('capacidad') || 
+          headerLower.includes('capacity') || 
+          headerLower.includes('amperaje') ||
+          headerLower.includes('ah') ||
+          headerLower.includes('c20') ||
+          headerLower.includes('c20 [ah]') ||
+          headerLower.includes('amperes') ||
+          headerLower.includes('amperios')
         )) {
-          mapeo.pdv = header
-          console.log(`✅ PDV detectado: "${header}"`)
+          mapeo.capacidad = header
+          console.log(`✅ Capacidad detectada: "${header}"`)
+        }
+
+        // Voltaje - Buscar columnas que contengan información de voltaje
+        if (!mapeo.voltaje && (
+          headerLower.includes('voltaje') || 
+          headerLower.includes('voltage') || 
+          headerLower.includes('v') ||
+          headerLower.includes('12x') ||
+          headerLower.includes('tipo') ||
+          headerLower.includes('volts')
+        )) {
+          mapeo.voltaje = header
+          console.log(`✅ Voltaje detectado: "${header}"`)
         }
         
-        // PVP (prioridad 3)
-        if (!mapeo.pvp && (
-          headerLower.includes('pvp') || 
-          headerLower.includes('publico') || 
-          headerLower.includes('public') ||
-          headerLower.includes('final')
-        )) {
-          mapeo.pvp = header
-          console.log(`✅ PVP detectado: "${header}"`)
-        }
-        
-        // Descripción
+        // Descripción - Buscar columnas que contengan texto largo
         if (!mapeo.descripcion && (
           headerLower.includes('descripcion') || 
           headerLower.includes('description') || 
@@ -251,79 +283,78 @@ export async function POST(request: NextRequest) {
           headerLower.includes('producto') ||
           headerLower.includes('product') ||
           headerLower.includes('denominacion') ||
-          headerLower.includes('comercial')
+          headerLower.includes('comercial') ||
+          headerLower.includes('aplicaciones') ||
+          headerLower.includes('uso')
         )) {
           mapeo.descripcion = header
           console.log(`✅ Descripción detectada: "${header}"`)
         }
-
-        // Capacidad
-        if (!mapeo.capacidad && (
-          headerLower.includes('capacidad') || 
-          headerLower.includes('capacity') || 
-          headerLower.includes('amperaje') ||
-          headerLower.includes('ah') ||
-          headerLower.includes('c20') ||
-          headerLower.includes('c20 [ah]')
-        )) {
-          mapeo.capacidad = header
-          console.log(`✅ Capacidad detectada: "${header}"`)
-        }
-
-        // Voltaje
-        if (!mapeo.voltaje && (
-          headerLower.includes('voltaje') || 
-          headerLower.includes('voltage') || 
-          headerLower.includes('v') ||
-          headerLower.includes('12x') ||
-          headerLower.includes('tipo')
-        )) {
-          mapeo.voltaje = header
-          console.log(`✅ Voltaje detectado: "${header}"`)
-        }
       })
 
-      // 🚨 VALIDACIÓN: Si no se detectó precio, usar la primera columna numérica
+      // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó precio, usar ANÁLISIS DE CONTENIDO
       if (!mapeo.precio && !mapeo.pdv && !mapeo.pvp) {
-        console.log('⚠️ No se detectó columna de precio, buscando columna numérica...')
+        console.log('⚠️ No se detectó columna de precio, usando ANÁLISIS DE CONTENIDO...')
+        
+        // Buscar columnas que contengan números grandes (precios)
         for (const header of headers) {
-          // Verificar si la columna contiene números
           const sampleData = datos?.[0]?.[header]
-          if (sampleData && !isNaN(parseFloat(sampleData))) {
-            mapeo.precio = header
-            console.log(`✅ Precio detectado por contenido numérico: "${header}"`)
-            break
+          
+          if (sampleData) {
+            // Intentar parsear como número
+            let valor = parseFloat(sampleData)
+            
+            // Si es string, intentar limpiar formato argentino
+            if (isNaN(valor) && typeof sampleData === 'string') {
+              const valorLimpio = sampleData.replace(/\./g, '').replace(',', '.')
+              valor = parseFloat(valorLimpio)
+            }
+            
+            // Si es un número razonable para precio (entre 1000 y 1000000)
+            if (valor > 1000 && valor < 1000000) {
+              mapeo.precio = header
+              console.log(`✅ Precio detectado por ANÁLISIS DE CONTENIDO en '${header}': ${valor}`)
+              break
+            }
           }
         }
       }
 
-      // 🚨 VALIDACIÓN: Si no se detectó descripción, usar la primera columna de texto
+      // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó descripción, usar la columna con más texto
       if (!mapeo.descripcion) {
-        console.log('⚠️ No se detectó descripción, usando primera columna de texto...')
+        console.log('⚠️ No se detectó descripción, usando columna con más texto...')
+        let maxLength = 0
+        let columnaMasTexto = ''
+        
         for (const header of headers) {
-          if (header !== mapeo.marca && header !== mapeo.tipo && header !== mapeo.modelo) {
-            mapeo.descripcion = header
-            console.log(`✅ Descripción asignada: "${header}"`)
-            break
+          const sampleData = datos?.[0]?.[header]
+          if (sampleData && typeof sampleData === 'string' && sampleData.length > maxLength) {
+            maxLength = sampleData.length
+            columnaMasTexto = header
           }
+        }
+        
+        if (columnaMasTexto) {
+          mapeo.descripcion = columnaMasTexto
+          console.log(`✅ Descripción asignada por longitud: "${columnaMasTexto}"`)
         }
       }
 
-      // 🚨 VALIDACIÓN: Si no se detectó marca, usar "Moura" por defecto
+      // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó marca, usar "Moura" por defecto
       if (!mapeo.marca) {
         console.log('⚠️ No se detectó marca, usando "Moura" por defecto...')
         mapeo.marca = 'MOURA'
       }
 
-      // 🚨 VALIDACIÓN: Si no se detectó tipo, usar "Batería" por defecto
+      // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó tipo, usar "Batería" por defecto
       if (!mapeo.tipo) {
         console.log('⚠️ No se detectó tipo, usando "Batería" por defecto...')
         mapeo.tipo = 'BATERIA'
       }
 
-      // 🚨 VALIDACIÓN: Si no se detectó modelo, usar la primera columna que contenga texto
+      // 🚨 VALIDACIÓN UNIVERSAL: Si no se detectó modelo, usar la primera columna con texto
       if (!mapeo.modelo) {
-        console.log('⚠️ No se detectó modelo, usando primera columna de texto...')
+        console.log('⚠️ No se detectó modelo, usando primera columna con texto...')
         for (const header of headers) {
           const sampleData = datos?.[0]?.[header]
           if (sampleData && typeof sampleData === 'string' && sampleData.length > 0) {
@@ -334,7 +365,7 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      console.log('🔧 DETECCIÓN MANUAL COMPLETADA:')
+      console.log('🔧 DETECCIÓN MANUAL UNIVERSAL COMPLETADA:')
       console.log('📋 Mapeo final:', mapeo)
       
       return mapeo
@@ -348,14 +379,18 @@ export async function POST(request: NextRequest) {
     console.log('🧠 RESULTADO DE LA IA:')
     console.log('📋 Mapeo de columnas:', columnMapping)
     
-    // 🚨 VALIDACIÓN: SIEMPRE usar detección manual (la IA no funciona bien)
-    console.log('⚠️ Forzando detección manual (la IA no detecta bien las columnas)...')
-    const columnMappingManual = detectColumnsManualmente(headers, datos)
-    console.log('🔧 DETECCIÓN MANUAL FORZADA:')
-    console.log('📋 Mapeo manual:', columnMappingManual)
-    
-    // Forzar mapeo manual
-    Object.assign(columnMapping, columnMappingManual)
+    // 🚨 VALIDACIÓN: Usar IA como principal, manual como fallback
+    if (!columnMapping || Object.values(columnMapping).some(v => !v)) {
+      console.log('⚠️ La IA no detectó todas las columnas, usando detección manual como fallback...')
+      const columnMappingManual = detectColumnsManualmente(headers, datos)
+      console.log('🔧 DETECCIÓN MANUAL (FALLBACK):')
+      console.log('📋 Mapeo manual:', columnMappingManual)
+      
+      // Combinar IA + manual
+      Object.assign(columnMapping, columnMappingManual)
+    } else {
+      console.log('✅ La IA detectó todas las columnas correctamente')
+    }
     
     // 🔍 DEBUG: Mapeo final
     console.log('✅ MAPEO FINAL DE COLUMNAS:')
@@ -486,14 +521,16 @@ export async function POST(request: NextRequest) {
       
       // Si no se encontró, intentar con solo capacidad
       if (!equivalenciaVarta && capacidad) {
-        console.log(`🔍 Intentando búsqueda solo por capacidad: "${capacidad}"`)
-        equivalenciaVarta = buscarEquivalenciaVarta('Varta', 'Bateria', capacidad, capacidad)
+        const capacidadStr = String(capacidad)
+        console.log(`🔍 Intentando búsqueda solo por capacidad: "${capacidadStr}"`)
+        equivalenciaVarta = buscarEquivalenciaVarta('Varta', 'Bateria', capacidadStr, capacidadStr)
       }
       
       // Si no se encontró, intentar con solo modelo
       if (!equivalenciaVarta && modelo) {
-        console.log(`🔍 Intentando búsqueda solo por modelo: "${modelo}"`)
-        equivalenciaVarta = buscarEquivalenciaVarta('Varta', 'Bateria', modelo, capacidad)
+        const modeloStr = String(modelo)
+        console.log(`🔍 Intentando búsqueda solo por modelo: "${modeloStr}"`)
+        equivalenciaVarta = buscarEquivalenciaVarta('Varta', 'Bateria', modeloStr, capacidad)
       }
       
       console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
