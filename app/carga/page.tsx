@@ -9,8 +9,17 @@ import ProcessVisualizer from '@/components/ProcessVisualizer'
 interface Producto {
   id: number
   producto: string
+  tipo: string
+  modelo: string
   precio_base: number
   costo_estimado: number
+  equivalencia_varta?: {
+    encontrada: boolean
+    codigo?: string
+    precio_varta?: number
+    descripcion?: string
+    razon?: string
+  }
   minorista: {
     precio_neto: number
     precio_final: number
@@ -755,7 +764,7 @@ export default function CargaPage() {
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-600 border-b max-w-xs truncate">
                                 <div className="space-y-1">
-                                  <div className="font-medium">{producto.marca} - {producto.modelo}</div>
+                                  <div className="font-medium">{producto.tipo} - {producto.modelo}</div>
                                   {producto.equivalencia_varta?.encontrada && (
                                     <div className="text-xs text-green-600">
                                       ✅ Varta: {producto.equivalencia_varta.codigo} - ${producto.equivalencia_varta.precio_varta?.toLocaleString()}
