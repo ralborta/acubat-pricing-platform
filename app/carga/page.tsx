@@ -133,6 +133,7 @@ export default function CargaPage() {
 
   // Función para convertir PDF a Excel
   const convertirPDFaExcel = async (archivoPDF: File) => {
+    console.log('Iniciando conversión de PDF:', archivoPDF.name)
     setConvirtiendoPDF(true)
     setProgresoConversion(0)
     setMensajeConversion('Iniciando conversión...')
@@ -147,14 +148,20 @@ export default function CargaPage() {
         'Finalizando conversión...'
       ]
       
+      console.log('Iniciando simulación de conversión...')
+      
       for (let i = 0; i <= 100; i += 10) {
         await new Promise(resolve => setTimeout(resolve, 1000)) // 1 segundo por paso
         setProgresoConversion(i)
-        setMensajeConversion(mensajes[Math.floor(i / 20)] || 'Finalizando...')
+        const mensajeIndex = Math.floor(i / 20)
+        const mensaje = mensajes[mensajeIndex] || 'Finalizando...'
+        setMensajeConversion(mensaje)
+        console.log(`Progreso: ${i}% - ${mensaje}`)
       }
       
       // Simular conversión exitosa
       setMensajeConversion('¡Conversión completada!')
+      console.log('Conversión simulada completada')
       
       // Crear archivo Excel de ejemplo (en producción usarías librerías reales)
       const datosEjemplo = [
@@ -165,6 +172,7 @@ export default function CargaPage() {
       
       // Simular descarga
       setTimeout(() => {
+        console.log('Generando archivo de descarga...')
         const blob = new Blob([datosEjemplo.map(row => row.join(',')).join('\n')], { type: 'text/csv' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
@@ -173,12 +181,14 @@ export default function CargaPage() {
         a.click()
         URL.revokeObjectURL(url)
         
+        console.log('Descarga completada')
         setConvirtiendoPDF(false)
         setProgresoConversion(0)
         setMensajeConversion('')
       }, 1000)
       
     } catch (error) {
+      console.error('Error en conversión:', error)
       setMensajeConversion('Error en la conversión')
       setConvirtiendoPDF(false)
       setProgresoConversion(0)
@@ -501,8 +511,10 @@ export default function CargaPage() {
                       type="file"
                       accept=".pdf"
                       onChange={(e) => {
+                        console.log('PDF seleccionado:', e.target.files?.[0])
                         const file = e.target.files?.[0]
                         if (file) {
+                          console.log('Iniciando conversión de:', file.name)
                           convertirPDFaExcel(file)
                         }
                       }}
@@ -517,6 +529,12 @@ export default function CargaPage() {
                           ? 'bg-gray-400 cursor-not-allowed' 
                           : 'bg-green-600 hover:bg-green-700 text-white'
                       }`}
+                      onClick={() => {
+                        if (!convirtiendoPDF) {
+                          console.log('Haciendo click en label PDF')
+                          document.getElementById('pdf-input')?.click()
+                        }
+                      }}
                     >
                       {convirtiendoPDF ? (
                         <>
