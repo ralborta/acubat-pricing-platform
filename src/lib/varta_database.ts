@@ -136,17 +136,23 @@ export function buscarEquivalenciaVarta(
 ): ProductoVarta | null {
   
   console.log('🔍 BÚSQUEDA DE EQUIVALENCIA VARTA:')
-  console.log(`   - Marca: "${marca}"`)
-  console.log(`   - Tipo: "${tipo}"`)
-  console.log(`   - Modelo: "${modelo}"`)
-  console.log(`   - Capacidad: "${capacidad}"`)
+  console.log(`   - Marca: "${marca}" (tipo: ${typeof marca})`)
+  console.log(`   - Tipo: "${tipo}" (tipo: ${typeof tipo})`)
+  console.log(`   - Modelo: "${modelo}" (tipo: ${typeof modelo})`)
+  console.log(`   - Capacidad: "${capacidad}" (tipo: ${typeof capacidad})`)
+  
+  // 🎯 VALIDACIÓN DE PARÁMETROS
+  if (!modelo || typeof modelo !== 'string') {
+    console.log(`❌ Modelo no válido: "${modelo}" (tipo: ${typeof modelo})`)
+    return null
+  }
   
   // 🎯 BÚSQUEDA POR PRIORIDADES
   
   // 1️⃣ BÚSQUEDA EXACTA POR CÓDIGO
   const busquedaExacta = BASE_DATOS_VARTA.find(p => 
-    p.codigo.toLowerCase() === modelo?.toLowerCase() ||
-    p.modelo.toLowerCase() === modelo?.toLowerCase()
+    (modelo && p.codigo.toLowerCase() === modelo.toLowerCase()) ||
+    (modelo && p.modelo.toLowerCase() === modelo.toLowerCase())
   )
   
   if (busquedaExacta) {
@@ -185,11 +191,11 @@ export function buscarEquivalenciaVarta(
   
   // 4️⃣ BÚSQUEDA FUZZY POR MODELO
   const busquedaFuzzy = BASE_DATOS_VARTA.find(p => 
-    p.modelo.toLowerCase().includes(modelo?.toLowerCase() || '') ||
-    modelo?.toLowerCase().includes(p.modelo.toLowerCase()) ||
+    (modelo && p.modelo.toLowerCase().includes(modelo.toLowerCase())) ||
+    (modelo && modelo.toLowerCase().includes(p.modelo.toLowerCase())) ||
     p.equivalencias.some(eq => 
-      eq.toLowerCase().includes(modelo?.toLowerCase() || '') ||
-      modelo?.toLowerCase().includes(eq.toLowerCase())
+      (modelo && eq.toLowerCase().includes(modelo.toLowerCase())) ||
+      (modelo && modelo.toLowerCase().includes(eq.toLowerCase()))
     )
   )
   

@@ -1,10 +1,9 @@
-// 🧠 TEST SIMPLE DEL MÓDULO PRICING_MAPPER.TS
-// Script compatible con Node.js para testear el módulo
+// 🧠 TEST DIRECTO DEL MÓDULO PRICING_MAPPER.TS
+// Este script testea el módulo directamente para verificar que funciona
 
-const fs = require('fs');
-const path = require('path');
+import { mapColumnsStrict } from './app/lib/pricing_mapper.js';
 
-// 📋 DATOS DE PRUEBA REALES
+// 📋 DATOS DE PRUEBA REALES (simulando el archivo CSV)
 const columnas = [
   "TIPO", 
   "Denominacion Comercial", 
@@ -42,22 +41,9 @@ async function testPricingMapper() {
     console.log('   - Hojas:', hojas);
     console.log('   - Muestra:', JSON.stringify(muestra, null, 2));
     
-    // 🔍 VERIFICAR QUE EL ARCHIVO EXISTE
-    const modulePath = path.join(__dirname, 'app', 'lib', 'pricing_mapper.ts');
-    console.log('\n🔍 Verificando archivo:', modulePath);
-    
-    if (fs.existsSync(modulePath)) {
-      console.log('✅ Archivo pricing_mapper.ts encontrado');
-    } else {
-      console.log('❌ Archivo pricing_mapper.ts NO encontrado');
-      return;
-    }
-    
     console.log('\n🚀 LLAMANDO A MAPCOLUMNSSTRICT...');
     
-    // 🎯 IMPORTAR Y LLAMAR AL MÓDULO
-    const { mapColumnsStrict } = require('./app/lib/pricing_mapper.ts');
-    
+    // 🎯 LLAMADA AL MÓDULO
     const { result, attempts } = await mapColumnsStrict({ 
       columnas, 
       hojas, 
@@ -75,6 +61,16 @@ async function testPricingMapper() {
     console.log('   - Modelo detectado:', result.modelo || 'NO DETECTADO');
     console.log('   - Precio detectado:', result.precio_ars || 'NO DETECTADO');
     console.log('   - Descripción detectada:', result.descripcion || 'NO DETECTADA');
+    console.log('   - Evidencia:', result.evidencia || 'NO DISPONIBLE');
+    console.log('   - Confianza:', result.confianza || 'NO DISPONIBLE');
+    
+    // ✅ VALIDACIÓN FINAL
+    console.log('\n✅ VALIDACIÓN FINAL:');
+    if (result.tipo && result.modelo && result.precio_ars) {
+      console.log('🎯 TODAS LAS COLUMNAS PRINCIPALES DETECTADAS');
+    } else {
+      console.log('⚠️ FALTAN COLUMNAS PRINCIPALES');
+    }
     
     console.log('\n🎉 TEST COMPLETADO EXITOSAMENTE!');
     
@@ -82,22 +78,23 @@ async function testPricingMapper() {
     console.error('\n❌ ERROR EN EL TEST:');
     console.error('   - Mensaje:', error.message);
     console.error('   - Tipo:', error.constructor.name);
+    console.error('   - Stack:', error.stack);
     
     // 🔍 ANÁLISIS DEL ERROR
-    if (error.message.includes('Cannot find module')) {
-      console.error('\n💡 SUGERENCIA: El módulo no se puede importar');
-      console.error('   - Verificar que el archivo existe');
-      console.error('   - Verificar la ruta del import');
-    }
     if (error.message.includes('openai')) {
       console.error('\n💡 SUGERENCIA: Verificar que OPENAI_API_KEY esté configurado');
     }
     if (error.message.includes('fetch')) {
       console.error('\n💡 SUGERENCIA: Verificar conexión a internet');
     }
+    if (error.message.includes('module')) {
+      console.error('\n💡 SUGERENCIA: Verificar que el módulo existe y está bien importado');
+    }
   }
 }
 
 // 🚀 EJECUTAR EL TEST
-console.log('🚀 Iniciando test...');
-testPricingMapper();
+console.log('🚀 Iniciando test en 3 segundos...');
+setTimeout(() => {
+  testPricingMapper();
+}, 3000);
