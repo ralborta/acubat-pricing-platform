@@ -723,22 +723,22 @@ export default function CargaPage() {
                                 Costo Estimado
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Precio Final
+                                Precios Finales
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Markup
+                                Markups
                               </th>
-                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                                 IVA
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Desglose
+                                Desglose Completo
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                                 Margen
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
-                                Rentabilidad
+                                Rentabilidades
                               </th>
                           </tr>
                         </thead>
@@ -754,7 +754,14 @@ export default function CargaPage() {
                                 </span>
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-600 border-b max-w-xs truncate">
-                                {producto.producto}
+                                <div className="space-y-1">
+                                  <div className="font-medium">{producto.marca} - {producto.modelo}</div>
+                                  {producto.equivalencia_varta?.encontrada && (
+                                    <div className="text-xs text-green-600">
+                                      ✅ Varta: {producto.equivalencia_varta.codigo} - ${producto.equivalencia_varta.precio_varta?.toLocaleString()}
+                                    </div>
+                                  )}
+                                </div>
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -768,29 +775,45 @@ export default function CargaPage() {
                                 {formatCurrency(producto.costo_estimado)}
                               </td>
                               <td className="px-3 py-2 text-sm text-gray-900 border-b font-medium">
-                                {formatCurrency(producto.minorista.precio_final)}
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <span className="text-gray-700 font-medium">
-                                  +70%
-                                </span>
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <span className="text-red-600 font-medium">
-                                  {formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}
-                                </span>
-                              </td>
-                              <td className="px-3 py-2 text-sm border-b">
-                                <div className="text-xs text-gray-600 space-y-1">
-                                  <div className="font-medium">Base: {formatCurrency(producto.minorista.precio_neto)}</div>
-                                  <div className="text-blue-600">+IVA: {formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}</div>
-                                  <div className="text-green-600">Final: {formatCurrency(producto.minorista.precio_final)}</div>
+                                <div className="space-y-1">
+                                  <div className="text-xs text-blue-600">Minorista: {formatCurrency(producto.minorista.precio_final)}</div>
+                                  <div className="text-xs text-green-600">Mayorista: {formatCurrency(producto.mayorista.precio_final)}</div>
                                 </div>
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
-                                <span className="text-gray-700 font-medium">
-                                  {producto.minorista.rentabilidad}
-                                </span>
+                                <div className="space-y-1">
+                                  <span className="text-xs text-blue-600">+70%</span>
+                                  <br />
+                                  <span className="text-xs text-green-600">+40%</span>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-sm border-b">
+                                <div className="space-y-1">
+                                  <div className="text-xs text-blue-600">{formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}</div>
+                                  <div className="text-xs text-green-600">{formatCurrency(producto.mayorista.precio_final - producto.mayorista.precio_neto)}</div>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-sm border-b">
+                                <div className="text-xs text-gray-600 space-y-1">
+                                  <div className="text-blue-600">
+                                    <div className="font-medium">Minorista:</div>
+                                    <div>Base: {formatCurrency(producto.minorista.precio_neto)}</div>
+                                    <div>+IVA: {formatCurrency(producto.minorista.precio_final - producto.minorista.precio_neto)}</div>
+                                    <div>Final: {formatCurrency(producto.minorista.precio_final)}</div>
+                                  </div>
+                                  <div className="text-green-600">
+                                    <div className="font-medium">Mayorista:</div>
+                                    <div>Base: {formatCurrency(producto.mayorista.precio_neto)}</div>
+                                    <div>+IVA: {formatCurrency(producto.mayorista.precio_final - producto.mayorista.precio_neto)}</div>
+                                    <div>Final: {formatCurrency(producto.mayorista.precio_final)}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-3 py-2 text-sm border-b">
+                                <div className="space-y-1">
+                                  <div className="text-xs text-blue-600">{producto.minorista.rentabilidad}</div>
+                                  <div className="text-xs text-green-600">{producto.mayorista.rentabilidad}</div>
+                                </div>
                               </td>
                               <td className="px-3 py-2 text-sm border-b">
                                 <div className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
