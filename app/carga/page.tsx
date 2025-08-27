@@ -104,7 +104,7 @@ export default function CargaPage() {
       precio_final_minorista: producto.minorista.precio_final || 0,
       precio_final_mayorista: producto.mayorista.precio_final || 0,
       markup_minorista: '+70%',
-      markup_mayorista: '+40%',
+      markup_mayorista: '+30%',
       iva_minorista: Math.round((producto.minorista.precio_final || 0) * 0.21),
       iva_mayorista: Math.round((producto.mayorista.precio_final || 0) * 0.21),
       equivalencia_varta: producto.equivalencia_varta

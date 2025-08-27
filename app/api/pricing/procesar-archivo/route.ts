@@ -430,19 +430,19 @@ export async function POST(request: NextRequest) {
       
       console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
 
-      // Cálculo Minorista (+70% desde costo)
+      // Cálculo Minorista (precio más alto para venta al público)
       console.log(`\n💰 CÁLCULO MINORISTA DEL PRODUCTO ${index + 1}:`)
-      const minoristaNeto = costoEstimado * 1.70
+      const minoristaNeto = precioBase * 1.70 // 70% sobre precio base
       const minoristaFinal = Math.round((minoristaNeto * 1.21) / 10) * 10
-      const minoristaRentabilidad = ((minoristaNeto - costoEstimado) / minoristaNeto) * 100
+      const minoristaRentabilidad = ((minoristaNeto - precioBase) / minoristaNeto) * 100
       
-      console.log(`   - Costo: ${costoEstimado}`)
-      console.log(`   - +70%: ${costoEstimado} * 1.70 = ${minoristaNeto}`)
+      console.log(`   - Precio Base: ${precioBase}`)
+      console.log(`   - +70%: ${precioBase} * 1.70 = ${minoristaNeto}`)
       console.log(`   - +IVA: ${minoristaNeto} * 1.21 = ${minoristaNeto * 1.21}`)
       console.log(`   - Redondeado: ${minoristaFinal}`)
       console.log(`   - Rentabilidad: ${minoristaRentabilidad.toFixed(1)}%`)
 
-      // Cálculo Mayorista (+40% desde precio base o Varta si existe)
+      // Cálculo Mayorista (precio más bajo para venta al por mayor)
       console.log(`\n💰 CÁLCULO MAYORISTA DEL PRODUCTO ${index + 1}:`)
       let mayoristaBase = precioBase
       if (equivalenciaVarta) {
@@ -452,12 +452,12 @@ export async function POST(request: NextRequest) {
         console.log(`   - Usando precio base: ${mayoristaBase}`)
       }
       
-      const mayoristaNeto = mayoristaBase * 1.40
+      const mayoristaNeto = mayoristaBase * 1.30 // 30% sobre precio base (MENOS que minorista)
       const mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
       const mayoristaRentabilidad = ((mayoristaNeto - mayoristaBase) / mayoristaNeto) * 100
       
       console.log(`   - Base: ${mayoristaBase}`)
-      console.log(`   - +40%: ${mayoristaBase} * 1.40 = ${mayoristaNeto}`)
+      console.log(`   - +30%: ${mayoristaBase} * 1.30 = ${mayoristaNeto}`)
       console.log(`   - +IVA: ${mayoristaNeto} * 1.21 = ${mayoristaNeto * 1.21}`)
       console.log(`   - Redondeado: ${mayoristaFinal}`)
       console.log(`   - Rentabilidad: ${mayoristaRentabilidad.toFixed(1)}%`)
