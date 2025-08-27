@@ -233,7 +233,7 @@ export default function CargaPage() {
     setProcesando(false)
   }
 
-  // Descargar resultados como Excel (CSV) con el nuevo formato
+  // Descargar resultados como Excel (CSV) - SOLO DATOS ÚTILES
   const downloadResults = () => {
     if (!resultado) return
 
@@ -256,30 +256,30 @@ export default function CargaPage() {
     resultado.productos.forEach(producto => {
       // Fila Minorista
       csvRows.push([
-        producto.producto,
+        producto.producto || 'N/A',
         producto.tipo || 'Batería',
         producto.modelo || 'N/A',
-        producto.precio_base_minorista,
+        producto.precio_base_minorista || 0,
         'Minorista',
-        producto.minorista.precio_neto,
-        producto.minorista.precio_final - producto.minorista.precio_neto,
-        producto.minorista.precio_final,
+        producto.minorista.precio_neto || 0,
+        (producto.minorista.precio_final || 0) - (producto.minorista.precio_neto || 0),
+        producto.minorista.precio_final || 0,
         '+70%',
-        producto.minorista.rentabilidad
+        producto.minorista.rentabilidad || '0%'
       ].join(','))
       
       // Fila Mayorista
       csvRows.push([
-        '', // Producto vacío
-        '', // Tipo vacío
-        '', // Modelo vacío
-        producto.precio_base_mayorista,
+        '', // Producto vacío para mantener alineación
+        '', // Tipo vacío para mantener alineación
+        '', // Modelo vacío para mantener alineación
+        producto.precio_base_mayorista || 0,
         'Mayorista',
-        producto.mayorista.precio_neto,
-        producto.mayorista.precio_final - producto.mayorista.precio_neto,
-        producto.mayorista.precio_final,
+        producto.mayorista.precio_neto || 0,
+        (producto.mayorista.precio_final || 0) - (producto.mayorista.precio_neto || 0),
+        producto.mayorista.precio_final || 0,
         producto.equivalencia_varta?.encontrada ? '+30%' : '+40%',
-        producto.mayorista.rentabilidad
+        producto.mayorista.rentabilidad || '0%'
       ].join(','))
     })
 
