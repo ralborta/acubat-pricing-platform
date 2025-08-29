@@ -136,60 +136,59 @@ export default function CargaPage() {
     console.log('Iniciando conversión de PDF:', archivoPDF.name)
     setConvirtiendoPDF(true)
     setProgresoConversion(0)
-    setMensajeConversion('Iniciando conversión...')
+    setMensajeConversion('Enviando al microservicio...')
     
     try {
-      // Simular delay de 10 segundos con animación
-      const mensajes = [
-        'Analizando PDF...',
-        'Extrayendo datos...',
-        'Procesando contenido...',
-        'Generando Excel...',
-        'Finalizando conversión...'
-      ]
+      // Crear FormData para enviar el archivo
+      const formData = new FormData()
+      formData.append('file', archivoPDF)
       
-      console.log('Iniciando simulación de conversión...')
+      // Llamar al microservicio Python en Railway
+      const response = await fetch('https://acubat-pdf-converter-production.up.railway.app/convert-pdf', {
+        method: 'POST',
+        body: formData
+      })
       
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 1000)) // 1 segundo por paso
-        setProgresoConversion(i)
-        const mensajeIndex = Math.floor(i / 20)
-        const mensaje = mensajes[mensajeIndex] || 'Finalizando...'
-        setMensajeConversion(mensaje)
-        console.log(`Progreso: ${i}% - ${mensaje}`)
+      if (!response.ok) {
+        throw new Error(`Error en la conversión: ${response.status} ${response.statusText}`)
       }
       
-      // Simular conversión exitosa
+      // Actualizar progreso
+      setProgresoConversion(50)
+      setMensajeConversion('Procesando PDF...')
+      
+      // Obtener el archivo Excel generado
+      const blob = await response.blob()
+      
+      // Actualizar progreso
+      setProgresoConversion(80)
+      setMensajeConversion('Generando Excel...')
+      
+      // Crear descarga automática
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `converted_pdf_${archivoPDF.name.replace('.pdf', '')}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+      
+      // Completar conversión
+      setProgresoConversion(100)
       setMensajeConversion('¡Conversión completada!')
-      console.log('Conversión simulada completada')
+      console.log('Conversión PDF a Excel completada exitosamente')
       
-      // Crear archivo Excel de ejemplo (en producción usarías librerías reales)
-      const datosEjemplo = [
-        ['Producto', 'Tipo', 'Precio Base'],
-        ['Batería 60Ah', 'Varta', '$14.189'],
-        ['Batería 100Ah', 'Varta', '$18.446']
-      ]
-      
-      // Simular descarga
+      // Limpiar estados después de un delay
       setTimeout(() => {
-        console.log('Generando archivo de descarga...')
-        const blob = new Blob([datosEjemplo.map(row => row.join(',')).join('\n')], { type: 'text/csv' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `conversion_pdf_${archivoPDF.name.replace('.pdf', '')}.csv`
-        a.click()
-        URL.revokeObjectURL(url)
-        
-        console.log('Descarga completada')
         setConvirtiendoPDF(false)
         setProgresoConversion(0)
         setMensajeConversion('')
-      }, 1000)
+      }, 2000)
       
     } catch (error) {
       console.error('Error en conversión:', error)
-      setMensajeConversion('Error en la conversión')
+      setMensajeConversion(`Error en la conversión: ${error instanceof Error ? error.message : 'Error desconocido'}`)
       setConvirtiendoPDF(false)
       setProgresoConversion(0)
     }
