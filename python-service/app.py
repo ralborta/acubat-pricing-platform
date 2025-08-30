@@ -12,8 +12,9 @@ app = Flask(__name__)
 
 # Configurar CORS para permitir solo tu dominio Vercel
 CORS(app, origins=[
-    "https://tu-proyecto.vercel.app",  # Cambiar por tu dominio real
-    "http://localhost:3000"            # Para desarrollo local
+    "https://acubat-pricing-platform-k1oflew6e-nivel-41.vercel.app",  # Tu dominio Vercel real
+    "https://acubat-pricing-platform.vercel.app",                      # Dominio principal
+    "http://localhost:3000"                                            # Para desarrollo local
 ])
 
 @app.route('/convert-pdf', methods=['POST'])
