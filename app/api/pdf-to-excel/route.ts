@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
     const pythonFormData = new FormData();
     pythonFormData.append('file', file);
 
-    // URL del microservicio Python en Railway (URL interna)
-    const pythonServiceUrl = 'http://acubat-pdf-converter.railway.internal:8080/convert';
+    // URL del microservicio Python en Railway (URL pública)
+    const pythonServiceUrl = 'https://acubat-pdf-converter-production.up.railway.app/convert-pdf';
 
     console.log('Enviando archivo al microservicio Python:', pythonServiceUrl);
 
