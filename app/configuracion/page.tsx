@@ -176,37 +176,36 @@ export default function ConfiguracionPage() {
   useEffect(() => {
     const cargarConfiguracion = async () => {
       try {
-        const response = await fetch('/api/config')
-        if (response.ok) {
-          const config = await response.json()
-          console.log('✅ Configuración cargada:', config.data)
+        // Cargar desde localStorage directamente
+        const stored = localStorage.getItem('acubat-config')
+        if (stored) {
+          const config = JSON.parse(stored)
+          console.log('✅ Configuración cargada desde localStorage:', config)
           
           // Actualizar el estado local con la configuración cargada
-          if (config.data) {
-            setConfiguracion(prev => ({
-              ...prev,
-              iva: config.data.iva || 21,
-              markups: {
-                ...prev.markups,
-                mayorista: config.data.markups?.mayorista || 22,
-                directa: config.data.markups?.directa || 60,
-                distribucion: {
-                  ...prev.markups.distribucion,
-                  base: config.data.markups?.distribucion || 20
-                }
-              },
-              factoresVarta: {
-                ...prev.factoresVarta,
-                base: config.data.factoresVarta?.factorBase || 40,
-                capacidad80: config.data.factoresVarta?.capacidad80Ah || 35
-              },
-              comisiones: {
-                mayorista: config.data.comisiones?.mayorista || 5,
-                directa: config.data.comisiones?.directa || 8,
-                distribucion: config.data.comisiones?.distribucion || 6
+          setConfiguracion(prev => ({
+            ...prev,
+            iva: config.iva || 21,
+            markups: {
+              ...prev.markups,
+              mayorista: config.markups?.mayorista || 22,
+              directa: config.markups?.directa || 60,
+              distribucion: {
+                ...prev.markups.distribucion,
+                base: config.markups?.distribucion || 20
               }
-            }))
-          }
+            },
+            factoresVarta: {
+              ...prev.factoresVarta,
+              base: config.factoresVarta?.factorBase || 40,
+              capacidad80: config.factoresVarta?.capacidad80Ah || 35
+            },
+            comisiones: {
+              mayorista: config.comisiones?.mayorista || 5,
+              directa: config.comisiones?.directa || 8,
+              distribucion: config.comisiones?.distribucion || 6
+            }
+          }))
         }
       } catch (error) {
         console.error('❌ Error cargando configuración:', error)
