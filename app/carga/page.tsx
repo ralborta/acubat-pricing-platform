@@ -149,7 +149,7 @@ export default function CargaPage() {
       // Convertir PDF a Excel
       const resultado = await convertirPDFaExcelWeb(archivoPDF)
       
-      if (resultado.success) {
+      if (resultado.success && resultado.data) {
         // Actualizar progreso
         setProgresoConversion(80)
         setMensajeConversion('Generando archivo Excel...')
