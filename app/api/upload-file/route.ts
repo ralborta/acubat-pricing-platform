@@ -61,7 +61,7 @@ export async function GET() {
         totales: allFiles,
         estadisticas: {
           pendientes: pendingFiles.length,
-          procesados: allFiles.filter(f => f.procesado).length,
+          procesados: allFiles.filter((f: any) => f.procesado).length,
           total: allFiles.length
         }
       }
