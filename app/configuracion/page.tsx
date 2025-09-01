@@ -175,6 +175,17 @@ export default function ConfiguracionPage() {
       formData.append('configPricing', JSON.stringify(configPricing))
       console.log('🎯 Configuración enviada al API:', configPricing)
       
+      // 🚀 CREAR ARCHIVO DE PRUEBA PARA CÁLCULOS
+      const archivoPrueba = new Blob([
+        'codigo,descripcion,precio_lista\n' +
+        'M40FD,Batería Moura 12X45,136490\n' +
+        'M50FD,Batería Moura 12X50,145000\n' +
+        'M60FD,Batería Moura 12X60,158000'
+      ], { type: 'text/csv' })
+      
+      formData.append('file', archivoPrueba, 'archivo_prueba.csv')
+      console.log('📁 Archivo de prueba enviado al API')
+      
       // Llamar al API real con FormData
       const response = await fetch('/api/pricing/procesar-archivo', {
         method: 'POST',
