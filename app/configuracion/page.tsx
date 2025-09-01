@@ -147,10 +147,33 @@ export default function ConfiguracionPage() {
     setCalculando(true)
     
     try {
-      // Crear FormData como espera la API
+      // 🎯 ENVIAR CONFIGURACIÓN ACTUAL AL API
       const formData = new FormData()
       formData.append('configuracion', JSON.stringify(configuracion))
       formData.append('modo', 'configuracion')
+      
+      // 🚀 AGREGAR CONFIGURACIÓN ESPECÍFICA PARA PRICING
+      const configPricing = {
+        iva: configuracion.iva,
+        markups: {
+          mayorista: configuracion.markups.mayorista,
+          directa: configuracion.markups.directa,
+          distribucion: configuracion.markups.distribucion.base
+        },
+        factoresVarta: {
+          factorBase: configuracion.factoresVarta.base,
+          capacidad80Ah: configuracion.factoresVarta.capacidad80
+        },
+        promociones: false,
+        comisiones: {
+          mayorista: configuracion.comisiones.mayorista,
+          directa: configuracion.comisiones.directa,
+          distribucion: configuracion.comisiones.distribucion
+        }
+      }
+      
+      formData.append('configPricing', JSON.stringify(configPricing))
+      console.log('🎯 Configuración enviada al API:', configPricing)
       
       // Llamar al API real con FormData
       const response = await fetch('/api/pricing/procesar-archivo', {

@@ -4,12 +4,20 @@ import { buscarEquivalenciaVarta } from '../../../../src/lib/varta_database'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
 // 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN ACTUAL
-async function obtenerConfiguracion() {
+async function obtenerConfiguracion(formData: FormData) {
   try {
-    // Intentar obtener desde localStorage del frontend
-    // Como estamos en el servidor, usamos valores por defecto
-    // En producción, esto debería venir de una base de datos
-    return {
+    // 🚀 LEER CONFIGURACIÓN ENVIADA DESDE EL FRONTEND
+    const configPricing = formData.get('configPricing')
+    
+    if (configPricing) {
+      const config = JSON.parse(configPricing as string)
+      console.log('🎯 Configuración recibida del frontend:', config)
+      return config
+    }
+    
+    // Si no hay configuración, usar valores por defecto
+    console.log('⚠️ No se recibió configuración, usando valores por defecto')
+    const configDefault = {
       iva: 21, // Porcentaje
       markups: {
         mayorista: 22,
@@ -27,6 +35,9 @@ async function obtenerConfiguracion() {
         distribucion: 6
       }
     }
+    
+    console.log('🎯 Configuración por defecto:', configDefault)
+    return configDefault
   } catch (error) {
     console.error('❌ Error obteniendo configuración:', error)
     // Valores por defecto como fallback
@@ -630,7 +641,7 @@ export async function POST(request: NextRequest) {
       console.log(`   - Costo Mayorista: ${mayoristaBase} * 0.6 = ${costoEstimadoMayorista}`)
 
       // 🎯 APLICAR CONFIGURACIÓN EN CÁLCULO MINORISTA
-      const config = await obtenerConfiguracion()
+      const config = await obtenerConfiguracion(formData)
       const ivaMultiplier = 1 + (config.iva / 100)
       const markupMinorista = 1 + (config.markups.directa / 100)
       
