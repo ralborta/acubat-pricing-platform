@@ -131,67 +131,68 @@ export default function CargaPage() {
     exportarAExcel(productosExcel, estadisticasExcel, nombreArchivo)
   }
 
-  // Función para convertir PDF a Excel
+  // Función para convertir PDF a Excel (REAL - NO simulada)
   const convertirPDFaExcel = async (archivoPDF: File) => {
-    console.log('Iniciando conversión de PDF:', archivoPDF.name)
+    console.log('🚀 Iniciando conversión REAL de PDF:', archivoPDF.name)
     setConvirtiendoPDF(true)
     setProgresoConversion(0)
     setMensajeConversion('Iniciando conversión...')
     
     try {
-      // Simular delay de 10 segundos con animación
-      const mensajes = [
-        'Analizando PDF...',
-        'Extrayendo datos...',
-        'Procesando contenido...',
-        'Generando Excel...',
-        'Finalizando conversión...'
-      ]
+      // Importar librería de conversión web
+      const { convertirPDFaExcelWeb, descargarArchivo } = await import('../../lib/pdf-converter-web.js')
       
-      console.log('Iniciando simulación de conversión...')
+      // Actualizar progreso
+      setProgresoConversion(20)
+      setMensajeConversion('Leyendo archivo PDF...')
       
-      for (let i = 0; i <= 100; i += 10) {
-        await new Promise(resolve => setTimeout(resolve, 1000)) // 1 segundo por paso
-        setProgresoConversion(i)
-        const mensajeIndex = Math.floor(i / 20)
-        const mensaje = mensajes[mensajeIndex] || 'Finalizando...'
-        setMensajeConversion(mensaje)
-        console.log(`Progreso: ${i}% - ${mensaje}`)
+      // Convertir PDF a Excel
+      const resultado = await convertirPDFaExcelWeb(archivoPDF)
+      
+      if (resultado.success) {
+        // Actualizar progreso
+        setProgresoConversion(80)
+        setMensajeConversion('Generando archivo Excel...')
+        
+        // Descargar archivo Excel
+        const descargaExitosa = descargarArchivo(
+          resultado.data.buffer,
+          resultado.data.filename,
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        
+        if (descargaExitosa) {
+          setProgresoConversion(100)
+          setMensajeConversion('¡Conversión completada exitosamente!')
+          console.log(`✅ Conversión exitosa: ${resultado.data.productos} productos extraídos`)
+          
+          // Mostrar resumen
+          setTimeout(() => {
+            alert(`✅ Conversión completada!\n\n📊 Resumen:\n- Productos extraídos: ${resultado.data.productos}\n- Archivo: ${resultado.data.filename}\n- Páginas procesadas: ${resultado.data.resumen.find(r => r.metrica === 'Páginas Procesadas')?.valor || 'N/A'}`)
+          }, 500)
+        } else {
+          throw new Error('Error al descargar el archivo')
+        }
+      } else {
+        throw new Error(resultado.error || 'Error desconocido en la conversión')
       }
       
-      // Simular conversión exitosa
-      setMensajeConversion('¡Conversión completada!')
-      console.log('Conversión simulada completada')
+    } catch (error) {
+      console.error('❌ Error en conversión REAL:', error)
+      setMensajeConversion(`Error: ${error instanceof Error ? error.message : 'Error desconocido'}`)
       
-      // Crear archivo Excel de ejemplo (en producción usarías librerías reales)
-      const datosEjemplo = [
-        ['Producto', 'Tipo', 'Precio Base'],
-        ['Batería 60Ah', 'Varta', '$14.189'],
-        ['Batería 100Ah', 'Varta', '$18.446']
-      ]
-      
-      // Simular descarga
+      // Mostrar error al usuario
       setTimeout(() => {
-        console.log('Generando archivo de descarga...')
-        const blob = new Blob([datosEjemplo.map(row => row.join(',')).join('\n')], { type: 'text/csv' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `conversion_pdf_${archivoPDF.name.replace('.pdf', '')}.csv`
-        a.click()
-        URL.revokeObjectURL(url)
-        
-        console.log('Descarga completada')
+        alert(`❌ Error en la conversión:\n\n${error instanceof Error ? error.message : 'Error desconocido'}\n\nPor favor, verifica que el PDF contenga datos de productos.`)
+      }, 500)
+      
+    } finally {
+      // Limpiar estados
+      setTimeout(() => {
         setConvirtiendoPDF(false)
         setProgresoConversion(0)
         setMensajeConversion('')
-      }, 1000)
-      
-    } catch (error) {
-      console.error('Error en conversión:', error)
-      setMensajeConversion('Error en la conversión')
-      setConvirtiendoPDF(false)
-      setProgresoConversion(0)
+      }, 2000)
     }
   }
 
