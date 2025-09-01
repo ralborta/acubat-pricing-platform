@@ -4,8 +4,8 @@ import businessScheduler from '@/lib/scheduler';
 // GET - Verificar estado del negocio
 export async function GET() {
   try {
-    const isOpen = businessScheduler.isBusinessOpen();
-    const currentSchedule = businessScheduler.getCurrentSchedule();
+    const isOpen = businessScheduler.isPricingRunning();
+    const currentSchedule = businessScheduler.getCurrentPricingSchedule();
     const allSchedules = businessScheduler.getAllSchedules();
     
     // Obtener próximo horario de apertura si está cerrado
