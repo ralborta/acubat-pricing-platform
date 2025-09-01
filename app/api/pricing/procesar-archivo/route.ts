@@ -3,43 +3,21 @@ import * as XLSX from 'xlsx'
 import { buscarEquivalenciaVarta } from '../../../../src/lib/varta_database'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
-// 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN ACTUAL
-async function obtenerConfiguracion(formData: FormData) {
+// 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN DESDE MONGODB
+async function obtenerConfiguracion() {
   try {
-    // 🚀 LEER CONFIGURACIÓN ENVIADA DESDE EL FRONTEND
-    const configPricing = formData.get('configPricing')
+    // 🚀 IMPORTAR CONFIGMANAGER MONGODB
+    const { default: configManager } = await import('../../../../lib/configManagerMongo');
     
-    if (configPricing) {
-      const config = JSON.parse(configPricing as string)
-      console.log('🎯 Configuración recibida del frontend:', config)
-      return config
-    }
+    // Obtener configuración desde MongoDB
+    const config = await configManager.getCurrentConfig();
+    console.log('🎯 Configuración cargada desde MongoDB:', config);
     
-    // Si no hay configuración, usar valores por defecto
-    console.log('⚠️ No se recibió configuración, usando valores por defecto')
-    const configDefault = {
-      iva: 21, // Porcentaje
-      markups: {
-        mayorista: 22,
-        directa: 60,
-        distribucion: 20
-      },
-      factoresVarta: {
-        factorBase: 40,
-        capacidad80Ah: 35
-      },
-      promociones: false,
-      comisiones: {
-        mayorista: 5,
-        directa: 8,
-        distribucion: 6
-      }
-    }
-    
-    console.log('🎯 Configuración por defecto:', configDefault)
-    return configDefault
+    return config;
   } catch (error) {
-    console.error('❌ Error obteniendo configuración:', error)
+    console.error('❌ Error obteniendo configuración desde MongoDB:', error);
+    console.log('⚠️ Fallback a valores por defecto');
+    
     // Valores por defecto como fallback
     return {
       iva: 21,
@@ -47,7 +25,7 @@ async function obtenerConfiguracion(formData: FormData) {
       factoresVarta: { factorBase: 40, capacidad80Ah: 35 },
       promociones: false,
       comisiones: { mayorista: 5, directa: 8, distribucion: 6 }
-    }
+    };
   }
 }
 
@@ -641,7 +619,7 @@ export async function POST(request: NextRequest) {
       console.log(`   - Costo Mayorista: ${mayoristaBase} * 0.6 = ${costoEstimadoMayorista}`)
 
       // 🎯 APLICAR CONFIGURACIÓN EN CÁLCULO MINORISTA
-      const config = await obtenerConfiguracion(formData)
+      const config = await obtenerConfiguracion()
       const ivaMultiplier = 1 + (config.iva / 100)
       const markupMinorista = 1 + (config.markups.directa / 100)
       
