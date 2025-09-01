@@ -147,16 +147,15 @@ export default function ConfiguracionPage() {
     setCalculando(true)
     
     try {
-      // Llamar al API real con la configuración actual
+      // Crear FormData como espera la API
+      const formData = new FormData()
+      formData.append('configuracion', JSON.stringify(configuracion))
+      formData.append('modo', 'configuracion')
+      
+      // Llamar al API real con FormData
       const response = await fetch('/api/pricing/procesar-archivo', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          configuracion: configuracion,
-          modo: 'configuracion' // Modo especial para cálculos de configuración
-        })
+        body: formData
       })
       
       if (response.ok) {
