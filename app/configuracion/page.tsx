@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Cog6ToothIcon, CurrencyDollarIcon, ChartBarIcon, DocumentTextIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
-import PricingDemo from '@/components/PricingDemo'
+import PricingDemo from '../components/PricingDemo'
 
 interface ConfiguracionSistema {
   modo: 'simulacion' | 'produccion'

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import configManager from '../../lib/configManager';
 
 interface ConfiguracionSistema {
-  modo: 'simulacion' | 'produccion';
+  modo: string;
   iva: number;
   markups: {
     mayorista: number;
