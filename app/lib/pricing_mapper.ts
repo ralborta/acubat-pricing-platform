@@ -1,6 +1,7 @@
 // pricing_mapper.ts
 // Requisitos: npm i openai
 import OpenAI from "openai";
+import configManager from "../../lib/configManager";
 
 export type ColumnSampleRow = Record<string, unknown>;
 
@@ -59,6 +60,81 @@ export interface MapColumnsOutput {
 }
 
 const DEFAULT_MODEL = "gpt-4"; // Cambiado a gpt-4 para mejor precisión
+
+// 🎯 FUNCIÓN PARA APLICAR CONFIGURACIÓN DEL SISTEMA
+export async function aplicarConfiguracionPricing(precioBase: number, canal: 'mayorista' | 'directa' | 'distribucion'): Promise<{
+  precioConIva: number;
+  precioConMarkup: number;
+  precioFinal: number;
+  iva: number;
+  markup: number;
+  comision: number;
+}> {
+  try {
+    // Obtener configuración actual del sistema
+    const config = await configManager.getCurrentConfig();
+    
+    // Aplicar IVA
+    const iva = config.iva || 21;
+    const precioConIva = precioBase * (1 + iva / 100);
+    
+    // Aplicar markup según canal
+    let markup = 0;
+    switch (canal) {
+      case 'mayorista':
+        markup = config.markups?.mayorista || 22;
+        break;
+      case 'directa':
+        markup = config.markups?.directa || 60;
+        break;
+      case 'distribucion':
+        markup = config.markups?.distribucion || 20;
+        break;
+      default:
+        markup = 22; // Default mayorista
+    }
+    
+    const precioConMarkup = precioConIva * (1 + markup / 100);
+    
+    // Aplicar comisión según canal
+    let comision = 0;
+    switch (canal) {
+      case 'mayorista':
+        comision = config.comisiones?.mayorista || 5;
+        break;
+      case 'directa':
+        comision = config.comisiones?.directa || 8;
+        break;
+      case 'distribucion':
+        comision = config.comisiones?.distribucion || 6;
+        break;
+      default:
+        comision = 5; // Default mayorista
+    }
+    
+    const precioFinal = precioConMarkup * (1 + comision / 100);
+    
+    return {
+      precioConIva: Math.round(precioConIva),
+      precioConMarkup: Math.round(precioConMarkup),
+      precioFinal: Math.round(precioFinal),
+      iva,
+      markup,
+      comision
+    };
+  } catch (error) {
+    console.error('❌ Error aplicando configuración de pricing:', error);
+    // Retornar valores por defecto si hay error
+    return {
+      precioConIva: Math.round(precioBase * 1.21),
+      precioConMarkup: Math.round(precioBase * 1.21 * 1.22),
+      precioFinal: Math.round(precioBase * 1.21 * 1.22 * 1.05),
+      iva: 21,
+      markup: 22,
+      comision: 5
+    };
+  }
+}
 
 /* ----------------------------- SYSTEM PROMPT ----------------------------- */
 function buildSystemPrompt(): string {
