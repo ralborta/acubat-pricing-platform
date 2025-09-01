@@ -55,9 +55,15 @@ const menuItems = [
     description: 'Configurar sistema'
   },
   {
+    id: 'pdf-to-excel',
+    label: 'PDF a Excel',
+    icon: FileText,
+    description: 'Convertir PDF a Excel'
+  },
+  {
     id: 'reportes',
     label: 'Reportes',
-    icon: FileText,
+    icon: BarChart3,
     description: 'Generar reportes'
   },
   {
