@@ -3,6 +3,43 @@ import * as XLSX from 'xlsx'
 import { buscarEquivalenciaVarta } from '../../../../src/lib/varta_database'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
+// 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN ACTUAL
+async function obtenerConfiguracion() {
+  try {
+    // Intentar obtener desde localStorage del frontend
+    // Como estamos en el servidor, usamos valores por defecto
+    // En producción, esto debería venir de una base de datos
+    return {
+      iva: 21, // Porcentaje
+      markups: {
+        mayorista: 22,
+        directa: 60,
+        distribucion: 20
+      },
+      factoresVarta: {
+        factorBase: 40,
+        capacidad80Ah: 35
+      },
+      promociones: false,
+      comisiones: {
+        mayorista: 5,
+        directa: 8,
+        distribucion: 6
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error obteniendo configuración:', error)
+    // Valores por defecto como fallback
+    return {
+      iva: 21,
+      markups: { mayorista: 22, directa: 60, distribucion: 20 },
+      factoresVarta: { factorBase: 40, capacidad80Ah: 35 },
+      promociones: false,
+      comisiones: { mayorista: 5, directa: 8, distribucion: 6 }
+    }
+  }
+}
+
 // 🔄 SISTEMA HÍBRIDO: IA para columnas + Base de datos local para equivalencias
 
 // 🧠 DETECCIÓN INTELIGENTE DE COLUMNAS CON IA (PROMPT MEJORADO)
@@ -592,15 +629,20 @@ export async function POST(request: NextRequest) {
       console.log(`   - Costo Minorista: ${precioBase} * 0.6 = ${costoEstimadoMinorista}`)
       console.log(`   - Costo Mayorista: ${mayoristaBase} * 0.6 = ${costoEstimadoMayorista}`)
 
+      // 🎯 APLICAR CONFIGURACIÓN EN CÁLCULO MINORISTA
+      const config = await obtenerConfiguracion()
+      const ivaMultiplier = 1 + (config.iva / 100)
+      const markupMinorista = 1 + (config.markups.directa / 100)
+      
       // Cálculo Minorista (precio más alto para venta al público)
       console.log(`\n💰 CÁLCULO MINORISTA DEL PRODUCTO ${index + 1}:`)
-      const minoristaNeto = precioBase * 1.70 // 70% sobre precio base
-      const minoristaFinal = Math.round((minoristaNeto * 1.21) / 10) * 10
+      const minoristaNeto = precioBase * markupMinorista // Markup desde configuración
+      const minoristaFinal = Math.round((minoristaNeto * ivaMultiplier) / 10) * 10
       const minoristaRentabilidad = ((minoristaNeto - precioBase) / minoristaNeto) * 100
       
       console.log(`   - Precio Base: ${precioBase}`)
-      console.log(`   - +70%: ${precioBase} * 1.70 = ${minoristaNeto}`)
-      console.log(`   - +IVA: ${minoristaNeto} * 1.21 = ${minoristaNeto * 1.21}`)
+      console.log(`   - +${config.markups.directa}%: ${precioBase} * ${markupMinorista} = ${minoristaNeto}`)
+      console.log(`   - +IVA (${config.iva}%): ${minoristaNeto} * ${ivaMultiplier} = ${minoristaNeto * ivaMultiplier}`)
       console.log(`   - Redondeado: ${minoristaFinal}`)
       console.log(`   - Rentabilidad: ${minoristaRentabilidad.toFixed(1)}%`)
 
@@ -608,24 +650,27 @@ export async function POST(request: NextRequest) {
       console.log(`\n💰 CÁLCULO MAYORISTA DEL PRODUCTO ${index + 1}:`)
       let mayoristaNeto, mayoristaFinal, mayoristaRentabilidad;
       
+      // 🎯 APLICAR CONFIGURACIÓN EN CÁLCULO MAYORISTA
+      const markupMayorista = 1 + (config.markups.mayorista / 100)
+      
       if (equivalenciaVarta) {
         console.log(`   - Usando precio Varta: ${mayoristaBase}`)
-        console.log(`   - Markup: 30% sobre precio Varta`)
-        mayoristaNeto = mayoristaBase * 1.30 // 30% sobre precio Varta
-        mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
+        console.log(`   - Markup: ${config.markups.mayorista}% sobre precio Varta`)
+        mayoristaNeto = mayoristaBase * markupMayorista // Markup desde configuración
+        mayoristaFinal = Math.round((mayoristaNeto * ivaMultiplier) / 10) * 10
         mayoristaRentabilidad = ((mayoristaNeto - mayoristaBase) / mayoristaNeto) * 100
       } else {
         console.log(`   - Usando precio base del archivo: ${mayoristaBase}`)
-        console.log(`   - Markup: 40% sobre precio base del archivo`)
-        mayoristaNeto = precioBase * 1.40 // 40% sobre precio base del archivo
-        mayoristaFinal = Math.round((mayoristaNeto * 1.21) / 10) * 10
+        console.log(`   - Markup: ${config.markups.mayorista}% sobre precio base del archivo`)
+        mayoristaNeto = precioBase * markupMayorista // Markup desde configuración
+        mayoristaFinal = Math.round((mayoristaNeto * ivaMultiplier) / 10) * 10
         mayoristaRentabilidad = ((mayoristaNeto - precioBase) / mayoristaNeto) * 100
       }
       
       console.log(`   - Base: ${mayoristaBase}`)
-      console.log(`   - Markup aplicado: ${equivalenciaVarta ? '30% sobre Varta' : '40% sobre archivo'}`)
+      console.log(`   - Markup aplicado: ${equivalenciaVarta ? `${config.markups.mayorista}% sobre Varta` : `${config.markups.mayorista}% sobre archivo`}`)
       console.log(`   - Neto: ${mayoristaNeto}`)
-      console.log(`   - +IVA: ${mayoristaNeto} * 1.21 = ${mayoristaNeto * 1.21}`)
+      console.log(`   - +IVA (${config.iva}%): ${mayoristaNeto} * ${ivaMultiplier} = ${mayoristaNeto * ivaMultiplier}`)
       console.log(`   - Redondeado: ${mayoristaFinal}`)
       console.log(`   - Rentabilidad: ${mayoristaRentabilidad.toFixed(1)}%`)
 
