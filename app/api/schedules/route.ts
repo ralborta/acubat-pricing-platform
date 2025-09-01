@@ -5,8 +5,8 @@ import businessScheduler from '@/lib/scheduler';
 export async function GET() {
   try {
     const schedules = businessScheduler.getAllSchedules();
-    const isOpen = businessScheduler.isBusinessOpen();
-    const currentSchedule = businessScheduler.getCurrentSchedule();
+    const isOpen = businessScheduler.isPricingRunning();
+    const currentSchedule = businessScheduler.getCurrentPricingSchedule();
 
     return NextResponse.json({
       success: true,
