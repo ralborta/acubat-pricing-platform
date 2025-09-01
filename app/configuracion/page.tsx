@@ -173,6 +173,50 @@ export default function ConfiguracionPage() {
     }
   }
 
+  // Cargar configuración al iniciar la página
+  useEffect(() => {
+    const cargarConfiguracion = async () => {
+      try {
+        const response = await fetch('/api/config')
+        if (response.ok) {
+          const config = await response.json()
+          console.log('✅ Configuración cargada:', config.data)
+          
+          // Actualizar el estado local con la configuración cargada
+          if (config.data) {
+            setConfiguracion(prev => ({
+              ...prev,
+              iva: config.data.iva || 21,
+              markups: {
+                ...prev.markups,
+                mayorista: config.data.markups?.mayorista || 22,
+                directa: config.data.markups?.directa || 60,
+                distribucion: {
+                  ...prev.markups.distribucion,
+                  base: config.data.markups?.distribucion || 20
+                }
+              },
+              factoresVarta: {
+                ...prev.factoresVarta,
+                base: config.data.factoresVarta?.factorBase || 40,
+                capacidad80: config.data.factoresVarta?.capacidad80Ah || 35
+              },
+              comisiones: {
+                mayorista: config.data.comisiones?.mayorista || 5,
+                directa: config.data.comisiones?.directa || 8,
+                distribucion: config.data.comisiones?.distribucion || 6
+              }
+            }))
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error cargando configuración:', error)
+      }
+    }
+
+    cargarConfiguracion()
+  }, [])
+
   // Calcular automáticamente cuando cambie la configuración
   useEffect(() => {
     if (configuracion) {
@@ -218,68 +262,124 @@ export default function ConfiguracionPage() {
     }
   }
   
-  const guardarConfiguracion = () => {
-    // Aquí iría la lógica para guardar en base de datos o localStorage
-    console.log('Configuración guardada:', configuracion)
-    alert('Configuración guardada exitosamente')
-  }
-
-  const resetearConfiguracion = () => {
-    if (confirm('¿Estás seguro de que quieres resetear toda la configuración?')) {
-      setConfiguracion({
-        modo: 'produccion',
-        iva: 21,
+  const guardarConfiguracion = async () => {
+    try {
+      // Convertir la configuración al formato del nuevo sistema
+      const nuevaConfig = {
+        iva: configuracion.iva,
         markups: {
-          mayorista: 22,
-          directa: 60,
-          distribucion: {
-            base: 20,
-            factorCapacidad: 15,
-            factorLinea: 10
-          }
+          mayorista: configuracion.markups.mayorista,
+          directa: configuracion.markups.directa,
+          distribucion: configuracion.markups.distribucion.base
         },
         factoresVarta: {
-          base: 40,
-          capacidad80: 35,
-          capacidad60: 38,
-          capacidadMenor60: 42,
-          estandar: 5,
-          asiatica: 10
+          factorBase: configuracion.factoresVarta.base,
+          capacidad80Ah: configuracion.factoresVarta.capacidad80
         },
-        redondeo: {
-          mayorista: 100,
-          directa: 50
-        },
-        rentabilidad: {
-          margenMinimo: 15,
-          criterios: {
-            mayorista: 20,
-            directa: 25
-          }
-        },
-        promociones: {
-          activo: false,
-          porcentaje: 10,
-          aplicaDesde: 100000
-        },
+        promociones: false, // Siempre desactivado
+        promocionesHabilitado: false,
         comisiones: {
-          mayorista: 5,
-          directa: 8,
-          distribucion: 6
-        },
-        otros: {
-          descuentoEfectivo: 3,
-          descuentoVolumen: 5,
-          umbralVolumen: 10
+          mayorista: configuracion.comisiones.mayorista,
+          directa: configuracion.comisiones.directa,
+          distribucion: configuracion.comisiones.distribucion
         }
+      }
+
+      // Llamar a la API para guardar
+      const response = await fetch('/api/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(nuevaConfig)
       })
-      setConfiguracionAgente({
-        diasOperacion: ['Lun', 'Mar', 'Mie'],
-        agenteSeleccionado: 'Agente Water WhatsApp',
-        horarioDesde: '09:00',
-        horarioHasta: '18:00',
-        fechasSeleccionadas: []
-      })
+
+      if (response.ok) {
+        const result = await response.json()
+        console.log('✅ Configuración guardada:', result)
+        alert('Configuración guardada exitosamente')
+      } else {
+        const error = await response.json()
+        console.error('❌ Error guardando:', error)
+        alert(`Error al guardar: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('❌ Error guardando configuración:', error)
+      alert('Error al guardar la configuración')
+    }
+  }
+
+  const resetearConfiguracion = async () => {
+    if (confirm('¿Estás seguro de que quieres resetear toda la configuración?')) {
+      try {
+        // Llamar a la API para resetear
+        const response = await fetch('/api/config', {
+          method: 'DELETE'
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          console.log('✅ Configuración reseteada:', result)
+          
+          // Actualizar el estado local con los valores por defecto
+          setConfiguracion({
+            modo: 'produccion',
+            iva: 21,
+            markups: {
+              mayorista: 22,
+              directa: 60,
+              distribucion: {
+                base: 20,
+                factorCapacidad: 15,
+                factorLinea: 10
+              }
+            },
+            factoresVarta: {
+              base: 40,
+              capacidad80: 35,
+              capacidad60: 38,
+              capacidadMenor60: 42,
+              estandar: 5,
+              asiatica: 10
+            },
+            redondeo: {
+              mayorista: 100,
+              directa: 50
+            },
+            rentabilidad: {
+              margenMinimo: 15,
+              criterios: {
+                mayorista: 20,
+                directa: 25
+              }
+            },
+            promociones: {
+              activo: false,
+              porcentaje: 10,
+              aplicaDesde: 100000
+            },
+            comisiones: {
+              mayorista: 5,
+              directa: 8,
+              distribucion: 6
+            },
+            otros: {
+              descuentoEfectivo: 3,
+              descuentoVolumen: 5,
+              umbralVolumen: 10
+            }
+          })
+          
+          alert('Configuración reseteada exitosamente')
+        } else {
+          const error = await response.json()
+          console.error('❌ Error reseteando:', error)
+          alert(`Error al resetear: ${error.error}`)
+        }
+      } catch (error) {
+        console.error('❌ Error reseteando configuración:', error)
+        alert('Error al resetear la configuración')
+      }
     }
   }
 
@@ -597,9 +697,9 @@ export default function ConfiguracionPage() {
                     <div className="flex items-center space-x-3">
                       <input
                         type="checkbox"
-                        checked={configuracion.promociones.activo}
-                        onChange={(e) => handleConfigChange('promociones.activo', e.target.checked)}
-                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                        checked={false}
+                        disabled={true}
+                        className="h-4 w-4 text-gray-400 focus:ring-gray-500 border-gray-300 rounded cursor-not-allowed"
                       />
                       <label className="text-sm font-medium text-gray-700">
                         Activar sistema de promociones
