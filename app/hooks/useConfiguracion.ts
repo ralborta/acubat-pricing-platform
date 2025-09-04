@@ -18,7 +18,9 @@ export function useConfiguracion() {
     try {
       setLoading(true);
       const config = await configManager.getCurrentConfig();
-      setConfiguracion(config);
+      // Asegurar que el tipo sea correcto
+      const configTyped = config as ConfiguracionSistema;
+      setConfiguracion(configTyped);
       setError(null);
     } catch (err) {
       setError('Error al cargar configuración');
@@ -36,7 +38,9 @@ export function useConfiguracion() {
         ...configuracion,
         ...nuevaConfig
       });
-      setConfiguracion(configGuardada);
+      // Asegurar que el tipo sea correcto
+      const configTyped = configGuardada as ConfiguracionSistema;
+      setConfiguracion(configTyped);
       setError(null);
       
       // Notificar a otros componentes que la configuración cambió
@@ -60,7 +64,9 @@ export function useConfiguracion() {
     try {
       setLoading(true);
       const configReset = await configManager.resetConfig();
-      setConfiguracion(configReset);
+      // Asegurar que el tipo sea correcto
+      const configTyped = configReset as ConfiguracionSistema;
+      setConfiguracion(configTyped);
       setError(null);
       
       // Notificar cambio
