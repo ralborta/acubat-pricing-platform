@@ -1,7 +1,7 @@
 // pricing_mapper.ts
 // Requisitos: npm i openai
 import OpenAI from "openai";
-import configManager from "../../lib/configManagerMongo";
+import configManager from "../../lib/configManagerLocal";
 
 export type ColumnSampleRow = Record<string, unknown>;
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import configManager from '@/lib/configManagerMongo';
+import configManager from '@/lib/configManagerLocal';
 
 // GET - Obtener configuración actual
 export async function GET() {

@@ -3,19 +3,19 @@ import * as XLSX from 'xlsx'
 import { buscarEquivalenciaVarta } from '../../../../src/lib/varta_database'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
-// 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN DESDE MONGODB
+// 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN DESDE LOCALSTORAGE
 async function obtenerConfiguracion() {
   try {
-    // 🚀 IMPORTAR CONFIGMANAGER MONGODB
-    const { default: configManager } = await import('../../../../lib/configManagerMongo');
+    // 🚀 IMPORTAR CONFIGMANAGER LOCALSTORAGE
+    const { default: configManager } = await import('../../../../lib/configManagerLocal');
     
-    // Obtener configuración desde MongoDB
+    // Obtener configuración desde localStorage
     const config = await configManager.getCurrentConfig();
-    console.log('🎯 Configuración cargada desde MongoDB:', config);
+    console.log('🎯 Configuración cargada desde localStorage:', config);
     
     return config;
   } catch (error) {
-    console.error('❌ Error obteniendo configuración desde MongoDB:', error);
+    console.error('❌ Error obteniendo configuración desde localStorage:', error);
     console.log('⚠️ Fallback a valores por defecto');
     
     // Valores por defecto como fallback

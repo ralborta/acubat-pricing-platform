@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import configManager from '../../lib/configManagerMongo';
+import configManager from '../../lib/configManagerLocal';
 
 interface ConfiguracionSistema {
   modo: string;
