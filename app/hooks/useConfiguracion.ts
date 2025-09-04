@@ -4,6 +4,30 @@ import { useState, useEffect } from 'react';
 import configManager from '../../lib/configManagerLocal';
 import { ConfiguracionSistema, ApiResponse } from '../../lib/types';
 
+// Función helper para asegurar que la configuración tenga el tipo correcto
+const ensureConfigType = (config: any): ConfiguracionSistema => {
+  return {
+    modo: config.modo || 'produccion',
+    iva: config.iva || 21,
+    markups: {
+      mayorista: config.markups?.mayorista || 22,
+      directa: config.markups?.directa || 60,
+      distribucion: config.markups?.distribucion || 20
+    },
+    factoresVarta: {
+      factorBase: config.factoresVarta?.factorBase || 40,
+      capacidad80Ah: config.factoresVarta?.capacidad80Ah || 35
+    },
+    promociones: config.promociones || false,
+    comisiones: {
+      mayorista: config.comisiones?.mayorista || 5,
+      directa: config.comisiones?.directa || 8,
+      distribucion: config.comisiones?.distribucion || 6
+    },
+    ultimaActualizacion: config.ultimaActualizacion || new Date().toISOString()
+  };
+};
+
 export function useConfiguracion() {
   const [configuracion, setConfiguracion] = useState<ConfiguracionSistema | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,7 +43,7 @@ export function useConfiguracion() {
       setLoading(true);
       const config = await configManager.getCurrentConfig();
       // Asegurar que el tipo sea correcto
-      const configTyped = config as ConfiguracionSistema;
+      const configTyped = ensureConfigType(config);
       setConfiguracion(configTyped);
       setError(null);
     } catch (err) {
@@ -39,16 +63,16 @@ export function useConfiguracion() {
         ...nuevaConfig
       });
       // Asegurar que el tipo sea correcto
-      const configTyped = configGuardada as ConfiguracionSistema;
+      const configTyped = ensureConfigType(configGuardada);
       setConfiguracion(configTyped);
       setError(null);
       
       // Notificar a otros componentes que la configuración cambió
       window.dispatchEvent(new CustomEvent('configuracionCambiada', { 
-        detail: configGuardada 
+        detail: configTyped 
       }));
       
-      return { success: true, data: configGuardada };
+      return { success: true, data: configTyped };
     } catch (err) {
       const errorMsg = 'Error al guardar configuración';
       setError(errorMsg);
@@ -65,16 +89,16 @@ export function useConfiguracion() {
       setLoading(true);
       const configReset = await configManager.resetConfig();
       // Asegurar que el tipo sea correcto
-      const configTyped = configReset as ConfiguracionSistema;
+      const configTyped = ensureConfigType(configReset);
       setConfiguracion(configTyped);
       setError(null);
       
       // Notificar cambio
       window.dispatchEvent(new CustomEvent('configuracionCambiada', { 
-        detail: configReset 
+        detail: configTyped 
       }));
       
-      return { success: true, data: configReset };
+      return { success: true, data: configTyped };
     } catch (err) {
       const errorMsg = 'Error al resetear configuración';
       setError(errorMsg);
