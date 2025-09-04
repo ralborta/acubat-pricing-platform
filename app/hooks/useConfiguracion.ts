@@ -2,27 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import configManager from '../../lib/configManagerLocal';
-
-interface ConfiguracionSistema {
-  modo: string;
-  iva: number;
-  markups: {
-    mayorista: number;
-    directa: number;
-    distribucion: number;
-  };
-  factoresVarta: {
-    factorBase: number;
-    capacidad80Ah: number;
-  };
-  promociones: boolean;
-  comisiones: {
-    mayorista: number;
-    directa: number;
-    distribucion: number;
-  };
-  ultimaActualizacion: string;
-}
+import { ConfiguracionSistema, ApiResponse } from '../../lib/types';
 
 export function useConfiguracion() {
   const [configuracion, setConfiguracion] = useState<ConfiguracionSistema | null>(null);
@@ -49,7 +29,7 @@ export function useConfiguracion() {
   };
 
   // Guardar nueva configuración
-  const guardarConfiguracion = async (nuevaConfig: Partial<ConfiguracionSistema>) => {
+  const guardarConfiguracion = async (nuevaConfig: Partial<ConfiguracionSistema>): Promise<ApiResponse<ConfiguracionSistema>> => {
     try {
       setLoading(true);
       const configGuardada = await configManager.saveConfig({
@@ -76,7 +56,7 @@ export function useConfiguracion() {
   };
 
   // Resetear a configuración por defecto
-  const resetearConfiguracion = async () => {
+  const resetearConfiguracion = async (): Promise<ApiResponse<ConfiguracionSistema>> => {
     try {
       setLoading(true);
       const configReset = await configManager.resetConfig();

@@ -5,105 +5,41 @@ import { Cog6ToothIcon, CurrencyDollarIcon, ChartBarIcon, DocumentTextIcon, Excl
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import PricingDemo from '../components/PricingDemo'
-
-interface ConfiguracionSistema {
-  modo: 'simulacion' | 'produccion'
-  iva: number
-  markups: {
-    mayorista: number
-    directa: number
-    distribucion: {
-      base: number
-      factorCapacidad: number
-      factorLinea: number
-    }
-  }
-  factoresVarta: {
-    base: number
-    capacidad80: number
-    capacidad60: number
-    capacidadMenor60: number
-    estandar: number
-    asiatica: number
-  }
-  redondeo: {
-    mayorista: number
-    directa: number
-  }
-  rentabilidad: {
-    margenMinimo: number
-    criterios: {
-      mayorista: number
-      directa: number
-    }
-  }
-  promociones: {
-    activo: boolean
-    porcentaje: number
-    aplicaDesde: number
-  }
-  comisiones: {
-    mayorista: number
-    directa: number
-    distribucion: number
-  }
-  otros: {
-    descuentoEfectivo: number
-    descuentoVolumen: number
-    umbralVolumen: number
-  }
-}
-
-interface ConfiguracionAgente {
-  diasOperacion: string[]
-  agenteSeleccionado: string
-  horarioDesde: string
-  horarioHasta: string
-  fechasSeleccionadas: string[]
-}
+import { 
+  ConfiguracionSistema, 
+  ConfiguracionAgente, 
+  ConfiguracionRentabilidad, 
+  ConfiguracionPromociones, 
+  ConfiguracionComisionesAdicionales 
+} from '../../lib/types'
+import { useConfiguracion } from '../hooks/useConfiguracion'
 
 export default function ConfiguracionPage() {
-  const [configuracion, setConfiguracion] = useState<ConfiguracionSistema>({
-    modo: 'produccion',
-    iva: 21,
-    markups: {
-      mayorista: 22,
-      directa: 60,
-      distribucion: {
-        base: 20,
-        factorCapacidad: 15,
-        factorLinea: 10
-      }
-    },
-    factoresVarta: {
-      base: 40,
-      capacidad80: 35,
-      capacidad60: 38,
-      capacidadMenor60: 42,
-      estandar: 5,
-      asiatica: 10
-    },
-    redondeo: {
-      mayorista: 100,
-      directa: 50
-    },
-    rentabilidad: {
-      margenMinimo: 15,
-      criterios: {
-        mayorista: 20,
-        directa: 25
-      }
-    },
-    promociones: {
-      activo: false,
-      porcentaje: 10,
-      aplicaDesde: 100000
-    },
-    comisiones: {
-      mayorista: 5,
-      directa: 8,
-      distribucion: 6
-    },
+  // Usar el hook centralizado para configuración del sistema
+  const { 
+    configuracion, 
+    loading: configLoading, 
+    error: configError, 
+    guardarConfiguracion, 
+    resetearConfiguracion 
+  } = useConfiguracion()
+  
+  // Estados locales para funcionalidades adicionales (no parte del core)
+  const [rentabilidad, setRentabilidad] = useState<ConfiguracionRentabilidad>({
+    margenMinimo: 15,
+    criterios: {
+      mayorista: 20,
+      directa: 25
+    }
+  })
+  
+  const [promociones, setPromociones] = useState<ConfiguracionPromociones>({
+    activo: false,
+    porcentaje: 10,
+    aplicaDesde: 100000
+  })
+  
+  const [comisionesAdicionales, setComisionesAdicionales] = useState<ConfiguracionComisionesAdicionales>({
     otros: {
       descuentoEfectivo: 3,
       descuentoVolumen: 5,
@@ -125,19 +61,21 @@ export default function ConfiguracionPage() {
 
   const [opcionSeleccionada, setOpcionSeleccionada] = useState<'variables' | 'rentabilidad' | 'agente' | null>(null)
 
-  const handleConfigChange = (path: string, value: any) => {
-    setConfiguracion(prev => {
-      const newConfig = { ...prev }
-      const keys = path.split('.')
-      let current: any = newConfig
-      
-      for (let i = 0; i < keys.length - 1; i++) {
-        current = current[keys[i]]
-      }
-      
-      current[keys[keys.length - 1]] = value
-      return newConfig
-    })
+  const handleConfigChange = async (path: string, value: any) => {
+    if (!configuracion) return
+    
+    const newConfig = { ...configuracion }
+    const keys = path.split('.')
+    let current: any = newConfig
+    
+    for (let i = 0; i < keys.length - 1; i++) {
+      current = current[keys[i]]
+    }
+    
+    current[keys[keys.length - 1]] = value
+    
+    // Guardar usando el hook
+    await guardarConfiguracion(newConfig)
   }
 
   // 🚀 FUNCIÓN DE CÁLCULO EN TIEMPO REAL CON API REAL
@@ -145,6 +83,8 @@ export default function ConfiguracionPage() {
   const [calculando, setCalculando] = useState(false)
 
   const calcularPreciosEnTiempoReal = async () => {
+    if (!configuracion) return
+    
     setCalculando(true)
     
     try {
@@ -159,11 +99,11 @@ export default function ConfiguracionPage() {
         markups: {
           mayorista: configuracion.markups.mayorista,
           directa: configuracion.markups.directa,
-          distribucion: configuracion.markups.distribucion.base
+          distribucion: configuracion.markups.distribucion
         },
         factoresVarta: {
-          factorBase: configuracion.factoresVarta.base,
-          capacidad80Ah: configuracion.factoresVarta.capacidad80
+          factorBase: configuracion.factoresVarta.factorBase,
+          capacidad80Ah: configuracion.factoresVarta.capacidad80Ah
         },
         promociones: false,
         comisiones: {
@@ -207,48 +147,10 @@ export default function ConfiguracionPage() {
     }
   }
 
-  // Cargar configuración al iniciar la página
-  useEffect(() => {
-    const cargarConfiguracion = async () => {
-      try {
-        // Cargar desde localStorage directamente
-        const stored = localStorage.getItem('acubat-config')
-        if (stored) {
-          const config = JSON.parse(stored)
-          console.log('✅ Configuración cargada desde localStorage:', config)
-          
-          // Actualizar el estado local con la configuración cargada
-          setConfiguracion(prev => ({
-            ...prev,
-            iva: config.iva || 21,
-            markups: {
-              ...prev.markups,
-              mayorista: config.markups?.mayorista || 22,
-              directa: config.markups?.directa || 60,
-              distribucion: {
-                ...prev.markups.distribucion,
-                base: config.markups?.distribucion || 20
-              }
-            },
-            factoresVarta: {
-              ...prev.factoresVarta,
-              base: config.factoresVarta?.factorBase || 40,
-              capacidad80: config.factoresVarta?.capacidad80Ah || 35
-            },
-            comisiones: {
-              mayorista: config.comisiones?.mayorista || 5,
-              directa: config.comisiones?.directa || 8,
-              distribucion: config.comisiones?.distribucion || 6
-            }
-          }))
-        }
-      } catch (error) {
-        console.error('❌ Error cargando configuración:', error)
-      }
-    }
-
-    cargarConfiguracion()
-  }, [])
+  // El hook useConfiguracion ya se encarga de cargar la configuración
+  
+  // Función helper para verificar si la configuración está cargada
+  const isConfigLoaded = () => configuracion !== null
 
   // Calcular automáticamente cuando cambie la configuración
   useEffect(() => {
@@ -259,6 +161,8 @@ export default function ConfiguracionPage() {
 
   // Función auxiliar para cálculos básicos (fallback)
   const calcularPreciosBasicos = () => {
+    if (!configuracion) return null
+    
     const productoEjemplo = {
       codigo: 'M40FD',
       descripcion: 'Batería Moura 12X45',
@@ -269,7 +173,7 @@ export default function ConfiguracionPage() {
     const markupMayorista = configuracion.markups.mayorista / 100
     const markupDirecta = configuracion.markups.directa / 100
     const iva = configuracion.iva / 100
-    const factorVarta = configuracion.factoresVarta.base / 100
+    const factorVarta = configuracion.factoresVarta.factorBase / 100
     
     return {
       producto: productoEjemplo,
@@ -295,123 +199,28 @@ export default function ConfiguracionPage() {
     }
   }
   
-  const guardarConfiguracion = async () => {
-    try {
-      // Convertir la configuración al formato del nuevo sistema
-      const nuevaConfig = {
-        iva: configuracion.iva,
-        markups: {
-          mayorista: configuracion.markups.mayorista,
-          directa: configuracion.markups.directa,
-          distribucion: configuracion.markups.distribucion.base
-        },
-        factoresVarta: {
-          factorBase: configuracion.factoresVarta.base,
-          capacidad80Ah: configuracion.factoresVarta.capacidad80
-        },
-        promociones: false, // Siempre desactivado
-        promocionesHabilitado: false,
-        comisiones: {
-          mayorista: configuracion.comisiones.mayorista,
-          directa: configuracion.comisiones.directa,
-          distribucion: configuracion.comisiones.distribucion
-        }
-      }
+  // La función guardarConfiguracion viene del hook useConfiguracion
 
-      // Llamar a la API para guardar
-      const response = await fetch('/api/config', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(nuevaConfig)
-      })
-
-      if (response.ok) {
-        const result = await response.json()
-        console.log('✅ Configuración guardada:', result)
-        alert('Configuración guardada exitosamente')
-      } else {
-        const error = await response.json()
-        console.error('❌ Error guardando:', error)
-        alert(`Error al guardar: ${error.error}`)
-      }
-    } catch (error) {
-      console.error('❌ Error guardando configuración:', error)
-      alert('Error al guardar la configuración')
+  // Función para guardar configuración usando el hook
+  const handleGuardarConfiguracion = async () => {
+    if (!configuracion) return
+    
+    const result = await guardarConfiguracion(configuracion)
+    if (result.success) {
+      alert('Configuración guardada exitosamente')
+    } else {
+      alert(`Error al guardar: ${result.error}`)
     }
   }
 
-  const resetearConfiguracion = async () => {
+  // Función para resetear configuración usando el hook
+  const handleResetearConfiguracion = async () => {
     if (confirm('¿Estás seguro de que quieres resetear toda la configuración?')) {
-      try {
-        // Llamar a la API para resetear
-        const response = await fetch('/api/config', {
-          method: 'DELETE'
-        })
-
-        if (response.ok) {
-          const result = await response.json()
-          console.log('✅ Configuración reseteada:', result)
-          
-          // Actualizar el estado local con los valores por defecto
-          setConfiguracion({
-            modo: 'produccion',
-            iva: 21,
-            markups: {
-              mayorista: 22,
-              directa: 60,
-              distribucion: {
-                base: 20,
-                factorCapacidad: 15,
-                factorLinea: 10
-              }
-            },
-            factoresVarta: {
-              base: 40,
-              capacidad80: 35,
-              capacidad60: 38,
-              capacidadMenor60: 42,
-              estandar: 5,
-              asiatica: 10
-            },
-            redondeo: {
-              mayorista: 100,
-              directa: 50
-            },
-            rentabilidad: {
-              margenMinimo: 15,
-              criterios: {
-                mayorista: 20,
-                directa: 25
-              }
-            },
-            promociones: {
-              activo: false,
-              porcentaje: 10,
-              aplicaDesde: 100000
-            },
-            comisiones: {
-              mayorista: 5,
-              directa: 8,
-              distribucion: 6
-            },
-            otros: {
-              descuentoEfectivo: 3,
-              descuentoVolumen: 5,
-              umbralVolumen: 10
-            }
-          })
-          
-          alert('Configuración reseteada exitosamente')
-        } else {
-          const error = await response.json()
-          console.error('❌ Error reseteando:', error)
-          alert(`Error al resetear: ${error.error}`)
-        }
-      } catch (error) {
-        console.error('❌ Error reseteando configuración:', error)
-        alert('Error al resetear la configuración')
+      const result = await resetearConfiguracion()
+      if (result.success) {
+        alert('Configuración reseteada exitosamente')
+      } else {
+        alert(`Error al resetear: ${result.error}`)
       }
     }
   }
@@ -462,6 +271,26 @@ export default function ConfiguracionPage() {
     })
   }
 
+  // Mostrar loading si la configuración no está cargada
+  if (configLoading || !configuracion) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Header />
+          <main className="flex-1 overflow-y-auto p-6">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Cargando configuración...</p>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar />
@@ -488,7 +317,7 @@ export default function ConfiguracionPage() {
                     Modo de Operación
                   </h2>
                   <p className="text-gray-600 text-sm">
-                    {configuracion.modo === 'simulacion' 
+                    {configuracion?.modo === 'simulacion' 
                       ? 'Modo simulación: Los cambios no afectan la producción'
                       : 'Modo producción: Los cambios se aplican inmediatamente'
                     }
@@ -663,8 +492,8 @@ export default function ConfiguracionPage() {
                       <div className="relative">
                         <input
                           type="number"
-                          value={configuracion.markups.distribucion.base}
-                          onChange={(e) => handleConfigChange('markups.distribucion.base', parseFloat(e.target.value))}
+                          value={configuracion.markups.distribucion}
+                          onChange={(e) => handleConfigChange('markups.distribucion', parseFloat(e.target.value))}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           min="0"
                           max="200"
@@ -689,8 +518,8 @@ export default function ConfiguracionPage() {
                       <div className="relative">
                         <input
                           type="number"
-                          value={configuracion.factoresVarta.base}
-                          onChange={(e) => handleConfigChange('factoresVarta.base', parseFloat(e.target.value))}
+                          value={configuracion.factoresVarta.factorBase}
+                          onChange={(e) => handleConfigChange('factoresVarta.factorBase', parseFloat(e.target.value))}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           min="0"
                           max="200"
@@ -708,8 +537,8 @@ export default function ConfiguracionPage() {
                       <div className="relative">
                         <input
                           type="number"
-                          value={configuracion.factoresVarta.capacidad80}
-                          onChange={(e) => handleConfigChange('factoresVarta.capacidad80', parseFloat(e.target.value))}
+                          value={configuracion.factoresVarta.capacidad80Ah}
+                          onChange={(e) => handleConfigChange('factoresVarta.capacidad80Ah', parseFloat(e.target.value))}
                           className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                           min="0"
                           max="200"
@@ -738,7 +567,7 @@ export default function ConfiguracionPage() {
                         Activar sistema de promociones
                       </label>
                     </div>
-                    {configuracion.promociones.activo && (
+                    {promociones.activo && (
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -747,8 +576,8 @@ export default function ConfiguracionPage() {
                           <div className="relative">
                             <input
                               type="number"
-                              value={configuracion.promociones.porcentaje}
-                              onChange={(e) => handleConfigChange('promociones.porcentaje', parseFloat(e.target.value))}
+                              value={promociones.porcentaje}
+                              onChange={(e) => setPromociones(prev => ({ ...prev, porcentaje: parseFloat(e.target.value) }))}
                               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                               min="0"
                               max="50"
@@ -766,8 +595,8 @@ export default function ConfiguracionPage() {
                           <div className="relative">
                             <input
                               type="number"
-                              value={configuracion.promociones.aplicaDesde}
-                              onChange={(e) => handleConfigChange('promociones.aplicaDesde', parseFloat(e.target.value))}
+                              value={promociones.aplicaDesde}
+                              onChange={(e) => setPromociones(prev => ({ ...prev, aplicaDesde: parseFloat(e.target.value) }))}
                               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                               min="0"
                               step="1000"
@@ -849,13 +678,13 @@ export default function ConfiguracionPage() {
                 {/* Botones de Acción */}
                 <div className="flex justify-between">
                   <button
-                    onClick={resetearConfiguracion}
+                    onClick={handleResetearConfiguracion}
                     className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
                   >
                     Resetear Configuración
                   </button>
                   <button
-                    onClick={guardarConfiguracion}
+                    onClick={handleGuardarConfiguracion}
                     className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
                   >
                     Guardar Configuración
@@ -884,14 +713,14 @@ export default function ConfiguracionPage() {
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Margen mínimo general: {configuracion.rentabilidad.margenMinimo}%
+                        Margen mínimo general: {rentabilidad.margenMinimo}%
                       </label>
                       <input
                         type="range"
                         min="5"
                         max="50"
-                        value={configuracion.rentabilidad.margenMinimo}
-                        onChange={(e) => handleConfigChange('rentabilidad.margenMinimo', parseInt(e.target.value))}
+                        value={rentabilidad.margenMinimo}
+                        onChange={(e) => setRentabilidad(prev => ({ ...prev, margenMinimo: parseInt(e.target.value) }))}
                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                       />
                       <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -911,14 +740,17 @@ export default function ConfiguracionPage() {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Margen mínimo: {configuracion.rentabilidad.criterios.mayorista}%
+                            Margen mínimo: {rentabilidad.criterios.mayorista}%
                           </label>
                           <input
                             type="range"
                             min="10"
                             max="40"
-                            value={configuracion.rentabilidad.criterios.mayorista}
-                            onChange={(e) => handleConfigChange('rentabilidad.criterios.mayorista', parseInt(e.target.value))}
+                            value={rentabilidad.criterios.mayorista}
+                            onChange={(e) => setRentabilidad(prev => ({ 
+                              ...prev, 
+                              criterios: { ...prev.criterios, mayorista: parseInt(e.target.value) }
+                            }))}
                             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                           />
                           <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -933,14 +765,17 @@ export default function ConfiguracionPage() {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Margen mínimo: {configuracion.rentabilidad.criterios.directa}%
+                            Margen mínimo: {rentabilidad.criterios.directa}%
                           </label>
                           <input
                             type="range"
                             min="15"
                             max="50"
-                            value={configuracion.rentabilidad.criterios.directa}
-                            onChange={(e) => handleConfigChange('rentabilidad.criterios.directa', parseInt(e.target.value))}
+                            value={rentabilidad.criterios.directa}
+                            onChange={(e) => setRentabilidad(prev => ({ 
+                              ...prev, 
+                              criterios: { ...prev.criterios, directa: parseInt(e.target.value) }
+                            }))}
                             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                           />
                           <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -956,13 +791,13 @@ export default function ConfiguracionPage() {
                 {/* Botones de Acción */}
                 <div className="flex justify-between">
                   <button
-                    onClick={resetearConfiguracion}
+                    onClick={handleResetearConfiguracion}
                     className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
                   >
                     Resetear Configuración
                   </button>
                   <button
-                    onClick={guardarConfiguracion}
+                    onClick={handleGuardarConfiguracion}
                     className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition-colors duration-200"
                   >
                     Guardar Configuración
@@ -1328,11 +1163,11 @@ export default function ConfiguracionPage() {
                           </div>
                           <div>
                             <span className="text-gray-600">Promociones:</span>
-                            <span className="font-semibold ml-2">{configuracion.promociones.activo ? 'Activas' : 'Inactivas'}</span>
+                            <span className="font-semibold ml-2">{promociones.activo ? 'Activas' : 'Inactivas'}</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Margen Mínimo:</span>
-                            <span className="font-semibold ml-2">{configuracion.rentabilidad.margenMinimo}%</span>
+                            <span className="font-semibold ml-2">{rentabilidad.margenMinimo}%</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Productos Procesados:</span>
@@ -1357,7 +1192,7 @@ export default function ConfiguracionPage() {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Redondeo:</span>
-                              <span className="font-semibold">${configuracion.redondeo.mayorista}</span>
+                              <span className="font-semibold">$100</span>
                             </div>
                           </div>
                         </div>
@@ -1376,7 +1211,7 @@ export default function ConfiguracionPage() {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-gray-600">Redondeo:</span>
-                              <span className="font-semibold">${configuracion.redondeo.directa}</span>
+                              <span className="font-semibold">$50</span>
                             </div>
                           </div>
                         </div>
@@ -1384,7 +1219,7 @@ export default function ConfiguracionPage() {
 
                       {/* 🎯 EQUIVALENCIAS VARTA */}
                       <div className="bg-yellow-50 p-4 rounded-lg mb-6">
-                        <h4 className="font-semibold text-yellow-800 mb-3">🎯 Equivalencias Varta (+{configuracion.factoresVarta.base}%)</h4>
+                        <h4 className="font-semibold text-yellow-800 mb-3">🎯 Equivalencias Varta (+{configuracion.factoresVarta.factorBase}%)</h4>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="text-gray-600">Productos con Equivalencia:</span>
@@ -1392,7 +1227,7 @@ export default function ConfiguracionPage() {
                           </div>
                           <div>
                             <span className="text-gray-600">Factor Base:</span>
-                            <span className="font-semibold ml-2">+{configuracion.factoresVarta.base}%</span>
+                            <span className="font-semibold ml-2">+{configuracion.factoresVarta.factorBase}%</span>
                           </div>
                           <div>
                             <span className="text-gray-600">Aplicación:</span>
@@ -1402,21 +1237,21 @@ export default function ConfiguracionPage() {
                       </div>
 
                       {/* 💰 PROMOCIONES Y DESCUENTOS */}
-                      {configuracion.promociones.activo && (
+                      {promociones.activo && (
                         <div className="bg-blue-50 p-4 rounded-lg mb-6">
                           <h4 className="font-semibold text-blue-800 mb-3">💰 Promociones Activas</h4>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                             <div>
                               <span className="text-gray-600">Descuento:</span>
-                              <span className="font-semibold ml-2">{configuracion.promociones.porcentaje}%</span>
+                              <span className="font-semibold ml-2">{promociones.porcentaje}%</span>
                             </div>
                             <div>
                               <span className="text-gray-600">Aplica desde:</span>
-                              <span className="font-semibold ml-2">${configuracion.promociones.aplicaDesde.toLocaleString()}</span>
+                              <span className="font-semibold ml-2">${promociones.aplicaDesde.toLocaleString()}</span>
                             </div>
                             <div>
                               <span className="text-gray-600">Descuento Efectivo:</span>
-                              <span className="font-semibold ml-2">{configuracion.otros.descuentoEfectivo}%</span>
+                              <span className="font-semibold ml-2">{comisionesAdicionales.otros.descuentoEfectivo}%</span>
                             </div>
                           </div>
                         </div>
