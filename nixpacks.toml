@@ -9,3 +9,8 @@ cmds = ['npm run build']
 
 [start]
 cmd = 'npm start'
+
+# Forzar Node.js, no Python
+[providers]
+node = true
+python = false
