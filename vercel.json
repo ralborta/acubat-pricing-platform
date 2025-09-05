@@ -1,4 +1,5 @@
 {
+  "name": "acubat-pricing-v2",
   "framework": "nextjs",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
