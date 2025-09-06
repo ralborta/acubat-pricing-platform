@@ -4,9 +4,6 @@ import * as XLSX from 'xlsx'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
 export const runtime = 'nodejs'
-// 🚫 QUITAR estas líneas problemáticas para Vercel file uploads
-// export const dynamic = 'force-dynamic' 
-// export const revalidate = 0
 
 // 🚀 FUNCIÓN MÁS EFICIENTE
 async function obtenerConfiguracion() {
@@ -190,48 +187,18 @@ function validarMoneda(precio: any): { esPeso: boolean, confianza: number, razon
 
 export async function POST(request: NextRequest) {
   try {
-    // 🛡️ MEJOR VALIDACIÓN DE ARCHIVO
-    const contentType = request.headers.get('content-type')
-    if (!contentType?.includes('multipart/form-data')) {
-      return NextResponse.json({ 
-        error: 'Content-Type debe ser multipart/form-data' 
-      }, { status: 400 })
-    }
-
     console.log('🔍 RECIBIENDO REQUEST...')
-    console.log('📋 Content-Type:', contentType)
     
     const formData = await request.formData()
-    console.log('📋 FormData recibido:', formData)
-    
-    const file = formData.get('file') as File | null
-    console.log('📁 Archivo recibido:', file)
+    const file = formData.get('file') as File
 
-    // 🔍 VALIDACIÓN MÁS ROBUSTA
-    if (!file || file.size === 0) {
-      console.error('❌ Archivo no válido o vacío')
-      return NextResponse.json({ 
-        error: 'Archivo no válido o vacío' 
-      }, { status: 400 })
+    if (!file) {
+      return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
     }
 
-    // 📁 MEJOR MANEJO DEL BUFFER
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    
-    if (buffer.length === 0) {
-      return NextResponse.json({ 
-        error: 'Archivo vacío' 
-      }, { status: 400 })
-    }
-
-    // 📊 LECTURA EXCEL MÁS ROBUSTA
-    const workbook = XLSX.read(buffer, { 
-      type: 'buffer',
-      cellDates: true,
-      cellNF: false,
-      raw: false
-    })
+    // Leer archivo Excel
+    const buffer = await file.arrayBuffer()
+    const workbook = XLSX.read(buffer, { type: 'buffer' })
     const sheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[sheetName]
     const datos = XLSX.utils.sheet_to_json(worksheet)
@@ -485,7 +452,7 @@ export async function POST(request: NextRequest) {
     const config = await obtenerConfiguracion()
     console.log('⚙️ Config cargada:', config)
 
-    // Procesar productos con sistema local confiable
+    // Procesar productos
     console.log('🚀 INICIANDO PROCESAMIENTO DE PRODUCTOS...')
     console.log('📊 Total de productos a procesar:', datos.length)
     
@@ -813,11 +780,9 @@ export async function POST(request: NextRequest) {
     console.log('✅ SISTEMA LOCAL CONFIABLE COMPLETADO EXITOSAMENTE')
     console.log('🎯 Base de datos Varta local funcionando perfectamente')
     console.log('🚀 Sin dependencias de APIs externas inestables')
-    // 🎯 HEADERS SIMPLIFICADOS
     return NextResponse.json(resultado, {
       headers: {
         'Cache-Control': 'no-cache'
-        // 🚫 Quitar headers innecesarios de CDN
       }
     })
 
