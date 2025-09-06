@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-// GET - Obtener configuración actual
+// GET - Obtener configuración actual (singleton real)
 export async function GET() {
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase no configurado' }, { status: 500 });
@@ -18,10 +18,8 @@ export async function GET() {
   try {
     const { data, error } = await supabase
       .from('config')
-      .select('config_data, created_at, id')
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(1)
+      .select('config_data, updated_at, id')
+      .eq('id', 1)
       .maybeSingle();
 
     if (error) {
@@ -41,49 +39,28 @@ export async function GET() {
   }
 }
 
-// POST - Guardar nueva configuración
+// POST - Guardar nueva configuración (singleton real)
 export async function POST(request: NextRequest) {
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase no configurado' }, { status: 500 });
   }
 
   try {
-    const body = await request.json();
-    
-    // Validación básica
-    if (!body.iva || !body.markups) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Configuración inválida',
-          details: ['IVA y markups son requeridos']
-        },
-        { status: 400 }
-      );
-    }
-
-    // Preparar configuración para guardar
-    const configToSave = {
-      ...body,
-      promociones: false,
-      ultimaActualizacion: new Date().toISOString()
+    const payload = await request.json();
+    const body = { 
+      id: 1, 
+      config_data: {
+        ...payload,
+        promociones: false,
+        ultimaActualizacion: new Date().toISOString()
+      }
     };
 
-    // Primero eliminar TODAS las configuraciones existentes
-    const { error: deleteError } = await supabase
-      .from('config')
-      .delete()
-      .neq('id', 0); // Eliminar todas las filas
-
-    if (deleteError) {
-      console.error('❌ Error eliminando configuraciones:', deleteError);
-    }
-
-    // Luego insertar la nueva configuración
     const { data, error } = await supabase
       .from('config')
-      .insert([{ config_data: configToSave }])
-      .select();
+      .upsert(body, { onConflict: 'id' })
+      .select('config_data, updated_at, id')
+      .single();
 
     if (error) {
       console.error('❌ Error guardando configuración:', error);
@@ -92,9 +69,12 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: true,
-      data: configToSave,
+      data: data.config_data,
       message: 'Configuración guardada exitosamente'
-    }, { status: 201 });
+    }, { 
+      status: 201,
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
+    });
   } catch (error) {
     console.error('❌ Error interno:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
@@ -106,7 +86,7 @@ export async function PUT(request: NextRequest) {
   return POST(request);
 }
 
-// DELETE - Resetear a configuración por defecto
+// DELETE - Resetear a configuración por defecto (singleton real)
 export async function DELETE() {
   if (!supabase) {
     return NextResponse.json({ error: 'Supabase no configurado' }, { status: 500 });
@@ -133,21 +113,16 @@ export async function DELETE() {
       ultimaActualizacion: new Date().toISOString()
     };
 
-    // Primero eliminar TODAS las configuraciones existentes
-    const { error: deleteError } = await supabase
-      .from('config')
-      .delete()
-      .neq('id', 0); // Eliminar todas las filas
+    const body = { 
+      id: 1, 
+      config_data: defaultConfig 
+    };
 
-    if (deleteError) {
-      console.error('❌ Error eliminando configuraciones:', deleteError);
-    }
-
-    // Luego insertar la configuración por defecto
     const { data, error } = await supabase
       .from('config')
-      .insert([{ config_data: defaultConfig }])
-      .select();
+      .upsert(body, { onConflict: 'id' })
+      .select('config_data, updated_at, id')
+      .single();
 
     if (error) {
       console.error('❌ Error reseteando configuración:', error);
@@ -156,8 +131,10 @@ export async function DELETE() {
     
     return NextResponse.json({
       success: true,
-      data: defaultConfig,
+      data: data.config_data,
       message: 'Configuración reseteada a valores por defecto'
+    }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
     });
   } catch (error) {
     console.error('❌ Error interno:', error);
