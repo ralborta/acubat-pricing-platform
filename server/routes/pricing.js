@@ -1,7 +1,59 @@
 const express = require('express');
 const multer = require('multer');
 const ExcelJS = require('exceljs');
+const { createClient } = require('@supabase/supabase-js');
 const router = express.Router();
+
+// Configuración de Supabase
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+// Función para cargar configuración desde Supabase
+async function cargarConfiguracionPricing() {
+  if (!supabase) {
+    console.warn('⚠️ Supabase no configurado, usando configuración por defecto');
+    return CONFIGURACION_PRICING;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('config')
+      .select('config_data')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('❌ Error cargando configuración desde Supabase:', error);
+      return CONFIGURACION_PRICING;
+    }
+
+    if (data && data.length > 0) {
+      const config = data[0].config_data;
+      console.log('✅ Configuración cargada desde Supabase:', config);
+      
+      // Actualizar configuración con valores de Supabase
+      CONFIGURACION_PRICING = {
+        ...CONFIGURACION_PRICING,
+        iva: config.iva || 21,
+        markups_otras_marcas: {
+          "Retail": 1 + (config.markups?.directa || 60) / 100,
+          "Mayorista": 1 + (config.markups?.mayorista || 22) / 100,
+          "Online": 1 + (config.markups?.distribucion || 20) / 100,
+          "Distribuidor": 1 + (config.markups?.distribucion || 20) / 100
+        },
+        aumento_varta: config.factoresVarta?.factorBase || 40
+      };
+      
+      return CONFIGURACION_PRICING;
+    }
+
+    return CONFIGURACION_PRICING;
+  } catch (error) {
+    console.error('❌ Error cargando configuración:', error);
+    return CONFIGURACION_PRICING;
+  }
+}
 
 // Configuración de multer para archivos Excel
 const upload = multer({
@@ -32,17 +84,15 @@ const upload = multer({
   }
 });
 
-// CONFIGURACIÓN DEL SISTEMA DE PRICING CORRECTO
-const CONFIGURACION_PRICING = {
-  // AUMENTO FIJO PARA PRODUCTOS VARTA
-  aumento_varta: 35,  // 35% de aumento
-  
-  // MARKUPS PARA OTRAS MARCAS (si aplican)
+// CONFIGURACIÓN DEL SISTEMA DE PRICING - SE OBTIENE DESDE SUPABASE
+let CONFIGURACION_PRICING = {
+  // Valores por defecto (se sobrescriben desde Supabase)
+  aumento_varta: 35,
   markups_otras_marcas: {
-    "Retail": 1.2,      // 20% de aumento
-    "Mayorista": 1.15,  // 15% de aumento
-    "Online": 1.25,     // 25% de aumento
-    "Distribuidor": 1.1 // 10% de aumento
+    "Retail": 1.2,
+    "Mayorista": 1.15,
+    "Online": 1.25,
+    "Distribuidor": 1.1
   },
   
   // Reglas de rentabilidad
@@ -169,7 +219,10 @@ async function procesarArchivoExcel(buffer) {
 }
 
 // FUNCIÓN PRINCIPAL: CÁLCULO DE PRICING CORRECTO CON NUEVO SISTEMA
-function calcularPricingCorrecto(productos, equivalencias) {
+async function calcularPricingCorrecto(productos, equivalencias) {
+  // Cargar configuración actualizada desde Supabase
+  const config = await cargarConfiguracionPricing();
+  
   return productos.map(producto => {
     const modelo = producto.modelo;
     const marca = normalizarMarca(producto.marca);
@@ -220,21 +273,23 @@ function calcularPricingCorrecto(productos, equivalencias) {
         tipoCalculo = "Lista/PVP desde Varta (sin redondeo)";
       }
     } else if (canal === "minorista") {
-      // MINORISTA: Costo neto + 100% + IVA + redondeo
-      const precioNeto = costo * 2.00;
-      const precioConIva = precioNeto * (1 + CONFIGURACION_PRICING.iva / 100);
+      // MINORISTA: Usar markup desde configuración de Supabase
+      const markupMinorista = config.markups_otras_marcas["Retail"] || 2.00; // Fallback a 100%
+      const precioNeto = costo * markupMinorista;
+      const precioConIva = precioNeto * (1 + config.iva / 100);
       precioFinal = Math.round(precioConIva / 10) * 10; // Redondeo a múltiplos de $10
       // ✅ FÓRMULA CORRECTA: (Precio Neto - Costo) / Precio Neto * 100
       margen = ((precioNeto - costo) / precioNeto) * 100;
-      tipoCalculo = "Minorista (+100% + redondeo)";
+      tipoCalculo = `Minorista (+${((markupMinorista - 1) * 100).toFixed(0)}% + redondeo)`;
     } else if (canal === "mayorista") {
-      // MAYORISTA: Precio Varta neto + 50% + IVA + redondeo
-      const precioNeto = precioBaseVarta * 1.50;
-      const precioConIva = precioNeto * (1 + CONFIGURACION_PRICING.iva / 100);
+      // MAYORISTA: Usar markup desde configuración de Supabase
+      const markupMayorista = config.markups_otras_marcas["Mayorista"] || 1.50; // Fallback a 50%
+      const precioNeto = precioBaseVarta * markupMayorista;
+      const precioConIva = precioNeto * (1 + config.iva / 100);
       precioFinal = Math.round(precioConIva / 10) * 10; // Redondeo a múltiplos de $10
       // ✅ FÓRMULA CORRECTA: (Precio Neto - Costo) / Precio Neto * 100
       margen = ((precioNeto - precioBaseVarta) / precioNeto) * 100;
-      tipoCalculo = "Mayorista (Varta +50% + redondeo)";
+      tipoCalculo = `Mayorista (Varta +${((markupMayorista - 1) * 100).toFixed(0)}% + redondeo)`;
     } else {
       // CANAL NO RECONOCIDO: Usar lógica anterior
       if (marca === "Varta") {
@@ -306,7 +361,7 @@ router.post('/procesar-archivo', upload.single('archivo'), async (req, res) => {
     ];
     
     // Calcular pricing correcto
-    const productosConPricing = calcularPricingCorrecto(rows, equivalencias);
+    const productosConPricing = await calcularPricingCorrecto(rows, equivalencias);
     
     // Calcular estadísticas
     const estadisticas = {
@@ -441,7 +496,7 @@ router.post('/calcular-producto', (req, res) => {
     }
     
     // Calcular pricing para un solo producto
-    const [productoConPricing] = calcularPricingCorrecto([producto], equivalencias);
+    const [productoConPricing] = await calcularPricingCorrecto([producto], equivalencias);
     
     res.json({
       success: true,
