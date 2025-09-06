@@ -1,5 +1,5 @@
 # 🚀 AcuBat - Plataforma de Pricing
-<!-- Redeploy trigger - Forzando deploy - Fix pricing Supabase -->
+<!-- Redeploy trigger - Forzando deploy - Fix pricing Supabase - Build OK -->
 
 Una plataforma completa y moderna para la gestión y análisis de precios en call centers, con capacidades avanzadas de simulación y reglas de pricing.
 
