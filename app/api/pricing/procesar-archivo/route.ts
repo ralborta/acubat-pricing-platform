@@ -3,6 +3,10 @@ import * as XLSX from 'xlsx'
 // import { buscarEquivalenciaVarta } from '../../../lib/varta_database'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 // 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN DESDE SUPABASE
 async function obtenerConfiguracion() {
   try {
@@ -181,10 +185,17 @@ function validarMoneda(precio: any): { esPeso: boolean, confianza: number, razon
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 RECIBIENDO REQUEST...')
+    console.log('📋 Content-Type:', request.headers.get('content-type'))
+    
     const formData = await request.formData()
+    console.log('📋 FormData recibido:', formData)
+    
     const file = formData.get('file') as File
+    console.log('📁 Archivo recibido:', file)
 
     if (!file) {
+      console.error('❌ No se encontró archivo en formData')
       return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
     }
 
@@ -768,7 +779,13 @@ export async function POST(request: NextRequest) {
     console.log('✅ SISTEMA LOCAL CONFIABLE COMPLETADO EXITOSAMENTE')
     console.log('🎯 Base de datos Varta local funcionando perfectamente')
     console.log('🚀 Sin dependencias de APIs externas inestables')
-    return NextResponse.json(resultado)
+    return NextResponse.json(resultado, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+        'CDN-Cache-Control': 'no-store',
+        'Vercel-CDN-Cache-Control': 'no-store'
+      }
+    })
 
   } catch (error) {
     console.error('❌ Error en procesamiento:', error)
