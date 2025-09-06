@@ -1,113 +1,155 @@
 import { NextRequest, NextResponse } from 'next/server';
-import configManager from '@/lib/configManagerLocal';
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 // GET - Obtener configuración actual
 export async function GET() {
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase no configurado' }, { status: 500 });
+  }
+
   try {
-    const config = await configManager.getCurrentConfig();
-    
+    const { data, error } = await supabase
+      .from('config')
+      .select('config_data, created_at, id')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('❌ Error obteniendo configuración:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
     return NextResponse.json({
       success: true,
-      data: config
+      data: data?.config_data || {}
+    }, {
+      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
     });
   } catch (error) {
-    console.error('❌ Error obteniendo configuración:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error al obtener configuración' },
-      { status: 500 }
-    );
+    console.error('❌ Error interno:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
 
 // POST - Guardar nueva configuración
 export async function POST(request: NextRequest) {
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase no configurado' }, { status: 500 });
+  }
+
   try {
     const body = await request.json();
     
-    // Validar configuración
-    const validation = configManager.validateConfig(body);
-    if (!validation.isValid) {
+    // Validación básica
+    if (!body.iva || !body.markups) {
       return NextResponse.json(
         { 
           success: false, 
           error: 'Configuración inválida',
-          details: validation.errors
+          details: ['IVA y markups son requeridos']
         },
         { status: 400 }
       );
     }
 
-    // Guardar configuración
-    const savedConfig = await configManager.saveConfig(body);
+    // Preparar configuración para guardar
+    const configToSave = {
+      ...body,
+      promociones: false,
+      ultimaActualizacion: new Date().toISOString()
+    };
+
+    // Usar upsert con id fijo (singleton)
+    const { data, error } = await supabase
+      .from('config')
+      .upsert({ 
+        id: 1, 
+        config_data: configToSave 
+      }, { 
+        onConflict: 'id' 
+      })
+      .select();
+
+    if (error) {
+      console.error('❌ Error guardando configuración:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     
     return NextResponse.json({
       success: true,
-      data: savedConfig,
+      data: configToSave,
       message: 'Configuración guardada exitosamente'
     }, { status: 201 });
   } catch (error) {
-    console.error('❌ Error guardando configuración:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error al guardar configuración' },
-      { status: 500 }
-    );
+    console.error('❌ Error interno:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
 
-// PUT - Actualizar configuración existente
+// PUT - Actualizar configuración existente (mismo que POST)
 export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
-    
-    // Obtener configuración actual y actualizarla
-    const currentConfig = await configManager.getCurrentConfig();
-    const updatedConfig = { ...currentConfig, ...body };
-    
-    // Validar configuración actualizada
-    const validation = configManager.validateConfig(updatedConfig);
-    if (!validation.isValid) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Configuración inválida',
-          details: validation.errors
-        },
-        { status: 400 }
-      );
-    }
-
-    // Guardar configuración actualizada
-    const savedConfig = await configManager.saveConfig(updatedConfig);
-    
-    return NextResponse.json({
-      success: true,
-      data: savedConfig,
-      message: 'Configuración actualizada exitosamente'
-    });
-  } catch (error) {
-    console.error('❌ Error actualizando configuración:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error al actualizar configuración' },
-      { status: 500 }
-    );
-  }
+  return POST(request);
 }
 
 // DELETE - Resetear a configuración por defecto
 export async function DELETE() {
+  if (!supabase) {
+    return NextResponse.json({ error: 'Supabase no configurado' }, { status: 500 });
+  }
+
   try {
-    const resetConfig = await configManager.resetConfig();
+    const defaultConfig = {
+      iva: 21,
+      markups: {
+        mayorista: 22,
+        directa: 60,
+        distribucion: 20
+      },
+      factoresVarta: {
+        factorBase: 40,
+        capacidad80Ah: 35
+      },
+      promociones: false,
+      comisiones: {
+        mayorista: 5,
+        directa: 8,
+        distribucion: 6
+      },
+      ultimaActualizacion: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+      .from('config')
+      .upsert({ 
+        id: 1, 
+        config_data: defaultConfig 
+      }, { 
+        onConflict: 'id' 
+      })
+      .select();
+
+    if (error) {
+      console.error('❌ Error reseteando configuración:', error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     
     return NextResponse.json({
       success: true,
-      data: resetConfig,
+      data: defaultConfig,
       message: 'Configuración reseteada a valores por defecto'
     });
   } catch (error) {
-    console.error('❌ Error reseteando configuración:', error);
-    return NextResponse.json(
-      { success: false, error: 'Error al resetear configuración' },
-      { status: 500 }
-    );
+    console.error('❌ Error interno:', error);
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
