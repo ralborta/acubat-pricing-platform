@@ -48,7 +48,6 @@ export function middleware(request) {
 export const config = {
   matcher: [
     '/api/admin/:path*',
-    '/api/debug-db',
-    '/api/config'
+    '/api/debug-db'
   ]
 };

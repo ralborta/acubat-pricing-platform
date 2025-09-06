@@ -6,13 +6,21 @@ import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 // 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN DESDE SUPABASE
 async function obtenerConfiguracion() {
   try {
+    // Verificar variables de entorno
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Variables de entorno de Supabase no configuradas');
+    }
+    
     // Obtener configuración desde Supabase
-    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/config`, {
+    const response = await fetch(`${supabaseUrl}/rest/v1/config`, {
       headers: {
-        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json'
-      }
+      } as HeadersInit
     });
     
     const data = await response.json();
