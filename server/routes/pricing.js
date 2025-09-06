@@ -20,16 +20,16 @@ async function cargarConfiguracionPricing() {
     const { data, error } = await supabase
       .from('config')
       .select('config_data')
-      .order('created_at', { ascending: false })
-      .limit(1);
+      .eq('id', 1)
+      .maybeSingle();
 
     if (error) {
       console.error('❌ Error cargando configuración desde Supabase:', error);
       return CONFIGURACION_PRICING;
     }
 
-    if (data && data.length > 0) {
-      const config = data[0].config_data;
+    if (data && data.config_data) {
+      const config = data.config_data;
       console.log('✅ Configuración cargada desde Supabase:', config);
       
       // Actualizar configuración con valores de Supabase
