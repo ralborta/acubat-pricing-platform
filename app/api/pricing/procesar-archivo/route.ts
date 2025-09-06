@@ -3,19 +3,29 @@ import * as XLSX from 'xlsx'
 // import { buscarEquivalenciaVarta } from '../../../lib/varta_database'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
-// 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN DESDE LOCALSTORAGE
+// 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN DESDE SUPABASE
 async function obtenerConfiguracion() {
   try {
-    // 🚀 IMPORTAR CONFIGMANAGER LOCALSTORAGE
-    const { default: configManager } = await import('../../../../lib/configManagerLocal');
+    // Obtener configuración desde Supabase
+    const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/config`, {
+      headers: {
+        'apikey': process.env.SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
     
-    // Obtener configuración desde localStorage
-    const config = await configManager.getCurrentConfig();
-    console.log('🎯 Configuración cargada desde localStorage:', config);
+    const data = await response.json();
     
-    return config;
+    if (data && data.length > 0) {
+      const config = data[0].config_data;
+      console.log('🎯 Configuración cargada desde Supabase:', config);
+      return config;
+    } else {
+      throw new Error('No se encontró configuración en Supabase');
+    }
   } catch (error) {
-    console.error('❌ Error obteniendo configuración desde localStorage:', error);
+    console.error('❌ Error obteniendo configuración desde Supabase:', error);
     console.log('⚠️ Fallback a valores por defecto');
     
     // Valores por defecto como fallback
