@@ -27,12 +27,16 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({
-      success: true,
-      data: data?.config_data || {}
-    }, {
-      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
-    });
+                return NextResponse.json({
+                  success: true,
+                  data: data?.config_data || {}
+                }, {
+                  headers: { 
+                    'Cache-Control': 'no-store, no-cache, must-revalidate',
+                    'CDN-Cache-Control': 'no-store',
+                    'Vercel-CDN-Cache-Control': 'no-store'
+                  }
+                });
   } catch (error) {
     console.error('❌ Error interno:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
@@ -67,14 +71,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
     
-    return NextResponse.json({
-      success: true,
-      data: data.config_data,
-      message: 'Configuración guardada exitosamente'
-    }, { 
-      status: 201,
-      headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' }
-    });
+                return NextResponse.json({
+                  success: true,
+                  data: data.config_data,
+                  message: 'Configuración guardada exitosamente'
+                }, { 
+                  status: 201,
+                  headers: { 
+                    'Cache-Control': 'no-store, no-cache, must-revalidate',
+                    'CDN-Cache-Control': 'no-store',
+                    'Vercel-CDN-Cache-Control': 'no-store'
+                  }
+                });
   } catch (error) {
     console.error('❌ Error interno:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
