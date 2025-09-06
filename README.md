@@ -418,3 +418,4 @@ Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más det
 *Desarrollado con ❤️ por el equipo de AcuBat*
 # Configuración actualizada Sun Aug 24 22:29:20 -03 2025
 # Force redeploy Fri Sep  5 15:53:34 -03 2025
+# Auto-deploy configurado - Sat Sep  6 20:47:01 -03 2025
