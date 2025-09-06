@@ -750,7 +750,7 @@ export async function POST(request: NextRequest) {
       console.log('📋 Resultado:', resultadoProducto)
       
       return resultadoProducto
-    }))
+    })
 
     // Estadísticas
     const totalProductos = productosProcesados.length
