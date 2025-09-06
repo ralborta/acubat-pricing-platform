@@ -5,8 +5,8 @@ import { ArrowUpTrayIcon, DocumentTextIcon, PlayIcon, CheckCircleIcon, ChevronDo
 import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import ProcessVisualizer from '@/components/ProcessVisualizer'
-import { exportarAExcel } from '../../src/lib/excel-export'
-import { useConfiguracion } from '@/hooks/useConfiguracion'
+// import { exportarAExcel } from '@/lib/excel-export'
+import { useConfiguracion } from '../hooks/useConfiguracion'
 
 interface Producto {
   id: number
@@ -132,7 +132,7 @@ export default function CargaPage() {
 
     // Exportar a Excel
     const nombreArchivo = `reporte_${archivoNombre.replace(/\.[^/.]+$/, '')}`
-    exportarAExcel(productosExcel, estadisticasExcel, nombreArchivo)
+    // exportarAExcel(productosExcel, estadisticasExcel, nombreArchivo)
   }
 
   // Función para convertir PDF a Excel (REAL - NO simulada)

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
-import { buscarEquivalenciaVarta } from '../../../../src/lib/varta_database'
+// import { buscarEquivalenciaVarta } from '../../../lib/varta_database'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
 // 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN DESDE LOCALSTORAGE
@@ -549,7 +549,8 @@ export async function POST(request: NextRequest) {
         
         // Intentar búsqueda con diferentes estrategias
         console.log(`🔍 ESTRATEGIA 1: Búsqueda directa`)
-        equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo, undefined)
+        // equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo, undefined)
+        equivalenciaVarta = null // Temporal hasta implementar la función
         
         // Si no se encuentra, intentar con modelo limpio
         if (!equivalenciaVarta && modelo) {
@@ -558,7 +559,7 @@ export async function POST(request: NextRequest) {
           if (modeloLimpio !== modelo) {
             console.log(`   - Modelo original: "${modelo}"`)
             console.log(`   - Modelo limpio: "${modeloLimpio}"`)
-            equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modeloLimpio, undefined)
+            // equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modeloLimpio, undefined)
           }
         }
         
@@ -569,18 +570,18 @@ export async function POST(request: NextRequest) {
           if (capacidadMatch) {
             const capacidad = capacidadMatch[1] + 'Ah'
             console.log(`   - Capacidad extraída: "${capacidad}"`)
-            equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo, capacidad)
+            // equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo, capacidad)
           }
         }
         
-        if (equivalenciaVarta) {
-          console.log(`✅ EQUIVALENCIA VARTA ENCONTRADA:`)
-          console.log(`   - Código: ${equivalenciaVarta.codigo}`)
-          console.log(`   - Precio: ${equivalenciaVarta.precio_neto}`)
-          console.log(`   - Descripción: ${equivalenciaVarta.descripcion}`)
-        } else {
-          console.log(`❌ NO SE ENCONTRÓ EQUIVALENCIA VARTA para: ${modelo}`)
-        }
+        // if (equivalenciaVarta) {
+        //   console.log(`✅ EQUIVALENCIA VARTA ENCONTRADA:`)
+        //   console.log(`   - Código: ${equivalenciaVarta.codigo}`)
+        //   console.log(`   - Precio: ${equivalenciaVarta.precio_neto}`)
+        //   console.log(`   - Descripción: ${equivalenciaVarta.descripcion}`)
+        // } else {
+        //   console.log(`❌ NO SE ENCONTRÓ EQUIVALENCIA VARTA para: ${modelo}`)
+        // }
       } else {
         console.log(`⚠️ Modelo no válido para búsqueda Varta: "${modelo}"`)
       }
@@ -588,24 +589,24 @@ export async function POST(request: NextRequest) {
       console.log(`✅ Equivalencia Varta:`, equivalenciaVarta)
       
       // 🔍 DEBUG DETALLADO DE LA BÚSQUEDA
-      if (equivalenciaVarta) {
-        console.log(`🎯 EQUIVALENCIA VARTA CONFIRMADA:`)
-        console.log(`   - Código: ${equivalenciaVarta.codigo}`)
-        console.log(`   - Precio Neto: ${equivalenciaVarta.precio_neto}`)
-        console.log(`   - Tipo: ${equivalenciaVarta.tipo}`)
-        console.log(`   - Modelo: ${equivalenciaVarta.modelo}`)
-        console.log(`   - Capacidad: ${equivalenciaVarta.capacidad}`)
-        console.log(`   - Voltaje: ${equivalenciaVarta.voltaje}`)
-      } else {
-        console.log(`❌ EQUIVALENCIA VARTA NO ENCONTRADA`)
-        console.log(`   - Revisar si el modelo "${modelo}" existe en la base de datos`)
-        console.log(`   - Verificar que la función buscarEquivalenciaVarta esté funcionando`)
-      }
+      // if (equivalenciaVarta) {
+      //   console.log(`🎯 EQUIVALENCIA VARTA CONFIRMADA:`)
+      //   console.log(`   - Código: ${equivalenciaVarta.codigo}`)
+      //   console.log(`   - Precio Neto: ${equivalenciaVarta.precio_neto}`)
+      //   console.log(`   - Tipo: ${equivalenciaVarta.tipo}`)
+      //   console.log(`   - Modelo: ${equivalenciaVarta.modelo}`)
+      //   console.log(`   - Capacidad: ${equivalenciaVarta.capacidad}`)
+      //   console.log(`   - Voltaje: ${equivalenciaVarta.voltaje}`)
+      // } else {
+      //   console.log(`❌ EQUIVALENCIA VARTA NO ENCONTRADA`)
+      //   console.log(`   - Revisar si el modelo "${modelo}" existe en la base de datos`)
+      //   console.log(`   - Verificar que la función buscarEquivalenciaVarta esté funcionando`)
+      // }
 
       // 🎯 DEFINICIÓN CLARA DE PRECIOS BASE:
       // Minorista: SIEMPRE usa precioBase (del archivo subido)
       // Mayorista: Usa precioVarta si existe, sino precioBase
-      let mayoristaBase = equivalenciaVarta ? equivalenciaVarta.precio_neto : precioBase
+      let mayoristaBase = equivalenciaVarta ? 0 : precioBase; // Temporal hasta implementar equivalenciaVarta
       
       console.log(`\n💰 DEFINICIÓN DE PRECIOS BASE DEL PRODUCTO ${index + 1}:`)
       console.log(`   - Precio Base Minorista: ${precioBase} (del archivo subido)`)
@@ -702,12 +703,7 @@ export async function POST(request: NextRequest) {
         costo_estimado_minorista: costoEstimadoMinorista,  // ✅ Costo estimado para Minorista
         costo_estimado_mayorista: costoEstimadoMayorista,  // ✅ Costo estimado para Mayorista
         validacion_moneda: validacionMoneda,
-        equivalencia_varta: equivalenciaVarta ? {
-          encontrada: true,
-          codigo: equivalenciaVarta.codigo,
-          precio_varta: equivalenciaVarta.precio_neto,
-          descripcion: equivalenciaVarta.descripcion
-        } : { encontrada: false, razon: 'No se encontró equivalencia' },
+        equivalencia_varta: { encontrada: false, razon: 'No se encontró equivalencia' },
         minorista: {
           precio_neto: minoristaNeto,
           precio_final: minoristaFinal,
