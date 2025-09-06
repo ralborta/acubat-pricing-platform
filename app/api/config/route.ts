@@ -69,15 +69,20 @@ export async function POST(request: NextRequest) {
       ultimaActualizacion: new Date().toISOString()
     };
 
-    // Usar upsert con id fijo (singleton)
+    // Primero eliminar TODAS las configuraciones existentes
+    const { error: deleteError } = await supabase
+      .from('config')
+      .delete()
+      .neq('id', 0); // Eliminar todas las filas
+
+    if (deleteError) {
+      console.error('❌ Error eliminando configuraciones:', deleteError);
+    }
+
+    // Luego insertar la nueva configuración
     const { data, error } = await supabase
       .from('config')
-      .upsert({ 
-        id: 1, 
-        config_data: configToSave 
-      }, { 
-        onConflict: 'id' 
-      })
+      .insert([{ config_data: configToSave }])
       .select();
 
     if (error) {
@@ -128,14 +133,20 @@ export async function DELETE() {
       ultimaActualizacion: new Date().toISOString()
     };
 
+    // Primero eliminar TODAS las configuraciones existentes
+    const { error: deleteError } = await supabase
+      .from('config')
+      .delete()
+      .neq('id', 0); // Eliminar todas las filas
+
+    if (deleteError) {
+      console.error('❌ Error eliminando configuraciones:', deleteError);
+    }
+
+    // Luego insertar la configuración por defecto
     const { data, error } = await supabase
       .from('config')
-      .upsert({ 
-        id: 1, 
-        config_data: defaultConfig 
-      }, { 
-        onConflict: 'id' 
-      })
+      .insert([{ config_data: defaultConfig }])
       .select();
 
     if (error) {
