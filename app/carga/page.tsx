@@ -6,6 +6,7 @@ import Sidebar from '@/components/Sidebar'
 import Header from '@/components/Header'
 import ProcessVisualizer from '@/components/ProcessVisualizer'
 import { exportarAExcel } from '../../src/lib/excel-export'
+import { useConfiguracion } from '@/hooks/useConfiguracion'
 
 interface Producto {
   id: number
@@ -48,6 +49,9 @@ interface Resultado {
 }
 
 export default function CargaPage() {
+  // Hook para obtener configuración de Supabase
+  const { configuracion } = useConfiguracion()
+  
   const [opcionSeleccionada, setOpcionSeleccionada] = useState<'base' | 'pricing' | 'simulacion' | null>(null)
   const [archivoSeleccionado, setArchivoSeleccionado] = useState<File | null>(null)
   const [archivoNombre, setArchivoNombre] = useState<string>('')
@@ -112,8 +116,8 @@ export default function CargaPage() {
       costo_estimado_mayorista: producto.costo_estimado_mayorista || 0,
       precio_final_minorista: producto.minorista.precio_final || 0,
       precio_final_mayorista: producto.mayorista.precio_final || 0,
-      markup_minorista: '+70%',
-      markup_mayorista: '+30%',
+      markup_minorista: `+${configuracion?.markups?.directa || 60}%`,
+      markup_mayorista: `+${configuracion?.markups?.mayorista || 22}%`,
       iva_minorista: Math.round((producto.minorista.precio_final || 0) * 0.21),
       iva_mayorista: Math.round((producto.mayorista.precio_final || 0) * 0.21),
       equivalencia_varta: producto.equivalencia_varta
@@ -334,7 +338,7 @@ export default function CargaPage() {
         producto.minorista.precio_neto || 0,
         (producto.minorista.precio_final || 0) - (producto.minorista.precio_neto || 0),
         producto.minorista.precio_final || 0,
-        '+70%',
+        `+${configuracion?.markups?.directa || 60}%`,
         producto.minorista.rentabilidad || '0%'
       ].join(','))
       
@@ -972,7 +976,7 @@ export default function CargaPage() {
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
-                                  <div className="text-sm font-semibold text-blue-600">+70%</div>
+                                  <div className="text-sm font-semibold text-blue-600">+{configuracion?.markups?.directa || 60}%</div>
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="text-sm font-semibold text-blue-600">{producto.minorista.rentabilidad}</div>
@@ -1024,7 +1028,7 @@ export default function CargaPage() {
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
                                   <div className="text-sm font-semibold text-green-600">
-                                    {producto.equivalencia_varta?.encontrada ? '+30%' : '+40%'}
+                                    +{configuracion?.markups?.mayorista || 22}%
                                   </div>
                                 </td>
                                 <td className="px-4 py-3 whitespace-nowrap">
@@ -1072,8 +1076,8 @@ export default function CargaPage() {
                       <div className="mt-3 flex flex-wrap justify-center gap-2">
                         {[
                           'Procesamiento Excel',
-                          'Cálculo Minorista +70%',
-                          'Cálculo Mayorista +40%',
+                          `Cálculo Minorista +${configuracion?.markups?.directa || 60}%`,
+                          `Cálculo Mayorista +${configuracion?.markups?.mayorista || 22}%`,
                           'Rentabilidad Automática',
                           'Redondeo Inteligente',
                           'Exportación CSV'
