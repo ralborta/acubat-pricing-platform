@@ -4,49 +4,54 @@ import * as XLSX from 'xlsx'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
 export const runtime = 'nodejs'
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
+// 🚫 QUITAR estas líneas problemáticas para Vercel file uploads
+// export const dynamic = 'force-dynamic' 
+// export const revalidate = 0
 
-// 🎯 FUNCIÓN PARA OBTENER CONFIGURACIÓN DESDE SUPABASE
+// 🚀 FUNCIÓN MÁS EFICIENTE
 async function obtenerConfiguracion() {
   try {
-    // Verificar variables de entorno
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Variables de entorno de Supabase no configuradas');
+      throw new Error('Variables Supabase no configuradas');
     }
     
-    // Obtener configuración desde Supabase
-    const response = await fetch(`${supabaseUrl}/rest/v1/config`, {
+    const response = await fetch(`${supabaseUrl}/rest/v1/config?id=eq.1&select=config_data`, {
       headers: {
         'apikey': supabaseKey,
         'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json'
-      } as HeadersInit
+      },
+      // 🔄 CACHE CORTO PARA DB
+      next: { revalidate: 60 } // Cache 1 minuto
     });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
     
     const data = await response.json();
     
     if (data && data.length > 0) {
-      const config = data[0].config_data;
-      console.log('🎯 Configuración cargada desde Supabase:', config);
-      return config;
+      console.log('🎯 Configuración cargada desde Supabase:', data[0].config_data);
+      return data[0].config_data;
     } else {
-      throw new Error('No se encontró configuración en Supabase');
+      console.warn('⚠️ Usando configuración por defecto');
+      return {
+        iva: 21,
+        markups: { mayorista: 22, directa: 60, distribucion: 20 },
+        factoresVarta: { factorBase: 40, capacidad80Ah: 35 },
+        comisiones: { mayorista: 5, directa: 8, distribucion: 6 }
+      };
     }
   } catch (error) {
-    console.error('❌ Error obteniendo configuración desde Supabase:', error);
-    console.log('⚠️ Fallback a valores por defecto');
-    
-    // Valores por defecto como fallback
+    console.error('❌ Error config DB:', error);
+    // 🔄 FALLBACK por defecto
     return {
       iva: 21,
-      markups: { mayorista: 22, directa: 60, distribucion: 20 },
-      factoresVarta: { factorBase: 40, capacidad80Ah: 35 },
-      promociones: false,
-      comisiones: { mayorista: 5, directa: 8, distribucion: 6 }
+      markups: { mayorista: 22, directa: 60, distribucion: 20 }
     };
   }
 }
@@ -185,23 +190,48 @@ function validarMoneda(precio: any): { esPeso: boolean, confianza: number, razon
 
 export async function POST(request: NextRequest) {
   try {
+    // 🛡️ MEJOR VALIDACIÓN DE ARCHIVO
+    const contentType = request.headers.get('content-type')
+    if (!contentType?.includes('multipart/form-data')) {
+      return NextResponse.json({ 
+        error: 'Content-Type debe ser multipart/form-data' 
+      }, { status: 400 })
+    }
+
     console.log('🔍 RECIBIENDO REQUEST...')
-    console.log('📋 Content-Type:', request.headers.get('content-type'))
+    console.log('📋 Content-Type:', contentType)
     
     const formData = await request.formData()
     console.log('📋 FormData recibido:', formData)
     
-    const file = formData.get('file') as File
+    const file = formData.get('file') as File | null
     console.log('📁 Archivo recibido:', file)
 
-    if (!file) {
-      console.error('❌ No se encontró archivo en formData')
-      return NextResponse.json({ error: 'No se proporcionó archivo' }, { status: 400 })
+    // 🔍 VALIDACIÓN MÁS ROBUSTA
+    if (!file || file.size === 0) {
+      console.error('❌ Archivo no válido o vacío')
+      return NextResponse.json({ 
+        error: 'Archivo no válido o vacío' 
+      }, { status: 400 })
     }
 
-    // Leer archivo Excel
-    const buffer = await file.arrayBuffer()
-    const workbook = XLSX.read(buffer, { type: 'buffer' })
+    // 📁 MEJOR MANEJO DEL BUFFER
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    
+    if (buffer.length === 0) {
+      return NextResponse.json({ 
+        error: 'Archivo vacío' 
+      }, { status: 400 })
+    }
+
+    // 📊 LECTURA EXCEL MÁS ROBUSTA
+    const workbook = XLSX.read(buffer, { 
+      type: 'buffer',
+      cellDates: true,
+      cellNF: false,
+      raw: false
+    })
     const sheetName = workbook.SheetNames[0]
     const worksheet = workbook.Sheets[sheetName]
     const datos = XLSX.utils.sheet_to_json(worksheet)
@@ -451,11 +481,16 @@ export async function POST(request: NextRequest) {
     console.log('✅ MAPEO FINAL DE COLUMNAS:')
     console.log('📋 Mapeo final:', columnMapping)
 
+    // 🎯 CARGAR CONFIG UNA SOLA VEZ AL INICIO
+    const config = await obtenerConfiguracion()
+    console.log('⚙️ Config cargada:', config)
+
     // Procesar productos con sistema local confiable
     console.log('🚀 INICIANDO PROCESAMIENTO DE PRODUCTOS...')
     console.log('📊 Total de productos a procesar:', datos.length)
     
-    const productosProcesados = await Promise.all(datos.map(async (producto: any, index: number) => {
+    // 🔄 PROCESAR PRODUCTOS SIN LLAMADAS ASYNC INNECESARIAS
+    const productosProcesados = datos.map((producto: any, index: number) => {
       console.log(`\n🔍 === PRODUCTO ${index + 1} ===`)
       
       // 🔍 DEBUG: Ver qué datos llegan del Excel
@@ -648,8 +683,7 @@ export async function POST(request: NextRequest) {
       console.log(`   - Costo Minorista: ${precioBase} * 0.6 = ${costoEstimadoMinorista}`)
       console.log(`   - Costo Mayorista: ${mayoristaBase} * 0.6 = ${costoEstimadoMayorista}`)
 
-      // 🎯 APLICAR CONFIGURACIÓN EN CÁLCULO MINORISTA
-      const config = await obtenerConfiguracion()
+      // 📊 USAR CONFIG YA CARGADA (NO ASYNC)
       const ivaMultiplier = 1 + (config.iva / 100)
       const markupMinorista = 1 + (config.markups.directa / 100)
       
@@ -779,19 +813,19 @@ export async function POST(request: NextRequest) {
     console.log('✅ SISTEMA LOCAL CONFIABLE COMPLETADO EXITOSAMENTE')
     console.log('🎯 Base de datos Varta local funcionando perfectamente')
     console.log('🚀 Sin dependencias de APIs externas inestables')
+    // 🎯 HEADERS SIMPLIFICADOS
     return NextResponse.json(resultado, {
       headers: {
-        'Cache-Control': 'no-store, no-cache, must-revalidate',
-        'CDN-Cache-Control': 'no-store',
-        'Vercel-CDN-Cache-Control': 'no-store'
+        'Cache-Control': 'no-cache'
+        // 🚫 Quitar headers innecesarios de CDN
       }
     })
 
   } catch (error) {
-    console.error('❌ Error en procesamiento:', error)
+    console.error('❌ Error completo:', error)
     return NextResponse.json({ 
-      error: 'Error interno del servidor', 
-      detalles: error instanceof Error ? error.message : 'Error desconocido' 
+      error: 'Error procesando archivo',
+      details: error instanceof Error ? error.message : 'Error desconocido'
     }, { status: 500 })
   }
 }
