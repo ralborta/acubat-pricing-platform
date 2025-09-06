@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react';
-import configManager from '../../lib/configManagerLocal';
+// import configManager from '../../lib/configManagerLocal';
 import { ConfiguracionSistema, ApiResponse } from '../../lib/types';
 
 // Función helper para asegurar que la configuración tenga el tipo correcto
@@ -41,11 +41,16 @@ export function useConfiguracion() {
   const cargarConfiguracion = async () => {
     try {
       setLoading(true);
-      const config = await configManager.getCurrentConfig();
-      // Asegurar que el tipo sea correcto
-      const configTyped = ensureConfigType(config);
-      setConfiguracion(configTyped);
-      setError(null);
+      const response = await fetch('/api/config', { cache: 'no-store' });
+      const data = await response.json();
+      
+      if (data.success) {
+        const configTyped = ensureConfigType(data.data);
+        setConfiguracion(configTyped);
+        setError(null);
+      } else {
+        throw new Error(data.error || 'Error al cargar configuración');
+      }
     } catch (err) {
       setError('Error al cargar configuración');
       console.error('❌ Error cargando configuración:', err);
@@ -58,21 +63,31 @@ export function useConfiguracion() {
   const guardarConfiguracion = async (nuevaConfig: Partial<ConfiguracionSistema>): Promise<ApiResponse<ConfiguracionSistema>> => {
     try {
       setLoading(true);
-      const configGuardada = await configManager.saveConfig({
-        ...configuracion,
-        ...nuevaConfig
+      const response = await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...configuracion,
+          ...nuevaConfig
+        })
       });
-      // Asegurar que el tipo sea correcto
-      const configTyped = ensureConfigType(configGuardada);
-      setConfiguracion(configTyped);
-      setError(null);
       
-      // Notificar a otros componentes que la configuración cambió
-      window.dispatchEvent(new CustomEvent('configuracionCambiada', { 
-        detail: configTyped 
-      }));
+      const data = await response.json();
       
-      return { success: true, data: configTyped };
+      if (data.success) {
+        const configTyped = ensureConfigType(data.data);
+        setConfiguracion(configTyped);
+        setError(null);
+        
+        // Notificar a otros componentes que la configuración cambió
+        window.dispatchEvent(new CustomEvent('configuracionCambiada', { 
+          detail: configTyped 
+        }));
+        
+        return { success: true, data: configTyped };
+      } else {
+        throw new Error(data.error || 'Error al guardar configuración');
+      }
     } catch (err) {
       const errorMsg = 'Error al guardar configuración';
       setError(errorMsg);
@@ -87,18 +102,27 @@ export function useConfiguracion() {
   const resetearConfiguracion = async (): Promise<ApiResponse<ConfiguracionSistema>> => {
     try {
       setLoading(true);
-      const configReset = await configManager.resetConfig();
-      // Asegurar que el tipo sea correcto
-      const configTyped = ensureConfigType(configReset);
-      setConfiguracion(configTyped);
-      setError(null);
+      const response = await fetch('/api/config', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
       
-      // Notificar cambio
-      window.dispatchEvent(new CustomEvent('configuracionCambiada', { 
-        detail: configTyped 
-      }));
+      const data = await response.json();
       
-      return { success: true, data: configTyped };
+      if (data.success) {
+        const configTyped = ensureConfigType(data.data);
+        setConfiguracion(configTyped);
+        setError(null);
+        
+        // Notificar cambio
+        window.dispatchEvent(new CustomEvent('configuracionCambiada', { 
+          detail: configTyped 
+        }));
+        
+        return { success: true, data: configTyped };
+      } else {
+        throw new Error(data.error || 'Error al resetear configuración');
+      }
     } catch (err) {
       const errorMsg = 'Error al resetear configuración';
       setError(errorMsg);
