@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as XLSX from 'xlsx'
-// import { buscarEquivalenciaVarta } from '../../../lib/varta_database'
+import { buscarEquivalenciaVarta } from '../../../lib/varta_database'
 import { mapColumnsStrict } from '../../../lib/pricing_mapper'
 
 export const runtime = 'nodejs'
@@ -601,18 +601,18 @@ export async function POST(request: NextRequest) {
           if (capacidadMatch) {
             const capacidad = capacidadMatch[1] + 'Ah'
             console.log(`   - Capacidad extraída: "${capacidad}"`)
-            // equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo, capacidad)
+            equivalenciaVarta = buscarEquivalenciaVarta('Varta', tipo, modelo, capacidad)
           }
         }
         
-        // if (equivalenciaVarta) {
-        //   console.log(`✅ EQUIVALENCIA VARTA ENCONTRADA:`)
-        //   console.log(`   - Código: ${equivalenciaVarta.codigo}`)
-        //   console.log(`   - Precio: ${equivalenciaVarta.precio_neto}`)
-        //   console.log(`   - Descripción: ${equivalenciaVarta.descripcion}`)
-        // } else {
-        //   console.log(`❌ NO SE ENCONTRÓ EQUIVALENCIA VARTA para: ${modelo}`)
-        // }
+        if (equivalenciaVarta) {
+          console.log(`✅ EQUIVALENCIA VARTA ENCONTRADA:`)
+          console.log(`   - Código: ${equivalenciaVarta.codigo}`)
+          console.log(`   - Precio: ${equivalenciaVarta.precio_neto}`)
+          console.log(`   - Descripción: ${equivalenciaVarta.descripcion}`)
+        } else {
+          console.log(`❌ NO SE ENCONTRÓ EQUIVALENCIA VARTA para: ${modelo}`)
+        }
       } else {
         console.log(`⚠️ Modelo no válido para búsqueda Varta: "${modelo}"`)
       }
@@ -637,7 +637,7 @@ export async function POST(request: NextRequest) {
       // 🎯 DEFINICIÓN CLARA DE PRECIOS BASE:
       // Minorista: SIEMPRE usa precioBase (del archivo subido)
       // Mayorista: Usa precioVarta si existe, sino precioBase
-      let mayoristaBase = equivalenciaVarta ? 0 : precioBase; // Temporal hasta implementar equivalenciaVarta
+      let mayoristaBase = equivalenciaVarta ? equivalenciaVarta.precio_neto : precioBase;
       
       console.log(`\n💰 DEFINICIÓN DE PRECIOS BASE DEL PRODUCTO ${index + 1}:`)
       console.log(`   - Precio Base Minorista: ${precioBase} (del archivo subido)`)
