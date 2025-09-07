@@ -91,8 +91,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🧪 Test PDF Converter Web</h1>
-        <p>Prueba la conversión de PDF a Excel directamente en el navegador</p>
+        <h1>🧪 Test PDF a Imágenes</h1>
+        <p>Prueba la conversión de PDF a imágenes de tablas directamente en el navegador</p>
         
         <div class="upload-area" id="uploadArea">
             <h3>📄 Subir Archivo PDF</h3>
@@ -117,7 +117,7 @@
         </div>
         
         <button id="convertBtn" class="btn" style="display: none;" onclick="convertirPDF()">
-            🚀 Convertir a Excel
+            🖼️ Extraer Imágenes
         </button>
         
         <div id="status"></div>
@@ -199,48 +199,39 @@
             try {
                 mostrarProgreso(10, 'Iniciando conversión...');
                 
-                // Simular conversión (por ahora)
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                mostrarProgreso(30, 'Leyendo PDF...');
+                const formData = new FormData();
+                formData.append('file', archivoSeleccionado);
                 
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                mostrarProgreso(60, 'Procesando datos...');
+                mostrarProgreso(50, 'Extrayendo tablas...');
                 
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                mostrarProgreso(80, 'Generando Excel...');
-                
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                mostrarProgreso(100, 'Conversión completada!');
-                
-                // Crear Excel de ejemplo
-                const datosEjemplo = [
-                    ['Código', 'Descripción', 'Precio', 'Categoría'],
-                    ['M40FD', 'Batería Moura 12X45', 136490, 'Automotriz'],
-                    ['M50FD', 'Batería Moura 12X50', 145000, 'Automotriz'],
-                    ['M60FD', 'Batería Moura 12X60', 158000, 'Automotriz']
-                ];
-                
-                const workbook = XLSX.utils.book_new();
-                const worksheet = XLSX.utils.aoa_to_sheet(datosEjemplo);
-                XLSX.utils.book_append_sheet(workbook, worksheet, 'Productos');
-                
-                const excelBuffer = XLSX.write(workbook, { type: 'array', bookType: 'xlsx' });
-                
-                // Descargar archivo
-                const blob = new Blob([excelBuffer], { 
-                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                const response = await fetch('/api/pdf-to-excel', {
+                    method: 'POST',
+                    body: formData
                 });
                 
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `conversion_${Date.now()}.xlsx`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+                const resultado = await response.json();
                 
-                mostrarStatus('✅ Conversión completada exitosamente. Archivo Excel descargado.', 'success');
+                mostrarProgreso(100, 'Conversión completada!');
+                
+                if (resultado.success) {
+                    // Mostrar las imágenes extraídas
+                    const contenedor = document.getElementById('status');
+                    contenedor.innerHTML = '<h3>Tablas Extraídas:</h3>';
+                    
+                    resultado.imagenes.forEach((img, index) => {
+                        const imgElement = document.createElement('img');
+                        imgElement.src = img.base64;
+                        imgElement.style.width = '100%';
+                        imgElement.style.marginBottom = '20px';
+                        imgElement.style.border = '1px solid #ccc';
+                        imgElement.style.borderRadius = '8px';
+                        contenedor.appendChild(imgElement);
+                    });
+                    
+                    mostrarStatus(`✅ ${resultado.total} tablas extraídas exitosamente`, 'success');
+                } else {
+                    mostrarStatus(`❌ Error: ${resultado.error}`, 'error');
+                }
                 
             } catch (error) {
                 console.error('Error en conversión:', error);
