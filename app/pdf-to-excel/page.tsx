@@ -414,3 +414,5 @@ export default function PDFToExcelPage() {
     </div>
   )
 }
+
+export default PDFToExcelPage
