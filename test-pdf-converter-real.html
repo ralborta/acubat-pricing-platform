@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Convertidor PDF a Excel Real</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .upload-area {
+            border: 2px dashed #007bff;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 0;
+            background: #f8f9fa;
+        }
+        .upload-area.dragover {
+            background: #e3f2fd;
+            border-color: #1976d2;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #007bff, #28a745);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        .result.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .result.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Convertidor PDF a Excel Real</h1>
+        <p>Este convertidor SÍ extrae datos reales del PDF usando OCR y detección de tablas.</p>
+        
+        <div class="upload-area" id="uploadArea">
+            <h3>📄 Selecciona tu archivo PDF</h3>
+            <p>Arrastra y suelta tu PDF aquí o haz clic para seleccionar</p>
+            <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+            <button onclick="document.getElementById('fileInput').click()">Seleccionar PDF</button>
+            <p><small>Máximo 50MB • Solo archivos PDF</small></p>
+        </div>
+
+        <div id="fileInfo" style="display: none;">
+            <h4>Archivo seleccionado:</h4>
+            <p id="fileName"></p>
+            <p id="fileSize"></p>
+        </div>
+
+        <div class="progress" id="progressContainer" style="display: none;">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+        <p id="progressText" style="text-align: center; margin: 10px 0;"></p>
+
+        <div style="text-align: center;">
+            <button id="convertBtn" onclick="convertirPDF()" disabled>Convertir a Excel</button>
+            <button onclick="resetear()">Resetear</button>
+        </div>
+
+        <div class="result" id="result">
+            <h3 id="resultTitle"></h3>
+            <p id="resultMessage"></p>
+            <div class="stats" id="stats"></div>
+            <button id="downloadBtn" onclick="descargarExcel()" style="display: none;">Descargar Excel</button>
+        </div>
+    </div>
+
+    <script>
+        let archivoSeleccionado = null;
+        let resultadoConversion = null;
+
+        // Configurar drag & drop
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                seleccionarArchivo(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                seleccionarArchivo(e.target.files[0]);
+            }
+        });
+
+        function seleccionarArchivo(archivo) {
+            // Validar archivo
+            if (!archivo.type.includes('pdf')) {
+                mostrarError('El archivo debe ser un PDF');
+                return;
+            }
+
+            if (archivo.size > 50 * 1024 * 1024) {
+                mostrarError('El archivo es demasiado grande (máximo 50MB)');
+                return;
+            }
+
+            archivoSeleccionado = archivo;
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('fileName').textContent = archivo.name;
+            document.getElementById('fileSize').textContent = (archivo.size / 1024 / 1024).toFixed(2) + ' MB';
+            document.getElementById('convertBtn').disabled = false;
+            document.getElementById('result').style.display = 'none';
+        }
+
+        async function convertirPDF() {
+            if (!archivoSeleccionado) {
+                mostrarError('Por favor selecciona un archivo PDF');
+                return;
+            }
+
+            mostrarProgreso(0, 'Iniciando conversión...');
+            document.getElementById('convertBtn').disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', archivoSeleccionado);
+
+                mostrarProgreso(20, 'Enviando archivo al servidor...');
+
+                const response = await fetch('/api/pdf-to-excel', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                mostrarProgreso(50, 'Procesando PDF y extrayendo datos...');
+
+                const resultado = await response.json();
+
+                mostrarProgreso(80, 'Generando archivo Excel...');
+
+                if (resultado.success) {
+                    resultadoConversion = resultado;
+                    mostrarProgreso(100, '¡Conversión completada!');
+                    mostrarExito(resultado);
+                } else {
+                    throw new Error(resultado.error || 'Error desconocido');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('Error en la conversión: ' + error.message);
+            } finally {
+                document.getElementById('convertBtn').disabled = false;
+            }
+        }
+
+        function mostrarProgreso(porcentaje, mensaje) {
+            document.getElementById('progressContainer').style.display = 'block';
+            document.getElementById('progressBar').style.width = porcentaje + '%';
+            document.getElementById('progressText').textContent = mensaje;
+        }
+
+        function mostrarExito(resultado) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result success';
+            resultDiv.style.display = 'block';
+
+            document.getElementById('resultTitle').textContent = '✅ Conversión Exitosa';
+            document.getElementById('resultMessage').textContent = resultado.mensaje || 'Archivo convertido correctamente';
+
+            // Mostrar estadísticas
+            if (resultado.estadisticas) {
+                const stats = resultado.estadisticas;
+                const statsHtml = `
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.filasTablas}</div>
+                        <div class="stat-label">Filas extraídas</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.tienePrecios}</div>
+                        <div class="stat-label">Con precios</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.tieneStock}</div>
+                        <div class="stat-label">Con stock</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">${stats.campos.length}</div>
+                        <div class="stat-label">Campos detectados</div>
+                    </div>
+                `;
+                document.getElementById('stats').innerHTML = statsHtml;
+            }
+
+            document.getElementById('downloadBtn').style.display = 'inline-block';
+        }
+
+        function mostrarError(mensaje) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = 'result error';
+            resultDiv.style.display = 'block';
+
+            document.getElementById('resultTitle').textContent = '❌ Error';
+            document.getElementById('resultMessage').textContent = mensaje;
+            document.getElementById('stats').innerHTML = '';
+            document.getElementById('downloadBtn').style.display = 'none';
+        }
+
+        function descargarExcel() {
+            if (!resultadoConversion || !resultadoConversion.excel) {
+                mostrarError('No hay archivo Excel para descargar');
+                return;
+            }
+
+            try {
+                // Convertir base64 a blob
+                const byteCharacters = atob(resultadoConversion.excel);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { 
+                    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                });
+
+                // Crear URL y descargar
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = resultadoConversion.nombreArchivo || 'conversion.xlsx';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                console.log('✅ Archivo descargado exitosamente');
+            } catch (error) {
+                console.error('Error descargando archivo:', error);
+                mostrarError('Error al descargar el archivo');
+            }
+        }
+
+        function resetear() {
+            archivoSeleccionado = null;
+            resultadoConversion = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('progressContainer').style.display = 'none';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('convertBtn').disabled = true;
+        }
+    </script>
+</body>
+</html>
